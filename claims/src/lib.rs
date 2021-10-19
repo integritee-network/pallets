@@ -16,6 +16,8 @@
 
 //! Pallet to process claims from Ethereum addresses.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use frame_support::{
 	ensure,
 	traits::{Currency, Get, IsSubType, VestingSchedule},
