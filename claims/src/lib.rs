@@ -1377,8 +1377,8 @@ mod tests {
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking {
+	use super::pallet::Call;
 	use super::*;
-	use crate::claims::Call;
 	use frame_benchmarking::{account, benchmarks};
 	use frame_system::RawOrigin;
 	use secp_utils::*;
