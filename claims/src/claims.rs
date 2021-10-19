@@ -104,16 +104,14 @@ impl StatementKind {
 	/// Convert this to the (English) statement it represents.
 	fn to_text(self) -> &'static [u8] {
 		match self {
-			StatementKind::Regular => {
+			StatementKind::Regular =>
 				&b"I hereby agree to the terms of the statement whose SHA-256 multihash is \
 				Qmc1XYqT6S39WNp2UeiRUrZichUWUPpGEThDE6dAb3f6Ny. (This may be found at the URL: \
-				https://statement.polkadot.network/regular.html)"[..]
-			}
-			StatementKind::Saft => {
+				https://statement.polkadot.network/regular.html)"[..],
+			StatementKind::Saft =>
 				&b"I hereby agree to the terms of the statement whose SHA-256 multihash is \
 				QmXEkMahfhHJPzT3RjkXiZVFi77ZeVeuxtAjhojGRNYckz. (This may be found at the URL: \
-				https://statement.polkadot.network/saft.html)"[..]
-			}
+				https://statement.polkadot.network/saft.html)"[..],
 		}
 	}
 }
@@ -494,20 +492,20 @@ pub mod pallet {
 				// <weight>
 				// The weight of this logic is included in the `claim` dispatchable.
 				// </weight>
-				Call::claim { dest: account, ethereum_signature } => {
+				Call::claim(account, ethereum_signature) => {
 					let data = account.using_encoded(to_ascii_hex);
 					(Self::eth_recover(&ethereum_signature, &data, &[][..]), None)
-				}
+				},
 				// <weight>
 				// The weight of this logic is included in the `claim_attest` dispatchable.
 				// </weight>
-				Call::claim_attest { dest: account, ethereum_signature, statement } => {
+				Call::claim_attest(account, ethereum_signature, statement) => {
 					let data = account.using_encoded(to_ascii_hex);
 					(
 						Self::eth_recover(&ethereum_signature, &data, &statement),
 						Some(statement.as_slice()),
 					)
-				}
+				},
 				_ => return Err(InvalidTransaction::Call.into()),
 			};
 
@@ -581,7 +579,7 @@ impl<T: Config> Pallet<T> {
 
 		let vesting = Vesting::<T>::get(&signer);
 		if vesting.is_some() && T::VestingSchedule::vesting_balance(&dest).is_some() {
-			return Err(Error::<T>::VestedBalanceExists.into());
+			return Err(Error::<T>::VestedBalanceExists.into())
 		}
 
 		// We first need to deposit the balance to ensure that the account exists.
@@ -665,7 +663,7 @@ where
 		_len: usize,
 	) -> TransactionValidity {
 		if let Some(local_call) = call.is_sub_type() {
-			if let Call::attest { statement: attested_statement } = local_call {
+			if let Call::attest(attested_statement) = local_call {
 				let signer = Preclaims::<T>::get(who)
 					.ok_or(InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()))?;
 				if let Some(s) = Signing::<T>::get(signer) {
