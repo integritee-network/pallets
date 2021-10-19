@@ -306,7 +306,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Make a claim to collect your DOTs.
+		/// Make a claim to collect your TEERs.
 		///
 		/// The dispatch origin for this call must be _None_.
 		///
@@ -347,7 +347,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Mint a new claim to collect DOTs.
+		/// Mint a new claim to collect TEERs.
 		///
 		/// The dispatch origin for this call must be _Root_.
 		///
@@ -383,7 +383,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Make a claim to collect your DOTs by signing a statement.
+		/// Make a claim to collect your TEERs by signing a statement.
 		///
 		/// The dispatch origin for this call must be _None_.
 		///
