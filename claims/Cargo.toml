@@ -1,0 +1,52 @@
+[package]
+name = "pallet-claims"
+version = "0.9.12"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+
+[dependencies]
+parity-scale-codec = { version = "2.3.1", default-features = false, features = ["derive"] }
+rustc-hex = { version = "2.1.0", default-features = false }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+serde = { version = "1.0.130", default-features = false }
+serde_derive = { version = "1.0.117", optional = true }
+
+sp-std = { package = "sp-std", git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
+libsecp256k1 = { version = "0.7.0", default-features = false, optional = true }
+
+[dev-dependencies]
+hex-literal = "0.3.3"
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "master" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
+libsecp256k1 = "0.7.0"
+pallet-vesting = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+serde_json = { version = "1.0.68" }
+
+
+[features]
+default = ["std"]
+no_std = []
+std = [
+	"parity-scale-codec/std",
+    "rustc-hex/std",
+	"scale-info/std",
+	"serde_derive",
+	"serde/std",
+	"sp-std/std",
+	"sp-io/std",
+	"frame-support/std",
+	"sp-runtime/std",
+	"frame-system/std",
+]
+runtime-benchmarks = [
+	"libsecp256k1/hmac",
+	"libsecp256k1/static-context",
+	"frame-benchmarking",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+]
