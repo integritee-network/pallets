@@ -706,7 +706,7 @@ mod secp_utils {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
 	use super::*;
 	use hex_literal::hex;
 	use secp_utils::*;
