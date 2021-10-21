@@ -1586,8 +1586,8 @@ mod benchmarking {
 
 		frame_benchmarking::impl_benchmark_test_suite!(
 			Pallet,
-			crate::claims::tests::new_test_ext(),
-			crate::claims::tests::Test,
+			super::pallet::tests::new_test_ext(),
+			super::pallet::tests::Test,
 		);
 	}
 }
