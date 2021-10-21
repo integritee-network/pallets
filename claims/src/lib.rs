@@ -706,7 +706,7 @@ mod secp_utils {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
 	use super::*;
 	use hex_literal::hex;
 	use secp_utils::*;
@@ -1586,8 +1586,8 @@ mod benchmarking {
 
 		frame_benchmarking::impl_benchmark_test_suite!(
 			Pallet,
-			super::pallet::tests::new_test_ext(),
-			super::pallet::tests::Test,
+			crate::tests::new_test_ext(),
+			crate::tests::Test,
 		);
 	}
 }
