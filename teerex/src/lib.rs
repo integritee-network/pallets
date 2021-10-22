@@ -47,7 +47,7 @@ const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_URL_LEN: usize = 256;
 
 #[derive(
-    Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, scale_info::TypeInfo,
+	Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, scale_info::TypeInfo,
 )]
 pub struct Enclave<PubKey, Url> {
 	pub pubkey: PubKey, // FIXME: this is redundant information
@@ -77,7 +77,7 @@ pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
 
 #[derive(
-    Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, scale_info::TypeInfo,
+	Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, scale_info::TypeInfo,
 )]
 pub struct Request {
 	pub shard: ShardIdentifier,

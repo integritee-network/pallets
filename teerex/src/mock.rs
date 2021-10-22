@@ -171,7 +171,8 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 
 //Help method for the OnTimestampSet to be called
 pub fn set_timestamp(time: u64) {
-	let _ = Call::Timestamp(timestamp::Call::set { now: time }).dispatch_bypass_filter(Origin::none());
+	let _ =
+		Call::Timestamp(timestamp::Call::set { now: time }).dispatch_bypass_filter(Origin::none());
 }
 
 /// Run until a particular block.

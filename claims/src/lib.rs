@@ -23,9 +23,9 @@ use frame_support::{
 	traits::{Currency, Get, IsSubType, VestingSchedule},
 	weights::Weight,
 };
-use scale_info::TypeInfo;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
