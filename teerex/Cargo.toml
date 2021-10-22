@@ -13,12 +13,13 @@ resolver = "2"
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
 log = { version = "0.4.14", default-features = false }
 hex-literal = { version = "0.3.2", optional = true }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 [dependencies.codec]
 default-features = false
 features = ['derive']
 package = 'parity-scale-codec'
-version = '2.0.0'
+version = '2.3.1'
 
 [dependencies.ias-verify]
 default-features = false
@@ -60,7 +61,6 @@ default-features = false
 package = "pallet-timestamp"
 git = "https://github.com/paritytech/substrate.git"
 branch = "polkadot-v0.9.12"
-
 
 ## benchmarking stuff
 [dependencies.frame-benchmarking]
@@ -107,6 +107,7 @@ std = [
     'sp-runtime/std',
     'sp-std/std',
     'timestamp/std',
+    'scale-info/std',
     # benchmarking stuff
     'frame-benchmarking/std',
     "pallet-balances/std",

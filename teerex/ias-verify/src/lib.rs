@@ -97,7 +97,7 @@ pub struct SgxQuote {
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, scale_info::TypeInfo)]
 pub enum SgxBuildMode {
 	Debug,
 	Production,
