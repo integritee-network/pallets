@@ -1,4 +1,6 @@
 [workspace]
 members = [
     'claims',
+    'teerex',
+    'teerex/ias-verify',
 ]
