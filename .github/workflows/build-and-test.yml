@@ -75,3 +75,13 @@ jobs:
           submodules: 'true'
       - name: test
         run: cargo test --all --features skip-ias-check
+  fmt:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: init-rust
+        run: |
+          rustup component add rustfmt
+          rustup target add wasm32-unknown-unknown
+      - name: fmt
+        run: cargo fmt --all -- --check
