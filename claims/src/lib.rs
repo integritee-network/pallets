@@ -1404,8 +1404,7 @@ mod tests {
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking {
-	use super::*;
-	use super::Call;
+	use super::{Call, *};
 	use frame_benchmarking::{account, benchmarks};
 	use frame_support::dispatch::UnfilteredDispatchable;
 	use frame_system::RawOrigin;
