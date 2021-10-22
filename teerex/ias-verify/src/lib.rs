@@ -1,17 +1,17 @@
 /*
-    Copyright 2021 Integritee AG and Supercomputing Systems AG
+	Copyright 2021 Integritee AG and Supercomputing Systems AG
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
 
-        http://www.apache.org/licenses/LICENSE-2.0
+		http://www.apache.org/licenses/LICENSE-2.0
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
 
 */
 
@@ -21,9 +21,10 @@ use crate::netscape_comment::NetscapeComment;
 use chrono::prelude::*;
 use codec::{Decode, Encode};
 use serde_json::Value;
-use sp_std::convert::TryFrom;
-use sp_std::convert::TryInto;
-use sp_std::prelude::*;
+use sp_std::{
+	convert::{TryFrom, TryInto},
+	prelude::*,
+};
 
 mod ephemeral_key;
 mod netscape_comment;
@@ -34,13 +35,13 @@ mod utils;
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone)]
 pub struct SgxReportData {
-    d: [u8; SGX_REPORT_DATA_SIZE],
+	d: [u8; SGX_REPORT_DATA_SIZE],
 }
 
 #[derive(Encode, Decode, Copy, Clone)]
 pub struct SGXAttributes {
-    flags: u64,
-    xfrm: u64,
+	flags: u64,
+	xfrm: u64,
 }
 
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_report.h
@@ -52,97 +53,94 @@ const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 
 #[derive(Encode, Decode, Copy, Clone)]
 pub struct SgxReportBody {
-    cpu_svn: [u8; 16],    /* (  0) Security Version of the CPU */
-    misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
-    reserved1: [u8; SGX_REPORT_BODY_RESERVED1_BYTES], /* ( 20) */
-    isv_ext_prod_id: [u8; 16], /* ( 32) ISV assigned Extended Product ID */
-    attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
-    mr_enclave: [u8; 32], /* ( 64) The value of the enclave's ENCLAVE measurement */
-    reserved2: [u8; SGX_REPORT_BODY_RESERVED2_BYTES], /* ( 96) */
-    mr_signer: [u8; 32],  /* (128) The value of the enclave's SIGNER measurement */
-    reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
-    config_id: [u8; 64],  /* (192) CONFIGID */
-    isv_prod_id: u16,     /* (256) Product ID of the Enclave */
-    isv_svn: u16,         /* (258) Security Version of the Enclave */
-    config_svn: u16,      /* (260) CONFIGSVN */
-    reserved4: [u8; SGX_REPORT_BODY_RESERVED4_BYTES], /* (262) */
-    isv_family_id: [u8; 16], /* (304) ISV assigned Family ID */
-    report_data: SgxReportData, /* (320) Data provided by the user */
+	cpu_svn: [u8; 16],    /* (  0) Security Version of the CPU */
+	misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
+	reserved1: [u8; SGX_REPORT_BODY_RESERVED1_BYTES], /* ( 20) */
+	isv_ext_prod_id: [u8; 16], /* ( 32) ISV assigned Extended Product ID */
+	attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
+	mr_enclave: [u8; 32], /* ( 64) The value of the enclave's ENCLAVE measurement */
+	reserved2: [u8; SGX_REPORT_BODY_RESERVED2_BYTES], /* ( 96) */
+	mr_signer: [u8; 32],  /* (128) The value of the enclave's SIGNER measurement */
+	reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
+	config_id: [u8; 64],  /* (192) CONFIGID */
+	isv_prod_id: u16,     /* (256) Product ID of the Enclave */
+	isv_svn: u16,         /* (258) Security Version of the Enclave */
+	config_svn: u16,      /* (260) CONFIGSVN */
+	reserved4: [u8; SGX_REPORT_BODY_RESERVED4_BYTES], /* (262) */
+	isv_family_id: [u8; 16], /* (304) ISV assigned Family ID */
+	report_data: SgxReportData, /* (320) Data provided by the user */
 }
 
 impl SgxReportBody {
-    pub fn sgx_build_mode(&self) -> SgxBuildMode {
-        #[cfg(test)]
-        println!(
-            "attributes flag : {}",
-            format!("{:x}", self.attributes.flags)
-        );
-        if self.attributes.flags & SGX_FLAGS_DEBUG == SGX_FLAGS_DEBUG {
-            SgxBuildMode::Debug
-        } else {
-            SgxBuildMode::Production
-        }
-    }
+	pub fn sgx_build_mode(&self) -> SgxBuildMode {
+		#[cfg(test)]
+		println!("attributes flag : {}", format!("{:x}", self.attributes.flags));
+		if self.attributes.flags & SGX_FLAGS_DEBUG == SGX_FLAGS_DEBUG {
+			SgxBuildMode::Debug
+		} else {
+			SgxBuildMode::Production
+		}
+	}
 }
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_quote.h
 #[derive(Encode, Decode, Copy, Clone)]
 pub struct SgxQuote {
-    version: u16,       /* 0   */
-    sign_type: u16,     /* 2   */
-    epid_group_id: u32, /* 4   */
-    qe_svn: u16,        /* 8   */
-    pce_svn: u16,       /* 10  */
-    xeid: u32,          /* 12  */
-    basename: [u8; 32], /* 16  */
-    report_body: SgxReportBody, /* 48  */
-                        //signature_len: u32,    /* 432 */
-                        //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
+	version: u16,       /* 0   */
+	sign_type: u16,     /* 2   */
+	epid_group_id: u32, /* 4   */
+	qe_svn: u16,        /* 8   */
+	pce_svn: u16,       /* 10  */
+	xeid: u32,          /* 12  */
+	basename: [u8; 32], /* 16  */
+	report_body: SgxReportBody, /* 48  */
+	                    //signature_len: u32,    /* 432 */
+	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug)]
 pub enum SgxBuildMode {
-    Debug,
-    Production,
+	Debug,
+	Production,
 }
 impl Default for SgxBuildMode {
-    fn default() -> Self {
-        SgxBuildMode::Production
-    }
+	fn default() -> Self {
+		SgxBuildMode::Production
+	}
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug)]
 pub enum SgxStatus {
-    Invalid,
-    Ok,
-    GroupOutOfDate,
-    GroupRevoked,
-    ConfigurationNeeded,
+	Invalid,
+	Ok,
+	GroupOutOfDate,
+	GroupRevoked,
+	ConfigurationNeeded,
 }
 impl Default for SgxStatus {
-    fn default() -> Self {
-        SgxStatus::Invalid
-    }
+	fn default() -> Self {
+		SgxStatus::Invalid
+	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug)]
 pub struct SgxReport {
-    pub mr_enclave: [u8; 32],
-    pub pubkey: [u8; 32],
-    pub status: SgxStatus,
-    pub timestamp: u64, // unix timestamp in milliseconds
-    pub build_mode: SgxBuildMode,
+	pub mr_enclave: [u8; 32],
+	pub pubkey: [u8; 32],
+	pub status: SgxStatus,
+	pub timestamp: u64, // unix timestamp in milliseconds
+	pub build_mode: SgxBuildMode,
 }
 
 type SignatureAlgorithms = &'static [&'static webpki::SignatureAlgorithm];
 static SUPPORTED_SIG_ALGS: SignatureAlgorithms = &[
-    //&webpki::ECDSA_P256_SHA256,
-    //&webpki::ECDSA_P256_SHA384,
-    //&webpki::ECDSA_P384_SHA256,
-    //&webpki::ECDSA_P384_SHA384,
-    &webpki::RSA_PKCS1_2048_8192_SHA256,
-    &webpki::RSA_PKCS1_2048_8192_SHA384,
-    &webpki::RSA_PKCS1_2048_8192_SHA512,
-    &webpki::RSA_PKCS1_3072_8192_SHA384,
+	//&webpki::ECDSA_P256_SHA256,
+	//&webpki::ECDSA_P256_SHA384,
+	//&webpki::ECDSA_P384_SHA256,
+	//&webpki::ECDSA_P384_SHA384,
+	&webpki::RSA_PKCS1_2048_8192_SHA256,
+	&webpki::RSA_PKCS1_2048_8192_SHA384,
+	&webpki::RSA_PKCS1_2048_8192_SHA512,
+	&webpki::RSA_PKCS1_3072_8192_SHA384,
 ];
 
 //pub const IAS_REPORT_CA: &[u8] = include_bytes!("../AttestationReportSigningCACert.pem");
@@ -196,159 +194,147 @@ pub struct CertDer<'a>(&'a [u8]);
 
 // make sure this function doesn't panic!
 pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
-    // Before we reach here, the runtime already verified the extrinsic is properly signed by the extrinsic sender
-    // Hence, we skip: EphemeralKey::try_from(cert)?;
+	// Before we reach here, the runtime already verified the extrinsic is properly signed by the extrinsic sender
+	// Hence, we skip: EphemeralKey::try_from(cert)?;
 
-    #[cfg(test)]
-    println!("verifyRA: start verifying RA cert");
+	#[cfg(test)]
+	println!("verifyRA: start verifying RA cert");
 
-    let cert = CertDer(cert_der);
-    let netscape = NetscapeComment::try_from(cert)?;
-    let sig_cert = webpki::EndEntityCert::from(&netscape.sig_cert).map_err(|_| "Bad der")?;
+	let cert = CertDer(cert_der);
+	let netscape = NetscapeComment::try_from(cert)?;
+	let sig_cert = webpki::EndEntityCert::from(&netscape.sig_cert).map_err(|_| "Bad der")?;
 
-    verify_signature(&sig_cert, netscape.attestation_raw, &netscape.sig)?;
+	verify_signature(&sig_cert, netscape.attestation_raw, &netscape.sig)?;
 
-    // FIXME: now hardcoded. but certificate renewal would have to be done manually anyway...
-    // chain wasm update or by some sudo call
-    let valid_until = webpki::Time::from_seconds_since_unix_epoch(1573419050);
-    verify_server_cert(&sig_cert, valid_until)?;
+	// FIXME: now hardcoded. but certificate renewal would have to be done manually anyway...
+	// chain wasm update or by some sudo call
+	let valid_until = webpki::Time::from_seconds_since_unix_epoch(1573419050);
+	verify_server_cert(&sig_cert, valid_until)?;
 
-    parse_report(netscape.attestation_raw)
+	parse_report(netscape.attestation_raw)
 }
 
 fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
-    // parse attestation report
-    let attn_report: Value = match serde_json::from_slice(report_raw) {
-        Ok(report) => report,
-        Err(_) => return Err("RA report parsing error"),
-    };
+	// parse attestation report
+	let attn_report: Value = match serde_json::from_slice(report_raw) {
+		Ok(report) => report,
+		Err(_) => return Err("RA report parsing error"),
+	};
 
-    let _ra_timestamp = match &attn_report["timestamp"] {
-        Value::String(time) => {
-            let time_fixed = time.clone() + "+0000";
-            match DateTime::parse_from_str(&time_fixed, "%Y-%m-%dT%H:%M:%S%.f%z") {
-                Ok(d) => d.timestamp(),
-                Err(_) => return Err("RA report timestamp parsing error"),
-            }
-        }
-        _ => return Err("Failed to fetch timestamp from attestation report"),
-    };
+	let _ra_timestamp = match &attn_report["timestamp"] {
+		Value::String(time) => {
+			let time_fixed = time.clone() + "+0000";
+			match DateTime::parse_from_str(&time_fixed, "%Y-%m-%dT%H:%M:%S%.f%z") {
+				Ok(d) => d.timestamp(),
+				Err(_) => return Err("RA report timestamp parsing error"),
+			}
+		},
+		_ => return Err("Failed to fetch timestamp from attestation report"),
+	};
 
-    // in milliseconds
-    let ra_timestamp: u64 = (_ra_timestamp * 1000)
-        .try_into()
-        .map_err(|_| "Error converting report.timestamp to u64")?;
+	// in milliseconds
+	let ra_timestamp: u64 = (_ra_timestamp * 1000)
+		.try_into()
+		.map_err(|_| "Error converting report.timestamp to u64")?;
 
-    #[cfg(test)]
-    println!(
-        "verifyRA attestation timestamp [unix epoch]: {}",
-        ra_timestamp
-    );
+	#[cfg(test)]
+	println!("verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
 
-    // get quote status (mandatory field)
-    let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
-        Value::String(quote_status) => match quote_status.as_ref() {
-            "OK" => SgxStatus::Ok,
-            "GROUP_OUT_OF_DATE" => SgxStatus::GroupOutOfDate,
-            "GROUP_REVOKED" => SgxStatus::GroupRevoked,
-            "CONFIGURATION_NEEDED" => SgxStatus::ConfigurationNeeded,
-            _ => SgxStatus::Invalid,
-        },
-        _ => return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report"),
-    };
+	// get quote status (mandatory field)
+	let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
+		Value::String(quote_status) => match quote_status.as_ref() {
+			"OK" => SgxStatus::Ok,
+			"GROUP_OUT_OF_DATE" => SgxStatus::GroupOutOfDate,
+			"GROUP_REVOKED" => SgxStatus::GroupRevoked,
+			"CONFIGURATION_NEEDED" => SgxStatus::ConfigurationNeeded,
+			_ => SgxStatus::Invalid,
+		},
+		_ => return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report"),
+	};
 
-    #[cfg(test)]
-    println!("verifyRA attestation status is: {:?}", ra_status);
-    // parse quote body
-    if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
-        let quote = match base64::decode(&quote_raw) {
-            Ok(q) => q,
-            Err(_) => return Err("Quote Decoding Error"),
-        };
-        #[cfg(test)]
-        println!("Quote read. len={}", quote.len());
-        // TODO: lack security check here
-        let sgx_quote: SgxQuote = match Decode::decode(&mut &quote[..]) {
-            Ok(q) => q,
-            Err(_) => return Err("could not decode quote"),
-        };
+	#[cfg(test)]
+	println!("verifyRA attestation status is: {:?}", ra_status);
+	// parse quote body
+	if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
+		let quote = match base64::decode(&quote_raw) {
+			Ok(q) => q,
+			Err(_) => return Err("Quote Decoding Error"),
+		};
+		#[cfg(test)]
+		println!("Quote read. len={}", quote.len());
+		// TODO: lack security check here
+		let sgx_quote: SgxQuote = match Decode::decode(&mut &quote[..]) {
+			Ok(q) => q,
+			Err(_) => return Err("could not decode quote"),
+		};
 
-        #[cfg(test)]
-        {
-            println!("sgx quote version = {}", sgx_quote.version);
-            println!("sgx quote signature type = {}", sgx_quote.sign_type);
-            //println!("sgx quote report_data = {:?}", sgx_quote.report_body.report_data.d[..32]);
-            println!(
-                "sgx quote mr_enclave = {:x?}",
-                sgx_quote.report_body.mr_enclave
-            );
-            println!(
-                "sgx quote mr_signer = {:x?}",
-                sgx_quote.report_body.mr_signer
-            );
-            println!(
-                "sgx quote report_data = {:x?}",
-                sgx_quote.report_body.report_data.d.to_vec()
-            );
-        }
+		#[cfg(test)]
+		{
+			println!("sgx quote version = {}", sgx_quote.version);
+			println!("sgx quote signature type = {}", sgx_quote.sign_type);
+			//println!("sgx quote report_data = {:?}", sgx_quote.report_body.report_data.d[..32]);
+			println!("sgx quote mr_enclave = {:x?}", sgx_quote.report_body.mr_enclave);
+			println!("sgx quote mr_signer = {:x?}", sgx_quote.report_body.mr_signer);
+			println!("sgx quote report_data = {:x?}", sgx_quote.report_body.report_data.d.to_vec());
+		}
 
-        let mut xt_signer_array = [0u8; 32];
-        xt_signer_array.copy_from_slice(&sgx_quote.report_body.report_data.d[..32]);
-        Ok(SgxReport {
-            mr_enclave: sgx_quote.report_body.mr_enclave,
-            status: ra_status,
-            pubkey: xt_signer_array,
-            timestamp: ra_timestamp,
-            build_mode: sgx_quote.report_body.sgx_build_mode(),
-        })
-    } else {
-        Err("Failed to parse isvEnclaveQuoteBody from attestation report")
-    }
+		let mut xt_signer_array = [0u8; 32];
+		xt_signer_array.copy_from_slice(&sgx_quote.report_body.report_data.d[..32]);
+		Ok(SgxReport {
+			mr_enclave: sgx_quote.report_body.mr_enclave,
+			status: ra_status,
+			pubkey: xt_signer_array,
+			timestamp: ra_timestamp,
+			build_mode: sgx_quote.report_body.sgx_build_mode(),
+		})
+	} else {
+		Err("Failed to parse isvEnclaveQuoteBody from attestation report")
+	}
 }
 
 pub fn verify_signature(
-    entity_cert: &webpki::EndEntityCert,
-    attestation_raw: &[u8],
-    signature: &[u8],
+	entity_cert: &webpki::EndEntityCert,
+	attestation_raw: &[u8],
+	signature: &[u8],
 ) -> Result<(), &'static str> {
-    match entity_cert.verify_signature(
-        &webpki::RSA_PKCS1_2048_8192_SHA256,
-        attestation_raw,
-        signature,
-    ) {
-        Ok(()) => {
-            #[cfg(test)]
-            println!("IAS signature is valid");
-            Ok(())
-        }
-        Err(_e) => {
-            #[cfg(test)]
-            println!("RSA Signature ERROR: {}", _e);
-            Err("bad signature")
-        }
-    }
+	match entity_cert.verify_signature(
+		&webpki::RSA_PKCS1_2048_8192_SHA256,
+		attestation_raw,
+		signature,
+	) {
+		Ok(()) => {
+			#[cfg(test)]
+			println!("IAS signature is valid");
+			Ok(())
+		},
+		Err(_e) => {
+			#[cfg(test)]
+			println!("RSA Signature ERROR: {}", _e);
+			Err("bad signature")
+		},
+	}
 }
 
 pub fn verify_server_cert(
-    sig_cert: &webpki::EndEntityCert,
-    timestamp_valid_until: webpki::Time,
+	sig_cert: &webpki::EndEntityCert,
+	timestamp_valid_until: webpki::Time,
 ) -> Result<(), &'static str> {
-    let chain: Vec<&[u8]> = Vec::new();
-    match sig_cert.verify_is_valid_tls_server_cert(
-        SUPPORTED_SIG_ALGS,
-        &IAS_SERVER_ROOTS,
-        &chain,
-        timestamp_valid_until,
-    ) {
-        Ok(()) => {
-            #[cfg(test)]
-            println!("CA is valid");
-            Ok(())
-        }
-        Err(_e) => {
-            #[cfg(test)]
-            println!("CA ERROR: {}", _e);
-            Err("CA verification failed")
-        }
-    }
+	let chain: Vec<&[u8]> = Vec::new();
+	match sig_cert.verify_is_valid_tls_server_cert(
+		SUPPORTED_SIG_ALGS,
+		&IAS_SERVER_ROOTS,
+		&chain,
+		timestamp_valid_until,
+	) {
+		Ok(()) => {
+			#[cfg(test)]
+			println!("CA is valid");
+			Ok(())
+		},
+		Err(_e) => {
+			#[cfg(test)]
+			println!("CA ERROR: {}", _e);
+			Err("CA verification failed")
+		},
+	}
 }
