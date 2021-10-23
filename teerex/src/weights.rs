@@ -43,71 +43,71 @@ limitations under the License.
 #![allow(unused_imports)]
 
 use frame_support::{
-    traits::Get,
-    weights::{constants::RocksDbWeight, Weight},
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
 };
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_teerex.
 pub trait WeightInfo {
-    fn register_enclave() -> Weight;
-    fn unregister_enclave() -> Weight;
-    fn call_worker() -> Weight;
-    fn confirm_call() -> Weight;
-    fn confirm_block() -> Weight;
+	fn register_enclave() -> Weight;
+	fn unregister_enclave() -> Weight;
+	fn call_worker() -> Weight;
+	fn confirm_call() -> Weight;
+	fn confirm_block() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
-    fn register_enclave() -> Weight {
-        (1_969_500_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(2 as Weight))
-            .saturating_add(T::DbWeight::get().writes(1 as Weight))
-    }
-    fn unregister_enclave() -> Weight {
-        (53_300_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(3 as Weight))
-            .saturating_add(T::DbWeight::get().writes(5 as Weight))
-    }
-    fn call_worker() -> Weight {
-        (57_200_000 as Weight)
-    }
-    fn confirm_call() -> Weight {
-        (46_900_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(1 as Weight))
-            .saturating_add(T::DbWeight::get().writes(2 as Weight))
-    }
-    fn confirm_block() -> Weight {
-        (46_200_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(1 as Weight))
-            .saturating_add(T::DbWeight::get().writes(2 as Weight))
-    }
+	fn register_enclave() -> Weight {
+		(1_969_500_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn unregister_enclave() -> Weight {
+		(53_300_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(3 as Weight))
+			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+	}
+	fn call_worker() -> Weight {
+		(57_200_000 as Weight)
+	}
+	fn confirm_call() -> Weight {
+		(46_900_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
+	fn confirm_block() -> Weight {
+		(46_200_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
 }
 
 // For tests
 impl WeightInfo for () {
-    fn register_enclave() -> Weight {
-        (1_969_500_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
-    }
-    fn unregister_enclave() -> Weight {
-        (53_300_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(3 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
-    }
-    fn call_worker() -> Weight {
-        (57_200_000 as Weight)
-    }
-    fn confirm_call() -> Weight {
-        (46_900_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
-    }
-    fn confirm_block() -> Weight {
-        (46_200_000 as Weight)
-            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
-            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
-    }
+	fn register_enclave() -> Weight {
+		(1_969_500_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn unregister_enclave() -> Weight {
+		(53_300_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
+	}
+	fn call_worker() -> Weight {
+		(57_200_000 as Weight)
+	}
+	fn confirm_call() -> Weight {
+		(46_900_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn confirm_block() -> Weight {
+		(46_200_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
 }
