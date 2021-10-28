@@ -3,4 +3,5 @@ members = [
     'claims',
     'teerex',
     'teerex/ias-verify',
+    'market'
 ]

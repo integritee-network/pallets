@@ -1,0 +1,102 @@
+[package]
+name = "pallet-market"
+description = "A pallet to store cryptocurrency market data"
+version = "0.1.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/market/"
+license = "Apache-2.0"
+edition = "2018"
+resolver = "2"
+
+[dependencies]
+log = { version = "0.4.14", default-features = false }
+
+[dependencies.codec]
+default-features = false
+features = ['derive']
+package = 'parity-scale-codec'
+version = '2.0.0'
+
+[dependencies.frame-support]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.frame-system]
+default-features = false
+package = 'frame-system'
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.sp-io]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.sp-core]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.sp-runtime]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.substrate-fixed]
+default-features = false
+git = "https://github.com/encointer/substrate-fixed"
+package = "substrate-fixed"
+
+[dependencies.pallet-balances]
+optional = true
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dev-dependencies]
+hex-literal = "*"
+env_logger = "0.7.1"
+log = "*"
+
+[dev-dependencies.externalities]
+package = "sp-externalities"
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "0.10.0-dev"
+
+[dev-dependencies.sp-keyring]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dev-dependencies.pallet-balances]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[features]
+default = ['std']
+std = [
+    'codec/std',
+    'frame-support/std',
+    'frame-system/std',
+    'sp-core/std',
+    'sp-io/std',
+    'sp-runtime/std',
+    'sp-std/std',
+    'substrate-fixed/std',
+]

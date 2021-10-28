@@ -1346,6 +1346,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-market"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-externalities",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+ "substrate-fixed",
+]
+
+[[package]]
 name = "pallet-teerex"
 version = "0.9.0"
 dependencies = [
@@ -2485,6 +2505,15 @@ dependencies = [
  "schnorrkel",
  "sha2 0.9.8",
  "zeroize",
+]
+
+[[package]]
+name = "substrate-fixed"
+version = "0.5.6"
+source = "git+https://github.com/encointer/substrate-fixed#b33d186888c60f38adafcfc0ec3a21aab263aef1"
+dependencies = [
+ "parity-scale-codec",
+ "typenum",
 ]
 
 [[package]]
