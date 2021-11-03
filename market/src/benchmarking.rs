@@ -21,8 +21,48 @@
 
 use super::*;
 
-use crate::Pallet as Teerex;
+use crate::Pallet as Exchange;
 use ::test_utils::ias_utils::{consts::*, get_signer, ias::*};
-use frame_benchmarking::{account, benchmarks};
+use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
+use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
+use sp_std::borrow::ToOwned;
+
+fn ensure_not_skipping_ra_check() {
+	#[cfg(not(test))]
+	if cfg!(feature = "skip-ias-check") {
+		panic!("Benchmark does not allow the `skip-ias-check` flag.");
+	};
+}
+benchmarks! {
+	where_clause {  where T::AccountId: From<[u8; 32]> }
+	update_exchange_rate {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
+		let currency = "usd".as_bytes().to_owned();
+		let rate = U32F32::from_num(43.65);
+		// simply register the enclave before to make sure it already
+		// exists when running the benchmark
+		Teerex::<T>::register_enclave(
+			RawOrigin::Signed(signer.clone()).into(),
+			TEST4_SETUP.cert.to_vec(),
+			URL.to_vec()
+		).unwrap();
+
+
+	}: _(RawOrigin::Signed(signer), currency, Some(rate))
+	verify {
+		assert_eq!(Exchange::<T>::exchange_rate("usd".as_bytes().to_owned()), U32F32::from_num(43.65));
+	}
+}
+
+#[cfg(test)]
+use crate::{Config, Module as PalletModule};
+
+#[cfg(test)]
+use frame_benchmarking::impl_benchmark_test_suite;
+
+#[cfg(test)]
+impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);
