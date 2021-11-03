@@ -6,6 +6,6 @@ members = [
     'market',
     'tests-utils'
 ]
-[patch."https://github.com/integritee-network/pallets.git"]
+#[patch."https://github.com/integritee-network/pallets.git"]
 #pallet-claims = { path = '../pallets/claims' }
-pallet-teerex = { path = '../pallets/teerex' }
+#pallet-teerex = { path = '../pallets/teerex' }
