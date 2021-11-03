@@ -4,7 +4,7 @@ description = "The remote attestation registry and verification pallet for integ
 version = "0.9.0"
 authors = ["Integritee AG"]
 homepage = "https://integritee.network/"
-repository = "https://github.com/integritee-network/pallet-teerex/"
+repository = "https://github.com/integritee-network/pallets/"
 license = "Apache-2.0"
 edition = "2018"
 resolver = "2"
@@ -83,6 +83,10 @@ default-features = false
 git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
+
+[dependencies.test-utils]
+default-features = false
+path = '../tests-utils'
 
 [dev-dependencies]
 hex-literal = "*"

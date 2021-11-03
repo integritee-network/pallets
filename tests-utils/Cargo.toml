@@ -1,0 +1,17 @@
+[package]
+name = "test-utils"
+description = "A crate for common utilities for tests"
+version = "0.1.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/tests-utils/"
+license = "Apache-2.0"
+edition = "2018"
+resolver = "2"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = { version = "0.4.14", default-features = false }
+hex-literal = { version = "0.3.2"}

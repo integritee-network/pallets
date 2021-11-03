@@ -46,7 +46,7 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_teerex::Config {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type WeightInfo: WeightInfo;
@@ -74,13 +74,14 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::update_exchange_rate())]
+		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
 			currency: Vec<u8>,
 			new_value: Option<U32F32>,
 		) -> DispatchResultWithPostInfo {
-			let _sender = ensure_signed(origin)?;
+			let sender = ensure_signed(origin)?;
+			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
 				ExchangeRates::<T>::mutate_exists(currency.clone(), |rate| *rate = None);

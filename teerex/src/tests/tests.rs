@@ -17,13 +17,13 @@
 
 //use super::*;
 use crate::{
-	mock::*, test_utils::consts::*, ConfirmedCalls, Enclave, EnclaveRegistry, Error, RawEvent,
-	Request, ShardIdentifier,
+	mock::*, ConfirmedCalls, Enclave, EnclaveRegistry, Error, RawEvent, Request, ShardIdentifier,
 };
 use frame_support::{assert_err, assert_ok, IterableStorageMap, StorageMap};
 use ias_verify::SgxBuildMode;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
+use test_utils::ias_utils::consts::*;
 
 fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, Enclave<AccountId, Vec<u8>>)>>()
@@ -31,7 +31,7 @@ fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
-	crate::test_utils::get_signer(pubkey)
+	test_utils::ias_utils::get_signer(pubkey)
 }
 
 #[test]
@@ -721,5 +721,23 @@ fn verify_block_confirmation_from_shards_not_enclave_fails() {
 			),
 			Error::<Test>::WrongMrenclaveForShard
 		);
+	})
+}
+
+#[test]
+fn verify_is_registered_enclave_works() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+		let signer6 = get_signer(TEST6_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			Origin::signed(signer4.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		));
+		assert_ok!(Teerex::is_registered_enclave(&signer4));
+		assert_err!(Teerex::is_registered_enclave(&signer6), Error::<Test>::EnclaveIsNotRegistered);
 	})
 }

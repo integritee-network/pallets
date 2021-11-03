@@ -21,15 +21,11 @@
 
 use super::*;
 
+use crate::Pallet as Teerex;
+use ::test_utils::ias_utils::{consts::*, get_signer, ias::*};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-
 use sp_runtime::traits::CheckedConversion;
-
-use crate::{
-	test_utils::{consts::URL, get_signer, ias::TEST4_SETUP},
-	Pallet as Teerex,
-};
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]

@@ -15,12 +15,26 @@
 
 */
 use crate::{mock::*, ExchangeRates};
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
+use pallet_teerex::Error;
 use substrate_fixed::types::U32F32;
+use test_utils::ias_utils::consts::{TEST4_CERT, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, URL};
+
+// give get_signer a concrete type
+fn get_signer(pubkey: &[u8; 32]) -> AccountId {
+	test_utils::ias_utils::get_signer(pubkey)
+}
 
 fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {
+	Timestamp::set_timestamp(TEST4_TIMESTAMP);
+	let signer = get_signer(TEST4_SIGNER_PUB);
+	assert_ok!(Teerex::register_enclave(
+		Origin::signed(signer.clone()),
+		TEST4_CERT.to_vec(),
+		URL.to_vec()
+	));
 	assert_ok!(Exchange::update_exchange_rate(
-		Origin::signed(100),
+		Origin::signed(signer),
 		"usd".as_bytes().to_owned(),
 		Some(rate)
 	));
@@ -63,8 +77,9 @@ fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
 		verifiy_update_exchange_rate_for_dollars(rate);
+		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(100),
+			Origin::signed(signer),
 			"usd".as_bytes().to_owned(),
 			None
 		));
@@ -81,13 +96,30 @@ fn verifiy_update_exchange_rate_to_zero_delete_exchange_rate() {
 		let rate = U32F32::from_num(43.65);
 		let key = "usd".as_bytes().to_owned();
 		verifiy_update_exchange_rate_for_dollars(rate);
+		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(100),
+			Origin::signed(signer),
 			key.clone(),
 			Some(U32F32::from_num(0))
 		));
 		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(key.clone()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(ExchangeRates::<Test>::contains_key(key), false);
+	})
+}
+
+#[test]
+fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		let signer = get_signer(TEST4_SIGNER_PUB);
+		let rate = U32F32::from_num(43.65);
+		assert_err!(
+			Exchange::update_exchange_rate(
+				Origin::signed(signer),
+				"usd".as_bytes().to_owned(),
+				Some(rate)
+			),
+			Error::<Test>::EnclaveIsNotRegistered
+		);
 	})
 }

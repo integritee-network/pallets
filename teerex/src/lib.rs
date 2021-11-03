@@ -337,6 +337,10 @@ impl<T: Config> Module<T> {
 			};
 		}
 	}
+	pub fn is_registered_enclave(sender: &T::AccountId) -> Result<bool, sp_runtime::DispatchError> {
+		ensure!(<EnclaveIndex<T>>::contains_key(&sender), <Error<T>>::EnclaveIsNotRegistered);
+		Ok(true)
+	}
 
 	#[cfg(not(feature = "skip-ias-check"))]
 	fn verify_report(

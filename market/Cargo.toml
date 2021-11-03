@@ -11,6 +11,7 @@ resolver = "2"
 
 [dependencies]
 log = { version = "0.4.14", default-features = false }
+hex-literal = { version = "0.3.2", optional = true }
 
 [dependencies.codec]
 default-features = false
@@ -57,8 +58,16 @@ version = "4.0.0-dev"
 
 [dependencies.substrate-fixed]
 default-features = false
-git = "https://github.com/encointer/substrate-fixed"
+git = "https://github.com/encointer/substrate-fixed.git"
 package = "substrate-fixed"
+
+## benchmarking stuff
+[dependencies.frame-benchmarking]
+default-features = false
+optional = true
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
 
 [dependencies.pallet-balances]
 optional = true
@@ -66,6 +75,24 @@ default-features = false
 git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
+
+[dependencies.timestamp]
+default-features = false
+package = "pallet-timestamp"
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[dependencies.pallet-teerex]
+default-features = false
+package = "pallet-teerex"
+path = "../teerex"
+#git = "https://github.com/integritee-network/pallets/"
+#branch = "master"
+
+[dependencies.test-utils]
+default-features = false
+path = '../tests-utils'
 
 [dev-dependencies]
 hex-literal = "*"
@@ -99,4 +126,16 @@ std = [
     'sp-runtime/std',
     'sp-std/std',
     'substrate-fixed/std',
+    "timestamp/std",
+    "pallet-teerex/std",
+    # benchmarking stuff
+    'frame-benchmarking/std',
+    "pallet-balances/std",
+]
+
+runtime-benchmarks = [
+    'frame-benchmarking',
+    "hex-literal",
+    "pallet-balances",
+    "timestamp/runtime-benchmarks"
 ]

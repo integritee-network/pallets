@@ -1350,11 +1350,14 @@ name = "pallet-market"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex-literal",
  "log",
  "pallet-balances",
+ "pallet-teerex",
+ "pallet-timestamp",
  "parity-scale-codec",
  "sp-core",
  "sp-externalities",
@@ -1363,6 +1366,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
+ "test-utils",
 ]
 
 [[package]]
@@ -1386,6 +1390,7 @@ dependencies = [
  "sp-keyring",
  "sp-runtime",
  "sp-std",
+ "test-utils",
 ]
 
 [[package]]
@@ -2558,6 +2563,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
+dependencies = [
+ "hex-literal",
+ "log",
 ]
 
 [[package]]
