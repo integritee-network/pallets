@@ -1,6 +1,7 @@
-use crate::{mock::*, test_utils::consts::*, Enclave, EnclaveRegistry};
+use crate::{mock::*, Enclave, EnclaveRegistry};
 use frame_support::{assert_ok, StorageMap};
 use sp_keyring::AccountKeyring;
+use test_utils::ias_utils::consts::{TEST4_MRENCLAVE, URL};
 
 type TestEnclave = Enclave<AccountId, Vec<u8>>;
 
