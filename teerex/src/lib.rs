@@ -91,7 +91,7 @@ decl_event!(
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
-		ParentchainBlockProcessed(AccountId, H256),
+		ParentchainBlockProcessed(AccountId, H256, H256),
 		SidechainBlockProposed(AccountId, H256),
 	}
 );
@@ -187,7 +187,7 @@ decl_module! {
 			<LatestIpfsHash>::insert(shard_id, ipfs_hash.clone());
 			<WorkerForShard>::insert(shard_id, sender_index);
 			log::debug!("call confirmed with shard {:?}, block hash {:?}, ipfs_hash {:?}", shard_id, block_hash, ipfs_hash);
-			Self::deposit_event(RawEvent::ParentchainBlockProcessed(sender, block_hash));
+			Self::deposit_event(RawEvent::ParentchainBlockProcessed(sender, block_hash, trusted_calls_merkle_root));
 			Self::deposit_event(RawEvent::UpdatedIpfsHash(shard_id, sender_index, ipfs_hash));
 			Ok(())
 		}
