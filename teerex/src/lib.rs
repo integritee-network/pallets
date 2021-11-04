@@ -227,12 +227,12 @@ decl_module! {
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == bonding_account.encode(),<Error<T>>::WrongMrenclaveForBondingAccount);
 
 			if !<ExecutedCalls>::contains_key(call_hash) {
-				log::info!("First confirmation for call: {:?}", call_hash);
+				log::info!("Executing unshielding call: {:?}", call_hash);
 				T::Currency::transfer(&bonding_account, &public_account, amount, ExistenceRequirement::AllowDeath)?;
 				<ExecutedCalls>::insert(call_hash, 0);
 				Self::deposit_event(RawEvent::UnshieldedFunds(public_account));
 			} else {
-				log::info!("Second confirmation for call: {:?}", call_hash);
+				log::info!("Already executed unshielding call: {:?}", call_hash);
 			}
 
 			<ExecutedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
