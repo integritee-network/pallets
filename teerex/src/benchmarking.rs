@@ -111,9 +111,9 @@ benchmarks! {
 		let req = Request { shard:H256::from_slice(&TEST4_SETUP.mrenclave), cyphertext: vec![1u8; 2000]};
 	}: _(RawOrigin::Signed(accounts[0].clone()), req)
 
-	// Benchmark `confirm_call` with the worst possible conditions:
+	// Benchmark `confirm_parentchainblock_processed` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_call {
+	confirm_parentchainblock_processed {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
@@ -126,9 +126,9 @@ benchmarks! {
 		assert_latest_worker_update::<T>(&accounts[0], &shard, ipfs_hash)
 	}
 
-	// Benchmark `confirm_block` with the worst possible conditions:
+	// Benchmark `confirm_sidechainblock_proposed` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_block {
+	confirm_sidechainblock_proposed {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
