@@ -15,28 +15,9 @@
 
 */
 
-#![cfg(any(test, feature = "runtime-benchmarks"))]
-
-use crate::Enclave;
-
-impl<AccountId, Url> Enclave<AccountId, Url> {
-	pub fn with_pubkey(mut self, pubkey: AccountId) -> Self {
-		self.pubkey = pubkey;
-		self
-	}
-
-	pub fn with_mr_enclave(mut self, mr_enclave: [u8; 32]) -> Self {
-		self.mr_enclave = mr_enclave;
-		self
-	}
-
-	pub fn with_timestamp(mut self, timestamp: u64) -> Self {
-		self.timestamp = timestamp;
-		self
-	}
-
-	pub fn with_url(mut self, url: Url) -> Self {
-		self.url = url;
-		self
-	}
+#![cfg_attr(not(feature = "std"), no_std)]
+pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
+	AccountId::from(*pubkey)
 }
+
+pub mod ias;

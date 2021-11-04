@@ -3,4 +3,6 @@ members = [
     'claims',
     'teerex',
     'teerex/ias-verify',
+    'teeracle',
+    'tests-utils'
 ]

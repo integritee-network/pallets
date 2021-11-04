@@ -182,7 +182,7 @@ decl_module! {
 		#[weight = (<T as Config>::WeightInfo::confirm_call(), DispatchClass::Normal, Pays::Yes)]
 		pub fn confirm_call(origin, shard: ShardIdentifier, call_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(<EnclaveIndex<T>>::contains_key(&sender), <Error<T>>::EnclaveIsNotRegistered);
+			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard.encode(), <Error<T>>::WrongMrenclaveForShard);
 			<LatestIpfsHash>::insert(shard, ipfs_hash.clone());
@@ -197,7 +197,7 @@ decl_module! {
 		#[weight = (<T as Config>::WeightInfo::confirm_block(), DispatchClass::Normal, Pays::Yes)]
 		pub fn confirm_block(origin, shard: ShardIdentifier, block_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(<EnclaveIndex<T>>::contains_key(&sender), <Error<T>>::EnclaveIsNotRegistered);
+			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard.encode(),<Error<T>>::WrongMrenclaveForShard);
 			<LatestIpfsHash>::insert(shard, ipfs_hash.clone());
@@ -223,8 +223,7 @@ decl_module! {
 		#[weight = (1000, DispatchClass::Normal, Pays::No)]
 		pub fn unshield_funds(origin, public_account: T::AccountId, amount: BalanceOf<T>, bonding_account: T::AccountId, call_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
-			ensure!(<EnclaveIndex<T>>::contains_key(&sender), <Error<T>>::EnclaveIsNotRegistered);
-
+			Self::is_registered_enclave(&sender)?;
 			let sender_index = <EnclaveIndex<T>>::get(sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == bonding_account.encode(),<Error<T>>::WrongMrenclaveForBondingAccount);
 
@@ -336,6 +335,13 @@ impl<T: Config> Module<T> {
 				},
 			};
 		}
+	}
+	/// Check if the sender is a registered enclave
+	pub fn is_registered_enclave(
+		account: &T::AccountId,
+	) -> Result<bool, sp_runtime::DispatchError> {
+		ensure!(<EnclaveIndex<T>>::contains_key(&account), <Error<T>>::EnclaveIsNotRegistered);
+		Ok(true)
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]

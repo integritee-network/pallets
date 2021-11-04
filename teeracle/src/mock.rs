@@ -14,17 +14,10 @@
 	limitations under the License.
 
 */
-
-// Creating mock runtime here
-use crate as pallet_teerex;
-use frame_support::{
-	pallet_prelude::ProvideInherent,
-	parameter_types,
-	traits::{OnFinalize, OnInitialize, UnfilteredDispatchable},
-};
-
+use crate as pallet_exchange;
+use frame_support::parameter_types;
 use frame_system as system;
-use pallet_teerex::Config;
+use pallet_exchange::Config;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -60,6 +53,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
+		Exchange: pallet_exchange::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -128,11 +122,16 @@ parameter_types! {
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
 }
 
-impl Config for Test {
+impl pallet_teerex::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type MomentsPerDay = MomentsPerDay;
+	type WeightInfo = ();
 	type MaxSilenceTime = MaxSilenceTime;
+}
+
+impl Config for Test {
+	type Event = Event;
 	type WeightInfo = ();
 }
 
@@ -145,44 +144,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	crate::GenesisConfig { allow_sgx_debug_mode: true }
+	pallet_teerex::GenesisConfig { allow_sgx_debug_mode: true }
 		.assimilate_storage(&mut t)
 		.unwrap();
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext
-}
-
-//Build genesis storage for mockup, where RA from enclave compiled in debug mode is NOT allowed
-pub fn new_test_production_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
-	crate::GenesisConfig { allow_sgx_debug_mode: false }
-		.assimilate_storage(&mut t)
-		.unwrap();
-	let mut ext: sp_io::TestExternalities = t.into();
-	ext.execute_with(|| System::set_block_number(1));
-	ext
-}
-
-//Help method for the OnTimestampSet to be called
-pub fn set_timestamp(t: u64) {
-	let _ = <timestamp::Pallet<Test> as ProvideInherent>::Call::set(t)
-		.dispatch_bypass_filter(Origin::none());
-}
-
-/// Run until a particular block.
-pub fn run_to_block(n: u32) {
-	while System::block_number() < n {
-		if System::block_number() > 1 {
-			System::on_finalize(System::block_number());
-		}
-		Timestamp::on_finalize(System::block_number());
-		System::set_block_number(System::block_number() + 1);
-		System::on_initialize(System::block_number());
-	}
 }
