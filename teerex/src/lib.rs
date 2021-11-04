@@ -110,7 +110,7 @@ decl_storage! {
 		pub LatestIpfsHash get(fn latest_ipfs_hash) : map hasher(blake2_128_concat) ShardIdentifier => Vec<u8>;
 		// enclave index of the worker that recently committed an update
 		pub WorkerForShard get(fn worker_for_shard) : map hasher(blake2_128_concat) ShardIdentifier => u64;
-		pub ConfirmedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
+		pub ExecutedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
 		pub AllowSGXDebugMode get(fn allow_sgx_debug_mode) config(allow_sgx_debug_mode): bool;
 	}
 }
@@ -226,16 +226,16 @@ decl_module! {
 			let sender_index = <EnclaveIndex<T>>::get(sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == bonding_account.encode(),<Error<T>>::WrongMrenclaveForBondingAccount);
 
-			if !<ConfirmedCalls>::contains_key(call_hash) {
+			if !<ExecutedCalls>::contains_key(call_hash) {
 				log::info!("First confirmation for call: {:?}", call_hash);
 				T::Currency::transfer(&bonding_account, &public_account, amount, ExistenceRequirement::AllowDeath)?;
-				<ConfirmedCalls>::insert(call_hash, 0);
+				<ExecutedCalls>::insert(call_hash, 0);
 				Self::deposit_event(RawEvent::UnshieldedFunds(public_account));
 			} else {
 				log::info!("Second confirmation for call: {:?}", call_hash);
 			}
 
-			<ConfirmedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
+			<ExecutedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
 			Ok(())
 		}
 	}

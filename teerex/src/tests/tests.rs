@@ -17,7 +17,7 @@
 
 //use super::*;
 use crate::{
-	mock::*, ConfirmedCalls, Enclave, EnclaveRegistry, Error, RawEvent, Request, ShardIdentifier,
+	mock::*, Enclave, EnclaveRegistry, Error, ExecutedCalls, RawEvent, Request, ShardIdentifier,
 };
 use frame_support::{assert_err, assert_ok, IterableStorageMap, StorageMap};
 use ias_verify::SgxBuildMode;
@@ -340,7 +340,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 		)
 		.is_ok());
 
-		assert_eq!(<ConfirmedCalls>::get(call_hash), 2)
+		assert_eq!(<ExecutedCalls>::get(call_hash), 2)
 	})
 }
 #[test]
