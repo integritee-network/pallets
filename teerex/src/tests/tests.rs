@@ -270,7 +270,7 @@ fn update_ipfs_hash_works() {
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let expected_event =
-			Event::Teerex(RawEvent::ParentchainBlockProcessed(signer, merkle_root, request_hash));
+			Event::Teerex(RawEvent::ParentchainBlockProcessed(signer, block_hash, merkle_root));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
