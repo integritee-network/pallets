@@ -87,8 +87,6 @@ version = "4.0.0-dev"
 default-features = false
 package = "pallet-teerex"
 path = "../teerex"
-#git = "https://github.com/integritee-network/pallets/"
-#branch = "master"
 
 [dependencies.test-utils]
 default-features = false

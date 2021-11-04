@@ -23,7 +23,7 @@ use frame_support::{assert_err, assert_ok, IterableStorageMap, StorageMap};
 use ias_verify::SgxBuildMode;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
-use test_utils::ias_utils::consts::*;
+use test_utils::ias::consts::*;
 
 fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, Enclave<AccountId, Vec<u8>>)>>()
@@ -31,7 +31,7 @@ fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
-	test_utils::ias_utils::get_signer(pubkey)
+	test_utils::get_signer(pubkey)
 }
 
 #[test]

@@ -15,9 +15,6 @@
 
 */
 
-pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
-	AccountId::from(*pubkey)
-}
 pub mod ias {
 	use super::consts::*;
 
@@ -36,8 +33,6 @@ pub mod ias {
 		timestamp: TEST4_TIMESTAMP,
 	};
 
-	// todo: migrate tests to use IasSetup
-	#[allow(unused)]
 	pub const TEST5_SETUP: IasSetup = IasSetup {
 		cert: TEST5_CERT,
 		signer_pub: TEST5_SIGNER_PUB,
@@ -45,7 +40,6 @@ pub mod ias {
 		timestamp: TEST5_TIMESTAMP,
 	};
 
-	#[allow(unused)]
 	pub const TEST6_SETUP: IasSetup = IasSetup {
 		cert: TEST6_CERT,
 		signer_pub: TEST6_SIGNER_PUB,
@@ -53,7 +47,6 @@ pub mod ias {
 		timestamp: TEST6_TIMESTAMP,
 	};
 
-	#[allow(unused)]
 	pub const TEST7_SETUP: IasSetup = IasSetup {
 		cert: TEST7_CERT,
 		signer_pub: TEST7_SIGNER_PUB,

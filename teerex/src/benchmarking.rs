@@ -22,7 +22,10 @@
 use super::*;
 
 use crate::Pallet as Teerex;
-use ::test_utils::ias_utils::{consts::*, get_signer, ias::*};
+use ::test_utils::{
+	get_signer,
+	ias::{consts::*, ias::*},
+};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::CheckedConversion;

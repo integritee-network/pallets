@@ -18,11 +18,11 @@ use crate::{mock::*, ExchangeRates};
 use frame_support::{assert_err, assert_ok};
 use pallet_teerex::Error;
 use substrate_fixed::types::U32F32;
-use test_utils::ias_utils::consts::{TEST4_CERT, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, URL};
+use test_utils::ias::consts::{TEST4_CERT, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, URL};
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
-	test_utils::ias_utils::get_signer(pubkey)
+	test_utils::get_signer(pubkey)
 }
 
 fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {

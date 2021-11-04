@@ -22,7 +22,10 @@
 use super::*;
 
 use crate::Pallet as Exchange;
-use ::test_utils::ias_utils::{consts::*, get_signer, ias::*};
+use ::test_utils::{
+	get_signer,
+	ias::{consts::*, ias::*},
+};
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
@@ -59,7 +62,7 @@ benchmarks! {
 }
 
 #[cfg(test)]
-use crate::{Config, Module as PalletModule};
+use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;

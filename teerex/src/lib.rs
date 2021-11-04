@@ -337,8 +337,10 @@ impl<T: Config> Module<T> {
 		}
 	}
 	/// Check if the sender is a registered enclave
-	pub fn is_registered_enclave(sender: &T::AccountId) -> Result<bool, sp_runtime::DispatchError> {
-		ensure!(<EnclaveIndex<T>>::contains_key(&sender), <Error<T>>::EnclaveIsNotRegistered);
+	pub fn is_registered_enclave(
+		account: &T::AccountId,
+	) -> Result<bool, sp_runtime::DispatchError> {
+		ensure!(<EnclaveIndex<T>>::contains_key(&account), <Error<T>>::EnclaveIsNotRegistered);
 		Ok(true)
 	}
 

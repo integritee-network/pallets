@@ -16,4 +16,8 @@
 */
 
 #![cfg_attr(not(feature = "std"), no_std)]
-pub mod ias_utils;
+pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
+	AccountId::from(*pubkey)
+}
+
+pub mod ias;
