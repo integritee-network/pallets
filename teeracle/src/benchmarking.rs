@@ -15,7 +15,7 @@
 
 */
 
-//! Market pallet benchmarking
+//! Teeracle pallet benchmarking
 
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 

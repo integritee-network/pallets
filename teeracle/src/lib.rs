@@ -14,9 +14,9 @@
 	limitations under the License.
 
 */
-//! # Cryptocurrency market pallet
+//! # Cryptocurrency teeracle pallet
 //!
-//! The Market pallet provides functionality for handling exchange rates of the coin (ex: TEER) to different currencies
+//! The teeracle pallet provides functionality for handling exchange rates of the coin (ex: TEER) to different currencies
 //!
 //! - [`Config`]
 //! - [`Call`]
@@ -24,7 +24,7 @@
 //!
 //! ## Overview
 //!
-//! The Market pallet provides functions for:
+//! The teeracle pallet provides functions for:
 //!
 //! - Setting exchange rates.
 //!

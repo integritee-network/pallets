@@ -1,10 +1,10 @@
 [package]
-name = "pallet-market"
+name = "pallet-teeracle"
 description = "A pallet to store cryptocurrency market data"
 version = "0.1.0"
 authors = ["Integritee AG"]
 homepage = "https://integritee.network/"
-repository = "https://github.com/integritee-network/pallets/market/"
+repository = "https://github.com/integritee-network/pallets/teeracle/"
 license = "Apache-2.0"
 edition = "2018"
 resolver = "2"
