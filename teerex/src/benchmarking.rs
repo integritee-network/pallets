@@ -51,13 +51,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	}
 }
 
-fn assert_latest_worker_update<T: Config>(
-	sender: &T::AccountId,
-	shard: &ShardIdentifier,
-	ipfs_hash: Vec<u8>,
-) {
-	assert_eq!(Teerex::<T>::latest_ipfs_hash(shard), ipfs_hash);
-
+fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
 	assert_eq!(Teerex::<T>::worker_for_shard(shard), Teerex::<T>::enclave_index(sender));
 }
 
@@ -111,34 +105,29 @@ benchmarks! {
 		let req = Request { shard:H256::from_slice(&TEST4_SETUP.mrenclave), cyphertext: vec![1u8; 2000]};
 	}: _(RawOrigin::Signed(accounts[0].clone()), req)
 
-	// Benchmark `confirm_call` with the worst possible conditions:
+	// Benchmark `confirm_processed_parentchainblock` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_call {
+	confirm_processed_parentchainblock {
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
+		add_enclaves_to_registry::<T>(&accounts);
+
+		let block_hash: H256 = [2; 32].into();
+		let merkle_root: H256 = [4; 32].into();
+
+	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
+
+	// Benchmark `confirm_proposed_sidechainblock` with the worst possible conditions:
+	// * sender enclave is registered
+	confirm_proposed_sidechainblock {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
-		let ipfs_hash: Vec<u8> = [3; 32].to_vec();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, ipfs_hash.clone())
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash)
 	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard, ipfs_hash)
-	}
-
-	// Benchmark `confirm_block` with the worst possible conditions:
-	// * sender enclave is registered
-	confirm_block {
-		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
-
-		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
-		let block_hash: H256 = [2; 32].into();
-		let ipfs_hash: Vec<u8> = [3; 32].to_vec();
-
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, ipfs_hash.clone())
-	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard, ipfs_hash)
+		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
 }
 

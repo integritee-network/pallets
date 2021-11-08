@@ -87,12 +87,11 @@ decl_event!(
 	{
 		AddedEnclave(AccountId, Vec<u8>),
 		RemovedEnclave(AccountId),
-		UpdatedIpfsHash(ShardIdentifier, u64, Vec<u8>),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
-		CallConfirmed(AccountId, H256),
-		BlockConfirmed(AccountId, H256),
+		ProcessedParentchainBlock(AccountId, H256, H256),
+		ProposedSidechainBlock(AccountId, H256),
 	}
 );
 
@@ -107,11 +106,9 @@ decl_storage! {
 		pub EnclaveRegistry get(fn enclave): map hasher(blake2_128_concat) u64 => Enclave<T::AccountId, Vec<u8>>;
 		pub EnclaveCount get(fn enclave_count): u64;
 		pub EnclaveIndex get(fn enclave_index): map hasher(blake2_128_concat) T::AccountId => u64;
-		pub LatestIpfsHash get(fn latest_ipfs_hash) : map hasher(blake2_128_concat) ShardIdentifier => Vec<u8>;
 		// enclave index of the worker that recently committed an update
 		pub WorkerForShard get(fn worker_for_shard) : map hasher(blake2_128_concat) ShardIdentifier => u64;
-		pub ConfirmedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
-		//pub ConfirmedBlocks get(fn confirmed_blocks): map hasher(blake2_128_concat) H256 => u64;
+		pub ExecutedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
 		pub AllowSGXDebugMode get(fn allow_sgx_debug_mode) config(allow_sgx_debug_mode): bool;
 	}
 }
@@ -178,33 +175,26 @@ decl_module! {
 			Ok(())
 		}
 
-		// the integritee-service calls this function for every processed call to confirm a state update
-		#[weight = (<T as Config>::WeightInfo::confirm_call(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_call(origin, shard: ShardIdentifier, call_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
+		/// The integritee worker calls this function for every processed parentchainblock to confirm a state update.
+		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchainblock(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_processed_parentchainblock(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
-			let sender_index = Self::enclave_index(&sender);
-			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard.encode(), <Error<T>>::WrongMrenclaveForShard);
-			<LatestIpfsHash>::insert(shard, ipfs_hash.clone());
-			<WorkerForShard>::insert(shard, sender_index);
-			log::debug!("call confirmed with shard {:?}, call hash {:?}, ipfs_hash {:?}", shard, call_hash, ipfs_hash);
-			Self::deposit_event(RawEvent::CallConfirmed(sender, call_hash));
-			Self::deposit_event(RawEvent::UpdatedIpfsHash(shard, sender_index, ipfs_hash));
+			log::debug!("Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}", sender, block_hash);
+			Self::deposit_event(RawEvent::ProcessedParentchainBlock(sender, block_hash, trusted_calls_merkle_root));
 			Ok(())
 		}
 
-		// the integritee-service calls this function for every processed block to confirm a state update
-		#[weight = (<T as Config>::WeightInfo::confirm_block(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_block(origin, shard: ShardIdentifier, block_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
+		/// The integritee worker calls this function for every proposed sidechainblock.
+		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechainblock(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_proposed_sidechainblock(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
-			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard.encode(),<Error<T>>::WrongMrenclaveForShard);
-			<LatestIpfsHash>::insert(shard, ipfs_hash.clone());
-			<WorkerForShard>::insert(shard, sender_index);
-			log::debug!("block confirmed with shard {:?}, block hash {:?}, ipfs_hash {:?}", shard, block_hash, ipfs_hash);
-			Self::deposit_event(RawEvent::BlockConfirmed(sender, block_hash));
-			Self::deposit_event(RawEvent::UpdatedIpfsHash(shard, sender_index, ipfs_hash));
+			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),<Error<T>>::WrongMrenclaveForShard);
+			<WorkerForShard>::insert(shard_id, sender_index);
+			log::debug!("Proposed sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
+			Self::deposit_event(RawEvent::ProposedSidechainBlock(sender, block_hash));
 			Ok(())
 		}
 
@@ -227,16 +217,16 @@ decl_module! {
 			let sender_index = <EnclaveIndex<T>>::get(sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == bonding_account.encode(),<Error<T>>::WrongMrenclaveForBondingAccount);
 
-			if !<ConfirmedCalls>::contains_key(call_hash) {
-				log::info!("First confirmation for call: {:?}", call_hash);
+			if !<ExecutedCalls>::contains_key(call_hash) {
+				log::info!("Executing unshielding call: {:?}", call_hash);
 				T::Currency::transfer(&bonding_account, &public_account, amount, ExistenceRequirement::AllowDeath)?;
-				<ConfirmedCalls>::insert(call_hash, 0);
+				<ExecutedCalls>::insert(call_hash, 0);
 				Self::deposit_event(RawEvent::UnshieldedFunds(public_account));
 			} else {
-				log::info!("Second confirmation for call: {:?}", call_hash);
+				log::info!("Already executed unshielding call: {:?}", call_hash);
 			}
 
-			<ConfirmedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
+			<ExecutedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
 			Ok(())
 		}
 	}
