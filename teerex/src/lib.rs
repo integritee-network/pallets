@@ -175,7 +175,7 @@ decl_module! {
 			Ok(())
 		}
 
-		// the integritee-service calls this function for every processed parentchainblock to confirm a state update
+		// the integritee worker calls this function for every processed parentchainblock to confirm a state update
 		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchainblock(), DispatchClass::Normal, Pays::Yes)]
 		pub fn confirm_processed_parentchainblock(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
@@ -188,7 +188,7 @@ decl_module! {
 			Ok(())
 		}
 
-		// the integritee-service calls this function for every produced sidechainblock
+		// the integritee worker calls this function for every produced sidechainblock
 		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechainblock(), DispatchClass::Normal, Pays::Yes)]
 		pub fn confirm_proposed_sidechainblock(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
