@@ -185,7 +185,7 @@ decl_module! {
 			Ok(())
 		}
 
-		// the integritee worker calls this function for every produced sidechainblock
+		// the integritee worker calls this function for every proposed sidechainblock
 		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechainblock(), DispatchClass::Normal, Pays::Yes)]
 		pub fn confirm_proposed_sidechainblock(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
