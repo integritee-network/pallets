@@ -179,7 +179,7 @@ decl_module! {
 
 		// the integritee-service calls this function for every processed parentchainblock to confirm a state update
 		#[weight = (<T as Config>::WeightInfo::confirm_parentchainblock_processed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_parentchainblock_processed(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
+		pub fn confirm_parentchainblock_processed(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
@@ -194,7 +194,7 @@ decl_module! {
 
 		// the integritee-service calls this function for every produced sidechainblock
 		#[weight = (<T as Config>::WeightInfo::confirm_sidechainblock_proposed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_sidechainblock_proposed(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
+		pub fn confirm_sidechainblock_proposed(origin, shard_id: ShardIdentifier, block_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
