@@ -1406,6 +1406,7 @@ mod tests {
 mod benchmarking {
 	use super::{pallet::Call, *};
 	use frame_benchmarking::{account, benchmarks};
+	use frame_support::dispatch::UnfilteredDispatchable;
 	use frame_system::RawOrigin;
 	use secp_utils::*;
 	use sp_runtime::{traits::ValidateUnsigned, DispatchResult};
@@ -1461,8 +1462,13 @@ mod benchmarking {
 			super::Pallet::<T>::mint_claim(RawOrigin::Root.into(), eth_address, VALUE.into(), vesting, None)?;
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
 			let source = sp_runtime::transaction_validity::TransactionSource::External;
-			let call = Call::<T>::claim(account.clone(), signature.clone());
+			let call_enc = Call::<T>::claim {
+				dest: account.clone(),
+				ethereum_signature: signature.clone()
+			}.encode();
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			super::Pallet::<T>::validate_unsigned(source, &call).map_err(|e| -> &'static str { e.into() })?;
 			super::Pallet::<T>::claim(RawOrigin::None.into(), account, signature)?;
 		}
@@ -1506,9 +1512,15 @@ mod benchmarking {
 			let signature = sig::<T>(&secret_key, &account.encode(), statement.to_text());
 			super::Pallet::<T>::mint_claim(RawOrigin::Root.into(), eth_address, VALUE.into(), vesting, Some(statement))?;
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
-			let call = Call::<T>::claim_attest(account.clone(), signature.clone(), StatementKind::Regular.to_text().to_vec());
+			let call_enc = Call::<T>::claim_attest {
+				dest: account.clone(),
+				ethereum_signature: signature.clone(),
+				statement: StatementKind::Regular.to_text().to_vec()
+			}.encode();
 			let source = sp_runtime::transaction_validity::TransactionSource::External;
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			super::Pallet::<T>::validate_unsigned(source, &call).map_err(|e| -> &'static str { e.into() })?;
 			super::Pallet::<T>::claim_attest(RawOrigin::None.into(), account, signature, statement.to_text().to_vec())?;
 		}
@@ -1536,10 +1548,10 @@ mod benchmarking {
 			Preclaims::<T>::insert(&account, eth_address);
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
 
-			let call = super::Call::attest(StatementKind::Regular.to_text().to_vec());
+			let call = super::Call::<T>::attest { statement: StatementKind::Regular.to_text().to_vec() };
 			// We have to copy the validate statement here because of trait issues... :(
 			let validate = |who: &T::AccountId, call: &super::Call<T>| -> DispatchResult {
-				if let Call::attest(attested_statement) = call {
+				if let Call::attest{ statement: attested_statement } = call {
 					let signer = Preclaims::<T>::get(who).ok_or("signer has no claim")?;
 					if let Some(s) = Signing::<T>::get(signer) {
 						ensure!(&attested_statement[..] == s.to_text(), "invalid statement");
@@ -1547,9 +1559,12 @@ mod benchmarking {
 				}
 				Ok(())
 			};
+			let call_enc = call.encode();
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			validate(&account, &call)?;
-			super::Pallet::<T>::attest(RawOrigin::Signed(account).into(), statement.to_text().to_vec())?;
+			call.dispatch_bypass_filter(RawOrigin::Signed(account).into())?;
 		}
 		verify {
 			assert_eq!(Claims::<T>::get(eth_address), None);
@@ -1607,16 +1622,7 @@ mod benchmarking {
 				assert!(super::Pallet::<T>::eth_recover(&signature, &data, extra).is_some());
 			}
 		}
-	}
 
-	#[cfg(test)]
-	mod tests {
-		use super::*;
-
-		frame_benchmarking::impl_benchmark_test_suite!(
-			Pallet,
-			crate::tests::new_test_ext(),
-			crate::tests::Test,
-		);
+		impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::Test,);
 	}
 }
