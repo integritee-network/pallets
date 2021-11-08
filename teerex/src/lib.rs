@@ -91,7 +91,7 @@ decl_event!(
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
 		ParentchainBlockProcessed(AccountId, H256, H256),
-		SidechainBlockProposed(AccountId, H256),
+		ProposedSidechainBlock(AccountId, H256),
 	}
 );
 
@@ -189,15 +189,15 @@ decl_module! {
 		}
 
 		// the integritee-service calls this function for every produced sidechainblock
-		#[weight = (<T as Config>::WeightInfo::confirm_sidechainblock_proposed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_sidechainblock_proposed(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
+		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechainblock(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_proposed_sidechainblock(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),<Error<T>>::WrongMrenclaveForShard);
 			<WorkerForShard>::insert(shard_id, sender_index);
 			log::debug!("sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
-			Self::deposit_event(RawEvent::SidechainBlockProposed(sender, block_hash));
+			Self::deposit_event(RawEvent::ProposedSidechainBlock(sender, block_hash));
 			Ok(())
 		}
 

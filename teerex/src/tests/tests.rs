@@ -683,7 +683,7 @@ fn verify_confirm_parentchainblock_processed_from_shards_neq_mrenclave_fails() {
 }
 
 #[test]
-fn confirm_sidechainblock_proposed_works_for_correct_shard() {
+fn confirm_proposed_sidechainblock_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -698,19 +698,19 @@ fn confirm_sidechainblock_proposed_works_for_correct_shard() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
-		assert_ok!(Teerex::confirm_sidechainblock_proposed(
+		assert_ok!(Teerex::confirm_proposed_sidechainblock(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
 			block_hash.clone(),
 		));
 
-		let expected_event = Event::Teerex(RawEvent::SidechainBlockProposed(signer7, block_hash));
+		let expected_event = Event::Teerex(RawEvent::ProposedSidechainBlock(signer7, block_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
 
 #[test]
-fn verify_confirm_sidechainblock_proposed_from_shard_neq_mrenclave_fails() {
+fn verify_confirm_proposed_sidechainblock_from_shard_neq_mrenclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -726,7 +726,7 @@ fn verify_confirm_sidechainblock_proposed_from_shard_neq_mrenclave_fails() {
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		assert_err!(
-			Teerex::confirm_sidechainblock_proposed(
+			Teerex::confirm_proposed_sidechainblock(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
 				block_hash.clone(),

@@ -120,9 +120,9 @@ benchmarks! {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
 
-	// Benchmark `confirm_sidechainblock_proposed` with the worst possible conditions:
+	// Benchmark `confirm_proposed_sidechainblock` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_sidechainblock_proposed {
+	confirm_proposed_sidechainblock {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 

@@ -54,7 +54,7 @@ pub trait WeightInfo {
 	fn unregister_enclave() -> Weight;
 	fn call_worker() -> Weight;
 	fn confirm_parentchainblock_processed() -> Weight;
-	fn confirm_sidechainblock_proposed() -> Weight;
+	fn confirm_proposed_sidechainblock() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
@@ -78,7 +78,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
-	fn confirm_sidechainblock_proposed() -> Weight {
+	fn confirm_proposed_sidechainblock() -> Weight {
 		(46_200_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
@@ -105,7 +105,7 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
 	}
-	fn confirm_sidechainblock_proposed() -> Weight {
+	fn confirm_proposed_sidechainblock() -> Weight {
 		(46_200_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
