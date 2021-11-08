@@ -51,13 +51,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	}
 }
 
-fn assert_latest_worker_update<T: Config>(
-	sender: &T::AccountId,
-	shard: &ShardIdentifier,
-	ipfs_hash: Vec<u8>,
-) {
-	assert_eq!(Teerex::<T>::latest_ipfs_hash(shard), ipfs_hash);
-
+fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
 	assert_eq!(Teerex::<T>::worker_for_shard(shard), Teerex::<T>::enclave_index(sender));
 }
 
@@ -120,11 +114,10 @@ benchmarks! {
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
 		let merkle_root: H256 = [4; 32].into();
-		let ipfs_hash: Vec<u8> = [3; 32].to_vec();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, merkle_root, ipfs_hash.clone())
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, merkle_root)
 	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard, ipfs_hash)
+		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
 
 	// Benchmark `confirm_sidechainblock_proposed` with the worst possible conditions:
@@ -135,11 +128,10 @@ benchmarks! {
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
-		let ipfs_hash: Vec<u8> = [3; 32].to_vec();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, ipfs_hash.clone())
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash)
 	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard, ipfs_hash)
+		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
 }
 

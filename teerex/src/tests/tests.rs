@@ -257,17 +257,8 @@ fn update_ipfs_hash_works() {
 			shard.clone(),
 			block_hash.clone(),
 			merkle_root.clone(),
-			ipfs_hash.as_bytes().to_vec()
 		));
-		assert_eq!(Teerex::latest_ipfs_hash(shard.clone()), ipfs_hash.as_bytes().to_vec());
 		assert_eq!(Teerex::worker_for_shard(shard.clone()), 1u64);
-
-		let expected_event = Event::Teerex(RawEvent::UpdatedIpfsHash(
-			shard.clone(),
-			1,
-			ipfs_hash.as_bytes().to_vec(),
-		));
-		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let expected_event =
 			Event::Teerex(RawEvent::ParentchainBlockProcessed(signer, block_hash, merkle_root));
@@ -278,7 +269,6 @@ fn update_ipfs_hash_works() {
 #[test]
 fn ipfs_update_from_unregistered_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_err!(
 			Teerex::confirm_parentchainblock_processed(
@@ -286,7 +276,6 @@ fn ipfs_update_from_unregistered_enclave_fails() {
 				H256::default(),
 				H256::default(),
 				H256::default(),
-				ipfs_hash.as_bytes().to_vec()
 			),
 			Error::<Test>::EnclaveIsNotRegistered
 		);
@@ -639,7 +628,6 @@ fn verify_unshield_funds_from_enclave_not_bonding_account_fails() {
 fn confirm_confirm_parentchainblock_processed_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
 		let block_hash = H256::default();
 		let merkle_root = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
@@ -658,15 +646,7 @@ fn confirm_confirm_parentchainblock_processed_works_for_correct_shard() {
 			shard7.clone(),
 			block_hash.clone(),
 			merkle_root.clone(),
-			ipfs_hash.as_bytes().to_vec()
 		));
-
-		let expected_event = Event::Teerex(RawEvent::UpdatedIpfsHash(
-			shard7.clone(),
-			1,
-			ipfs_hash.as_bytes().to_vec(),
-		));
-		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let expected_event =
 			Event::Teerex(RawEvent::ParentchainBlockProcessed(signer7, block_hash, merkle_root));
@@ -678,7 +658,6 @@ fn confirm_confirm_parentchainblock_processed_works_for_correct_shard() {
 fn verify_confirm_parentchainblock_processed_from_shards_neq_mrenclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
 		let block_hash = H256::default();
 		let merkle_root = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
@@ -697,7 +676,6 @@ fn verify_confirm_parentchainblock_processed_from_shards_neq_mrenclave_fails() {
 				shard4,
 				block_hash,
 				merkle_root,
-				ipfs_hash.as_bytes().to_vec()
 			),
 			Error::<Test>::WrongMrenclaveForShard
 		);
@@ -708,7 +686,6 @@ fn verify_confirm_parentchainblock_processed_from_shards_neq_mrenclave_fails() {
 fn confirm_sidechainblock_proposed_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
 		let block_hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -725,15 +702,7 @@ fn confirm_sidechainblock_proposed_works_for_correct_shard() {
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
 			block_hash.clone(),
-			ipfs_hash.as_bytes().to_vec()
 		));
-
-		let expected_event = Event::Teerex(RawEvent::UpdatedIpfsHash(
-			shard7.clone(),
-			1,
-			ipfs_hash.as_bytes().to_vec(),
-		));
-		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let expected_event = Event::Teerex(RawEvent::SidechainBlockProposed(signer7, block_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -744,7 +713,6 @@ fn confirm_sidechainblock_proposed_works_for_correct_shard() {
 fn verify_confirm_sidechainblock_proposed_from_shard_neq_mrenclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let ipfs_hash = "QmYY9U7sQzBYe79tVfiMyJ4prEJoJRWCD8t85j9qjssS9y";
 		let block_hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
@@ -762,7 +730,6 @@ fn verify_confirm_sidechainblock_proposed_from_shard_neq_mrenclave_fails() {
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
 				block_hash.clone(),
-				ipfs_hash.as_bytes().to_vec()
 			),
 			Error::<Test>::WrongMrenclaveForShard
 		);

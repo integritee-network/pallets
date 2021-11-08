@@ -87,7 +87,6 @@ decl_event!(
 	{
 		AddedEnclave(AccountId, Vec<u8>),
 		RemovedEnclave(AccountId),
-		UpdatedIpfsHash(ShardIdentifier, u64, Vec<u8>),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
