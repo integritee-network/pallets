@@ -177,13 +177,10 @@ decl_module! {
 
 		// the integritee worker calls this function for every processed parentchainblock to confirm a state update
 		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchainblock(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_processed_parentchainblock(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
+		pub fn confirm_processed_parentchainblock(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
-			let sender_index = Self::enclave_index(&sender);
-			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(), <Error<T>>::WrongMrenclaveForShard);
-			<WorkerForShard>::insert(shard_id, sender_index);
-			log::debug!("parentchain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
+			log::debug!("Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}", sender, block_hash);
 			Self::deposit_event(RawEvent::ProcessedParentchainBlock(sender, block_hash, trusted_calls_merkle_root));
 			Ok(())
 		}
@@ -196,7 +193,7 @@ decl_module! {
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),<Error<T>>::WrongMrenclaveForShard);
 			<WorkerForShard>::insert(shard_id, sender_index);
-			log::debug!("sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
+			log::debug!("Proposed sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
 			Self::deposit_event(RawEvent::ProposedSidechainBlock(sender, block_hash));
 			Ok(())
 		}

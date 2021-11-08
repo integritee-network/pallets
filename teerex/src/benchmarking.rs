@@ -111,14 +111,10 @@ benchmarks! {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
-		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
 		let merkle_root: H256 = [4; 32].into();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, merkle_root)
-	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard)
-	}
+	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
 
 	// Benchmark `confirm_proposed_sidechainblock` with the worst possible conditions:
 	// * sender enclave is registered
