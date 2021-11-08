@@ -547,7 +547,7 @@ fn verify_unshield_funds_works() {
 }
 
 #[test]
-fn verify_unshield_funds_from_not_registered_enclave_fails() {
+fn unshield_funds_from_not_registered_enclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
@@ -569,7 +569,7 @@ fn verify_unshield_funds_from_not_registered_enclave_fails() {
 }
 
 #[test]
-fn verify_unshield_funds_from_enclave_not_bonding_account_fails() {
+fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
@@ -673,7 +673,7 @@ fn confirm_proposed_sidechainblock_works_for_correct_shard() {
 }
 
 #[test]
-fn verify_confirm_proposed_sidechainblock_from_shard_neq_mrenclave_fails() {
+fn confirm_proposed_sidechainblock_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
