@@ -90,7 +90,7 @@ decl_event!(
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
-		ParentchainBlockProcessed(AccountId, H256, H256),
+		ProcessedParentchainBlock(AccountId, H256, H256),
 		ProposedSidechainBlock(AccountId, H256),
 	}
 );
@@ -176,15 +176,15 @@ decl_module! {
 		}
 
 		// the integritee-service calls this function for every processed parentchainblock to confirm a state update
-		#[weight = (<T as Config>::WeightInfo::confirm_parentchainblock_processed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_parentchainblock_processed(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
+		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchainblock(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_processed_parentchainblock(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(), <Error<T>>::WrongMrenclaveForShard);
 			<WorkerForShard>::insert(shard_id, sender_index);
 			log::debug!("parentchain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
-			Self::deposit_event(RawEvent::ParentchainBlockProcessed(sender, block_hash, trusted_calls_merkle_root));
+			Self::deposit_event(RawEvent::ProcessedParentchainBlock(sender, block_hash, trusted_calls_merkle_root));
 			Ok(())
 		}
 

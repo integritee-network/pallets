@@ -53,7 +53,7 @@ pub trait WeightInfo {
 	fn register_enclave() -> Weight;
 	fn unregister_enclave() -> Weight;
 	fn call_worker() -> Weight;
-	fn confirm_parentchainblock_processed() -> Weight;
+	fn confirm_processed_parentchainblock() -> Weight;
 	fn confirm_proposed_sidechainblock() -> Weight;
 }
 
@@ -73,7 +73,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn call_worker() -> Weight {
 		(57_200_000 as Weight)
 	}
-	fn confirm_parentchainblock_processed() -> Weight {
+	fn confirm_processed_parentchainblock() -> Weight {
 		(46_900_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
@@ -100,7 +100,7 @@ impl WeightInfo for () {
 	fn call_worker() -> Weight {
 		(57_200_000 as Weight)
 	}
-	fn confirm_parentchainblock_processed() -> Weight {
+	fn confirm_processed_parentchainblock() -> Weight {
 		(46_900_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
