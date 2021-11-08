@@ -619,7 +619,7 @@ fn verify_unshield_funds_from_enclave_not_bonding_account_fails() {
 }
 
 #[test]
-fn confirm_confirm_processed_parentchainblock_works() {
+fn confirm_processed_parentchainblock_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
