@@ -106,7 +106,6 @@ decl_storage! {
 		pub EnclaveRegistry get(fn enclave): map hasher(blake2_128_concat) u64 => Enclave<T::AccountId, Vec<u8>>;
 		pub EnclaveCount get(fn enclave_count): u64;
 		pub EnclaveIndex get(fn enclave_index): map hasher(blake2_128_concat) T::AccountId => u64;
-		pub LatestIpfsHash get(fn latest_ipfs_hash) : map hasher(blake2_128_concat) ShardIdentifier => Vec<u8>;
 		// enclave index of the worker that recently committed an update
 		pub WorkerForShard get(fn worker_for_shard) : map hasher(blake2_128_concat) ShardIdentifier => u64;
 		pub ExecutedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
