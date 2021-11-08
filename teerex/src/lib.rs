@@ -179,31 +179,27 @@ decl_module! {
 
 		// the integritee-service calls this function for every processed parentchainblock to confirm a state update
 		#[weight = (<T as Config>::WeightInfo::confirm_parentchainblock_processed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_parentchainblock_processed(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
+		pub fn confirm_parentchainblock_processed(origin, shard_id: ShardIdentifier, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(), <Error<T>>::WrongMrenclaveForShard);
-			<LatestIpfsHash>::insert(shard_id, ipfs_hash.clone());
 			<WorkerForShard>::insert(shard_id, sender_index);
-			log::debug!("call confirmed with shard {:?}, block hash {:?}, ipfs_hash {:?}", shard_id, block_hash, ipfs_hash);
+			log::debug!("parentchain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
 			Self::deposit_event(RawEvent::ParentchainBlockProcessed(sender, block_hash, trusted_calls_merkle_root));
-			Self::deposit_event(RawEvent::UpdatedIpfsHash(shard_id, sender_index, ipfs_hash));
 			Ok(())
 		}
 
 		// the integritee-service calls this function for every produced sidechainblock
 		#[weight = (<T as Config>::WeightInfo::confirm_sidechainblock_proposed(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_sidechainblock_proposed(origin, shard_id: ShardIdentifier, block_hash: H256, ipfs_hash: Vec<u8>) -> DispatchResult {
+		pub fn confirm_sidechainblock_proposed(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
 			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),<Error<T>>::WrongMrenclaveForShard);
-			<LatestIpfsHash>::insert(shard_id, ipfs_hash.clone());
 			<WorkerForShard>::insert(shard_id, sender_index);
-			log::debug!("block confirmed with shard {:?}, block hash {:?}, ipfs_hash {:?}", shard_id, block_hash, ipfs_hash);
+			log::debug!("sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
 			Self::deposit_event(RawEvent::SidechainBlockProposed(sender, block_hash));
-			Self::deposit_event(RawEvent::UpdatedIpfsHash(shard_id, sender_index, ipfs_hash));
 			Ok(())
 		}
 
