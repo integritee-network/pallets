@@ -18,9 +18,8 @@
 // Creating mock runtime here
 use crate as pallet_teerex;
 use frame_support::{
-	pallet_prelude::ProvideInherent,
 	parameter_types,
-	traits::{OnFinalize, OnInitialize, UnfilteredDispatchable},
+	traits::{OnFinalize, OnInitialize},
 };
 
 use frame_system as system;
@@ -171,8 +170,7 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 
 //Help method for the OnTimestampSet to be called
 pub fn set_timestamp(t: u64) {
-	let _ = <timestamp::Pallet<Test> as ProvideInherent>::Call::set(t)
-		.dispatch_bypass_filter(Origin::none());
+	let _ = timestamp::Pallet::<Test>::set(Origin::none(), t);
 }
 
 /// Run until a particular block.
