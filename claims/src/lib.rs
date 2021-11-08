@@ -25,6 +25,7 @@ use frame_support::{
 };
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
@@ -91,7 +92,7 @@ impl WeightInfo for TestWeightInfo {
 }
 
 /// The kind of statement an account needs to make for a claim to be valid.
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum StatementKind {
 	/// Statement required to be made by non-SAFT holders.
@@ -125,7 +126,7 @@ impl Default for StatementKind {
 /// An Ethereum address (i.e. 20 bytes, used to represent an Ethereum account).
 ///
 /// This gets serialized to the 0x-prefixed hex representation.
-#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Default, RuntimeDebug)]
+#[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct EthereumAddress([u8; 20]);
 
 #[cfg(feature = "std")]
@@ -161,7 +162,7 @@ impl<'de> Deserialize<'de> for EthereumAddress {
 	}
 }
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, TypeInfo)]
 pub struct EcdsaSignature(pub [u8; 65]);
 
 impl PartialEq for EcdsaSignature {
@@ -200,7 +201,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId", BalanceOf<T> = "Balance")]
 	pub enum Event<T: Config> {
 		/// Someone claimed some TEERs. `[who, ethereum_address, amount]`
 		Claimed(T::AccountId, EthereumAddress, BalanceOf<T>),
@@ -493,14 +493,14 @@ pub mod pallet {
 				// <weight>
 				// The weight of this logic is included in the `claim` dispatchable.
 				// </weight>
-				Call::claim(account, ethereum_signature) => {
+				Call::claim { dest: account, ethereum_signature } => {
 					let data = account.using_encoded(to_ascii_hex);
 					(Self::eth_recover(&ethereum_signature, &data, &[][..]), None)
 				},
 				// <weight>
 				// The weight of this logic is included in the `claim_attest` dispatchable.
 				// </weight>
-				Call::claim_attest(account, ethereum_signature, statement) => {
+				Call::claim_attest { dest: account, ethereum_signature, statement } => {
 					let data = account.using_encoded(to_ascii_hex);
 					(
 						Self::eth_recover(&ethereum_signature, &data, &statement),
@@ -608,7 +608,8 @@ impl<T: Config> Pallet<T> {
 
 /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 /// otherwise free to place on chain.
-#[derive(Encode, Decode, Clone, Eq, PartialEq)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[scale_info(skip_type_params(T))]
 pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
 where
 	<T as frame_system::Config>::Call: IsSubType<Call<T>>;
@@ -663,7 +664,7 @@ where
 		_len: usize,
 	) -> TransactionValidity {
 		if let Some(local_call) = call.is_sub_type() {
-			if let Call::attest(attested_statement) = local_call {
+			if let Call::attest { statement: attested_statement } = local_call {
 				let signer = Preclaims::<T>::get(who)
 					.ok_or(InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()))?;
 				if let Some(s) = Signing::<T>::get(signer) {
@@ -715,7 +716,7 @@ mod tests {
 	use sp_core::H256;
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
-	use super::pallet::Call as ClaimsCall;
+	use super::Call as ClaimsCall;
 	use frame_support::{
 		assert_err, assert_noop, assert_ok,
 		dispatch::DispatchError::BadOrigin,
@@ -843,7 +844,7 @@ mod tests {
 		pallet_balances::GenesisConfig::<Test>::default()
 			.assimilate_storage(&mut t)
 			.unwrap();
-		super::pallet::GenesisConfig::<Test> {
+		super::GenesisConfig::<Test> {
 			claims: vec![
 				(eth(&alice()), 100, None, None),
 				(eth(&dave()), 200, None, Some(StatementKind::Regular)),
@@ -1054,7 +1055,9 @@ mod tests {
 	fn valid_attest_transactions_are_free() {
 		new_test_ext().execute_with(|| {
 			let p = PrevalidateAttests::<Test>::new();
-			let c = Call::Claims(ClaimsCall::attest(StatementKind::Saft.to_text().to_vec()));
+			let c = Call::Claims(ClaimsCall::attest {
+				statement: StatementKind::Saft.to_text().to_vec(),
+			});
 			let di = c.get_dispatch_info();
 			assert_eq!(di.pays_fee, Pays::No);
 			let r = p.validate(&42, &c, &di, 20);
@@ -1066,11 +1069,15 @@ mod tests {
 	fn invalid_attest_transactions_are_recognized() {
 		new_test_ext().execute_with(|| {
 			let p = PrevalidateAttests::<Test>::new();
-			let c = Call::Claims(ClaimsCall::attest(StatementKind::Regular.to_text().to_vec()));
+			let c = Call::Claims(ClaimsCall::attest {
+				statement: StatementKind::Regular.to_text().to_vec(),
+			});
 			let di = c.get_dispatch_info();
 			let r = p.validate(&42, &c, &di, 20);
 			assert!(r.is_err());
-			let c = Call::Claims(ClaimsCall::attest(StatementKind::Saft.to_text().to_vec()));
+			let c = Call::Claims(ClaimsCall::attest {
+				statement: StatementKind::Saft.to_text().to_vec(),
+			});
 			let di = c.get_dispatch_info();
 			let r = p.validate(&69, &c, &di, 20);
 			assert!(r.is_err());
@@ -1301,7 +1308,10 @@ mod tests {
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(
 					source,
-					&ClaimsCall::claim(1, sig::<Test>(&alice(), &1u64.encode(), &[][..]))
+					&ClaimsCall::claim {
+						dest: 1,
+						ethereum_signature: sig::<Test>(&alice(), &1u64.encode(), &[][..])
+					}
 				),
 				Ok(ValidTransaction {
 					priority: 100,
@@ -1314,19 +1324,26 @@ mod tests {
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(
 					source,
-					&ClaimsCall::claim(0, EcdsaSignature([0; 65]))
+					&ClaimsCall::claim { dest: 0, ethereum_signature: EcdsaSignature([0; 65]) }
 				),
 				InvalidTransaction::Custom(ValidityError::InvalidEthereumSignature.into()).into(),
 			);
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(
 					source,
-					&ClaimsCall::claim(1, sig::<Test>(&bob(), &1u64.encode(), &[][..]))
+					&ClaimsCall::claim {
+						dest: 1,
+						ethereum_signature: sig::<Test>(&bob(), &1u64.encode(), &[][..])
+					}
 				),
 				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()).into(),
 			);
 			let s = sig::<Test>(&dave(), &1u64.encode(), StatementKind::Regular.to_text());
-			let call = ClaimsCall::claim_attest(1, s, StatementKind::Regular.to_text().to_vec());
+			let call = ClaimsCall::claim_attest {
+				dest: 1,
+				ethereum_signature: s,
+				statement: StatementKind::Regular.to_text().to_vec(),
+			};
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(source, &call),
 				Ok(ValidTransaction {
@@ -1340,31 +1357,43 @@ mod tests {
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(
 					source,
-					&ClaimsCall::claim_attest(
-						1,
-						EcdsaSignature([0; 65]),
-						StatementKind::Regular.to_text().to_vec()
-					)
+					&ClaimsCall::claim_attest {
+						dest: 1,
+						ethereum_signature: EcdsaSignature([0; 65]),
+						statement: StatementKind::Regular.to_text().to_vec()
+					}
 				),
 				InvalidTransaction::Custom(ValidityError::InvalidEthereumSignature.into()).into(),
 			);
 
 			let s = sig::<Test>(&bob(), &1u64.encode(), StatementKind::Regular.to_text());
-			let call = ClaimsCall::claim_attest(1, s, StatementKind::Regular.to_text().to_vec());
+			let call = ClaimsCall::claim_attest {
+				dest: 1,
+				ethereum_signature: s,
+				statement: StatementKind::Regular.to_text().to_vec(),
+			};
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(source, &call),
 				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()).into(),
 			);
 
 			let s = sig::<Test>(&dave(), &1u64.encode(), StatementKind::Saft.to_text());
-			let call = ClaimsCall::claim_attest(1, s, StatementKind::Regular.to_text().to_vec());
+			let call = ClaimsCall::claim_attest {
+				dest: 1,
+				ethereum_signature: s,
+				statement: StatementKind::Regular.to_text().to_vec(),
+			};
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(source, &call),
 				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()).into(),
 			);
 
 			let s = sig::<Test>(&dave(), &1u64.encode(), StatementKind::Saft.to_text());
-			let call = ClaimsCall::claim_attest(1, s, StatementKind::Saft.to_text().to_vec());
+			let call = ClaimsCall::claim_attest {
+				dest: 1,
+				ethereum_signature: s,
+				statement: StatementKind::Saft.to_text().to_vec(),
+			};
 			assert_eq!(
 				<Pallet<Test>>::validate_unsigned(source, &call),
 				InvalidTransaction::Custom(ValidityError::InvalidStatement.into()).into(),
@@ -1377,6 +1406,7 @@ mod tests {
 mod benchmarking {
 	use super::{pallet::Call, *};
 	use frame_benchmarking::{account, benchmarks};
+	use frame_support::dispatch::UnfilteredDispatchable;
 	use frame_system::RawOrigin;
 	use secp_utils::*;
 	use sp_runtime::{traits::ValidateUnsigned, DispatchResult};
@@ -1432,8 +1462,13 @@ mod benchmarking {
 			super::Pallet::<T>::mint_claim(RawOrigin::Root.into(), eth_address, VALUE.into(), vesting, None)?;
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
 			let source = sp_runtime::transaction_validity::TransactionSource::External;
-			let call = Call::<T>::claim(account.clone(), signature.clone());
+			let call_enc = Call::<T>::claim {
+				dest: account.clone(),
+				ethereum_signature: signature.clone()
+			}.encode();
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			super::Pallet::<T>::validate_unsigned(source, &call).map_err(|e| -> &'static str { e.into() })?;
 			super::Pallet::<T>::claim(RawOrigin::None.into(), account, signature)?;
 		}
@@ -1477,9 +1512,15 @@ mod benchmarking {
 			let signature = sig::<T>(&secret_key, &account.encode(), statement.to_text());
 			super::Pallet::<T>::mint_claim(RawOrigin::Root.into(), eth_address, VALUE.into(), vesting, Some(statement))?;
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
-			let call = Call::<T>::claim_attest(account.clone(), signature.clone(), StatementKind::Regular.to_text().to_vec());
+			let call_enc = Call::<T>::claim_attest {
+				dest: account.clone(),
+				ethereum_signature: signature.clone(),
+				statement: StatementKind::Regular.to_text().to_vec()
+			}.encode();
 			let source = sp_runtime::transaction_validity::TransactionSource::External;
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			super::Pallet::<T>::validate_unsigned(source, &call).map_err(|e| -> &'static str { e.into() })?;
 			super::Pallet::<T>::claim_attest(RawOrigin::None.into(), account, signature, statement.to_text().to_vec())?;
 		}
@@ -1507,10 +1548,10 @@ mod benchmarking {
 			Preclaims::<T>::insert(&account, eth_address);
 			assert_eq!(Claims::<T>::get(eth_address), Some(VALUE.into()));
 
-			let call = super::Call::attest(StatementKind::Regular.to_text().to_vec());
+			let call = super::Call::<T>::attest { statement: StatementKind::Regular.to_text().to_vec() };
 			// We have to copy the validate statement here because of trait issues... :(
 			let validate = |who: &T::AccountId, call: &super::Call<T>| -> DispatchResult {
-				if let Call::attest(attested_statement) = call {
+				if let Call::attest{ statement: attested_statement } = call {
 					let signer = Preclaims::<T>::get(who).ok_or("signer has no claim")?;
 					if let Some(s) = Signing::<T>::get(signer) {
 						ensure!(&attested_statement[..] == s.to_text(), "invalid statement");
@@ -1518,9 +1559,12 @@ mod benchmarking {
 				}
 				Ok(())
 			};
+			let call_enc = call.encode();
 		}: {
+			let call = <Call<T> as Decode>::decode(&mut &*call_enc)
+				.expect("call is encoded above, encoding must be correct");
 			validate(&account, &call)?;
-			super::Pallet::<T>::attest(RawOrigin::Signed(account).into(), statement.to_text().to_vec())?;
+			call.dispatch_bypass_filter(RawOrigin::Signed(account).into())?;
 		}
 		verify {
 			assert_eq!(Claims::<T>::get(eth_address), None);
@@ -1578,16 +1622,7 @@ mod benchmarking {
 				assert!(super::Pallet::<T>::eth_recover(&signature, &data, extra).is_some());
 			}
 		}
-	}
 
-	#[cfg(test)]
-	mod tests {
-		use super::*;
-
-		frame_benchmarking::impl_benchmark_test_suite!(
-			Pallet,
-			crate::tests::new_test_ext(),
-			crate::tests::Test,
-		);
+		impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::Test,);
 	}
 }

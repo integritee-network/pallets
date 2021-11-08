@@ -12,6 +12,7 @@ edition = "2018"
 base64 = { version = "0.11", default-features = false, features = ["alloc"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4", default-features = false }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 [dependencies.codec]
 default-features = false
@@ -55,6 +56,7 @@ hex-literal = "*"
 default = ['std']
 std = [
     'codec/std',
+    'scale-info/std',
     'frame-support/std',
     'sp-std/std',
     'sp-io/std',
