@@ -136,6 +136,7 @@ use crate::{Config, Module as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
+use test_utils::ias::TestEnclave;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);
