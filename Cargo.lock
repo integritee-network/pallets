@@ -272,8 +272,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "claims"
+name = "claims-primitives"
 version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "rustc-hex",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "constant_time_eq"
@@ -1293,6 +1302,7 @@ dependencies = [
 name = "pallet-claims"
 version = "0.9.12"
 dependencies = [
+ "claims-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

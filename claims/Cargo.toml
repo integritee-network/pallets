@@ -18,6 +18,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "mas
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "master", default-features = false, optional = true }
 libsecp256k1 = { version = "0.7.0", default-features = false, optional = true }
+claims-primitives = {package = "claims-primitives", path = "../primitives/claims", default-features = false}
 
 [dev-dependencies]
 hex-literal = "0.3.3"
@@ -26,7 +27,6 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "m
 libsecp256k1 = "0.7.0"
 pallet-vesting = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
 serde_json = { version = "1.0.68" }
-
 
 [features]
 default = ["std"]
@@ -42,6 +42,7 @@ std = [
 	"frame-support/std",
 	"sp-runtime/std",
 	"frame-system/std",
+	"claims-primitives/std",
 ]
 runtime-benchmarks = [
 	"libsecp256k1/hmac",
