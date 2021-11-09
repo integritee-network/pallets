@@ -115,6 +115,11 @@ git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
 
+[dependencies.teeracle-primitives]
+default-features = false
+package = "teeracle-primitives"
+path = "../primitives/teeracle"
+
 [features]
 default = ['std']
 std = [
@@ -132,6 +137,7 @@ std = [
     # benchmarking stuff
     'frame-benchmarking/std',
     "pallet-balances/std",
+    "teeracle-primitives/std",
 ]
 
 runtime-benchmarks = [

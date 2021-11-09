@@ -25,16 +25,18 @@ use frame_support::{
 	weights::{DispatchClass, Pays},
 };
 use frame_system::{self as system, ensure_signed};
-use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::traits::SaturatedConversion;
 use sp_std::{prelude::*, str};
+use teerex_primitives::*;
 
 #[cfg(not(feature = "skip-ias-check"))]
 use ias_verify::{verify_ias_report, SgxReport};
 
 pub use crate::weights::WeightInfo;
 use ias_verify::SgxBuildMode;
+
+pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
 
 pub trait Config: system::Config + timestamp::Config {
 	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
@@ -46,40 +48,6 @@ pub trait Config: system::Config + timestamp::Config {
 
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_URL_LEN: usize = 256;
-
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct Enclave<PubKey, Url> {
-	pub pubkey: PubKey, // FIXME: this is redundant information
-	pub mr_enclave: [u8; 32],
-	// Todo: make timestamp: Moment
-	pub timestamp: u64, // unix epoch in milliseconds
-	pub url: Url,       // utf8 encoded url
-	pub sgx_mode: SgxBuildMode,
-}
-
-impl<PubKey, Url> Enclave<PubKey, Url> {
-	pub fn new(
-		pubkey: PubKey,
-		mr_enclave: [u8; 32],
-		timestamp: u64,
-		url: Url,
-		sgx_build_mode: SgxBuildMode,
-	) -> Self {
-		Enclave { pubkey, mr_enclave, timestamp, url, sgx_mode: sgx_build_mode }
-	}
-}
-
-pub type ShardIdentifier = H256;
-
-// Disambiguate associated types
-pub type AccountId<T> = <T as frame_system::Config>::AccountId;
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
-
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct Request {
-	pub shard: ShardIdentifier,
-	pub cyphertext: Vec<u8>,
-}
 
 decl_event!(
 	pub enum Event<T>
@@ -382,7 +350,6 @@ impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 mod benchmarking;
 #[cfg(test)]
 mod mock;
-mod test_utils;
 #[cfg(test)]
 mod tests;
 pub mod weights;
