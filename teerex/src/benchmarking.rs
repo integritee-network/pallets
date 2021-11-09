@@ -105,9 +105,9 @@ benchmarks! {
 		let req = Request { shard:H256::from_slice(&TEST4_SETUP.mrenclave), cyphertext: vec![1u8; 2000]};
 	}: _(RawOrigin::Signed(accounts[0].clone()), req)
 
-	// Benchmark `confirm_processed_parentchainblock` with the worst possible conditions:
+	// Benchmark `confirm_processed_parentchain_block` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_processed_parentchainblock {
+	confirm_processed_parentchain_block {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
@@ -116,9 +116,9 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
 
-	// Benchmark `confirm_proposed_sidechainblock` with the worst possible conditions:
+	// Benchmark `confirm_proposed_sidechain_block` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_proposed_sidechainblock {
+	confirm_proposed_sidechain_block {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 

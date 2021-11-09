@@ -176,9 +176,9 @@ decl_module! {
 			Ok(())
 		}
 
-		/// The integritee worker calls this function for every processed parentchainblock to confirm a state update.
-		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchainblock(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_processed_parentchainblock(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
+		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
+		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_processed_parentchain_block(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			log::debug!("Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}", sender, block_hash);
@@ -186,9 +186,9 @@ decl_module! {
 			Ok(())
 		}
 
-		/// The integritee worker calls this function for every proposed sidechainblock.
-		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechainblock(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_proposed_sidechainblock(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
+		/// The integritee worker calls this function for every proposed sidechain_block.
+		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechain_block(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_proposed_sidechain_block(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);

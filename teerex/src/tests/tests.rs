@@ -249,7 +249,7 @@ fn update_ipfs_hash_works() {
 			URL.to_vec(),
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
-		assert_ok!(Teerex::confirm_processed_parentchainblock(
+		assert_ok!(Teerex::confirm_processed_parentchain_block(
 			Origin::signed(signer.clone()),
 			block_hash.clone(),
 			merkle_root.clone(),
@@ -266,7 +266,7 @@ fn ipfs_update_from_unregistered_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_err!(
-			Teerex::confirm_processed_parentchainblock(
+			Teerex::confirm_processed_parentchain_block(
 				Origin::signed(signer),
 				H256::default(),
 				H256::default(),
@@ -619,7 +619,7 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 }
 
 #[test]
-fn confirm_processed_parentchainblock_works() {
+fn confirm_processed_parentchain_block_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -633,7 +633,7 @@ fn confirm_processed_parentchainblock_works() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
-		assert_ok!(Teerex::confirm_processed_parentchainblock(
+		assert_ok!(Teerex::confirm_processed_parentchain_block(
 			Origin::signed(signer7.clone()),
 			block_hash.clone(),
 			merkle_root.clone(),
@@ -646,7 +646,7 @@ fn confirm_processed_parentchainblock_works() {
 }
 
 #[test]
-fn confirm_proposed_sidechainblock_works_for_correct_shard() {
+fn confirm_proposed_sidechain_block_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -661,7 +661,7 @@ fn confirm_proposed_sidechainblock_works_for_correct_shard() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
-		assert_ok!(Teerex::confirm_proposed_sidechainblock(
+		assert_ok!(Teerex::confirm_proposed_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
 			block_hash.clone(),
@@ -673,7 +673,7 @@ fn confirm_proposed_sidechainblock_works_for_correct_shard() {
 }
 
 #[test]
-fn confirm_proposed_sidechainblock_from_shard_neq_mrenclave_errs() {
+fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -689,7 +689,7 @@ fn confirm_proposed_sidechainblock_from_shard_neq_mrenclave_errs() {
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		assert_err!(
-			Teerex::confirm_proposed_sidechainblock(
+			Teerex::confirm_proposed_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
 				block_hash.clone(),
