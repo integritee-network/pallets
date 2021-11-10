@@ -15,10 +15,14 @@
 
 */
 use crate::mock::*;
-use frame_support::{assert_err, assert_ok, sp_runtime::traits::Header as HeaderT};
+use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
-use sp_runtime::{generic, traits::BlakeTwo256, DispatchError::BadOrigin};
+use sp_runtime::{
+	generic,
+	traits::{BlakeTwo256, Header as HeaderT},
+	DispatchError::BadOrigin,
+};
 
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 
