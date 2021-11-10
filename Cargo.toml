@@ -5,5 +5,8 @@ members = [
     'parentchain',
     'teerex/ias-verify',
     'teeracle',
-    'tests-utils'
+    'tests-utils',
+    'primitives/claims',
+    'primitives/teerex',
+    'primitives/teeracle',
 ]

@@ -16,8 +16,15 @@ resolver = "2"
 log = { version = "0.4.14", default-features = false }
 hex-literal = { version = "0.3.2"}
 
+[dependencies.teerex-primitives]
+default-features = false
+package = "teerex-primitives"
+path = "../primitives/teerex"
+
+
 [features]
 default = ['std']
 std = [
     "log/std",
+    "teerex-primitives/std",
 ]
