@@ -1,4 +1,4 @@
-//Primitives for teeracle
+//!Primitives for teeracle
 #![cfg_attr(not(feature = "std"), no_std)]
 use sp_std::prelude::*;
 use substrate_fixed::types::U32F32;

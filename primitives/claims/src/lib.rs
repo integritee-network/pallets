@@ -15,7 +15,7 @@
 
 */
 
-//Primitives for claims
+//!Primitives for claims
 #![cfg_attr(not(feature = "std"), no_std)]
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
