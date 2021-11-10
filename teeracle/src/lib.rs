@@ -40,6 +40,7 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
+	use teeracle_primitives::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -54,14 +55,15 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn exchange_rate)]
-	pub(super) type ExchangeRates<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, U32F32, ValueQuery>;
+	pub(super) type ExchangeRates<T> =
+		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// The exchange rate of currency was set/updated. \[currency], [new value\]
-		ExchangeRateUpdated(Vec<u8>, Option<U32F32>),
-		ExchangeRateDeleted(Vec<u8>),
+		ExchangeRateUpdated(CurrencyString, Option<ExchangeRate>),
+		ExchangeRateDeleted(CurrencyString),
 	}
 
 	#[pallet::error]
@@ -77,8 +79,8 @@ pub mod pallet {
 		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
-			currency: Vec<u8>,
-			new_value: Option<U32F32>,
+			currency: CurrencyString,
+			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;

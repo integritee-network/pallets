@@ -1,0 +1,30 @@
+[package]
+name = "teeracle-primitives"
+version = "0.1.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
+resolver = "2"
+
+[dependencies]
+
+[dependencies.substrate-fixed]
+default-features = false
+git = "https://github.com/encointer/substrate-fixed.git"
+package = "substrate-fixed"
+tag = "v0.5.7"
+
+[dependencies.sp-std]
+default-features = false
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+version = "4.0.0-dev"
+
+[features]
+default = ['std']
+std = [
+    'sp-std/std',
+    'substrate-fixed/std',
+]

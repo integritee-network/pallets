@@ -1,15 +1,16 @@
 use crate::{mock::*, Enclave, EnclaveRegistry};
 use frame_support::{assert_ok, StorageMap};
 use sp_keyring::AccountKeyring;
-use test_utils::ias::consts::{TEST4_MRENCLAVE, URL};
-
-type TestEnclave = Enclave<AccountId, Vec<u8>>;
+use test_utils::ias::{
+	consts::{TEST4_MRENCLAVE, URL},
+	TestEnclave,
+};
 
 fn now() -> u64 {
 	<timestamp::Pallet<Test>>::get()
 }
 
-fn test_enclave() -> TestEnclave {
+fn test_enclave() -> Enclave<AccountId, Vec<u8>> {
 	Enclave::default()
 		.with_pubkey(AccountKeyring::Alice.to_account_id())
 		.with_timestamp(now())

@@ -110,6 +110,12 @@ git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
 
+[dependencies.teerex-primitives]
+default-features = false
+package = "teerex-primitives"
+path = "../primitives/teerex"
+
+
 [features]
 default = ['std']
 std = [
@@ -127,6 +133,7 @@ std = [
     # benchmarking stuff
     'frame-benchmarking/std',
     "pallet-balances/std",
+    "teerex-primitives/std",
 ]
 runtime-benchmarks = [
     'frame-benchmarking',

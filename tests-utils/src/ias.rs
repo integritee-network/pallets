@@ -15,6 +15,37 @@
 
 */
 
+use teerex_primitives::Enclave;
+
+pub trait TestEnclave<AccountId, Url> {
+	fn with_pubkey(self, pubkey: AccountId) -> Enclave<AccountId, Url>;
+	fn with_mr_enclave(self, mr_enclave: [u8; 32]) -> Enclave<AccountId, Url>;
+	fn with_timestamp(self, timestamp: u64) -> Enclave<AccountId, Url>;
+	fn with_url(self, url: Url) -> Enclave<AccountId, Url>;
+}
+
+impl<AccountId, Url> TestEnclave<AccountId, Url> for Enclave<AccountId, Url> {
+	fn with_pubkey(mut self, pubkey: AccountId) -> Self {
+		self.pubkey = pubkey;
+		self
+	}
+
+	fn with_mr_enclave(mut self, mr_enclave: [u8; 32]) -> Self {
+		self.mr_enclave = mr_enclave;
+		self
+	}
+
+	fn with_timestamp(mut self, timestamp: u64) -> Self {
+		self.timestamp = timestamp;
+		self
+	}
+
+	fn with_url(mut self, url: Url) -> Self {
+		self.url = url;
+		self
+	}
+}
+
 pub mod ias {
 	use super::consts::*;
 
