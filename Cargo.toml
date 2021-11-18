@@ -2,6 +2,7 @@
 members = [
     'claims',
     'teerex',
+    'parentchain',
     'teerex/ias-verify',
     'teeracle',
     'tests-utils'
