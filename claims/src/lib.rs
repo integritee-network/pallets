@@ -37,6 +37,10 @@ use sp_runtime::{
 	},
 };
 use sp_std::{fmt::Debug, prelude::*};
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::vec;
 
 type CurrencyOf<T> = <<T as Config>::VestingSchedule as VestingSchedule<
 	<T as frame_system::Config>::AccountId,
