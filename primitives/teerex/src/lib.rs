@@ -17,8 +17,11 @@
 
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
-
 use codec::{Decode, Encode};
+use frame_support::sp_runtime::{
+	traits::{IdentifyAccount, Verify},
+	MultiSignature,
+};
 use ias_verify::SgxBuildMode;
 use scale_info::TypeInfo;
 use sp_core::H256;
@@ -48,8 +51,11 @@ impl<PubKey, Url> Enclave<PubKey, Url> {
 
 pub type ShardIdentifier = H256;
 
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+pub type Signature = MultiSignature;
+
 // Disambiguate associated types
-pub type AccountId<T> = <T as frame_system::Config>::AccountId;
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Request {

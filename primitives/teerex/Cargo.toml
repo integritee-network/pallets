@@ -50,10 +50,10 @@ version = "4.0.0-dev"
 default = ['std']
 std = [
     'codec/std',
-    'scale-info/std',
     'frame-support/std',
     'frame-system/std',
     'ias-verify/std',
+    'scale-info/std',
     'sp-core/std',
     'sp-std/std',
 ]

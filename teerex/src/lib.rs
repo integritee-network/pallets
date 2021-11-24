@@ -36,7 +36,8 @@ use ias_verify::{verify_ias_report, SgxReport};
 pub use crate::weights::WeightInfo;
 use ias_verify::SgxBuildMode;
 
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
+pub type BalanceOf<T> =
+	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 pub trait Config: system::Config + timestamp::Config {
 	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;

@@ -124,20 +124,22 @@ path = "../primitives/teeracle"
 default = ['std']
 std = [
     'codec/std',
-    'scale-info/std',
+    'log/std',
     'frame-support/std',
     'frame-system/std',
+    "pallet-teerex/std",
+    'scale-info/std',
     'sp-core/std',
     'sp-io/std',
     'sp-runtime/std',
     'sp-std/std',
     'substrate-fixed/std',
+    "teeracle-primitives/std",
+    "test-utils/std",
     "timestamp/std",
-    "pallet-teerex/std",
     # benchmarking stuff
     'frame-benchmarking/std',
     "pallet-balances/std",
-    "teeracle-primitives/std",
 ]
 
 runtime-benchmarks = [
