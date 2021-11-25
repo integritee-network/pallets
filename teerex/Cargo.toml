@@ -131,11 +131,11 @@ std = [
     'sp-runtime/std',
     'sp-std/std',
     "teerex-primitives/std",
-    "test-utils/std",
     'timestamp/std',
     # benchmarking stuff
     'frame-benchmarking/std',
     "pallet-balances/std",
+    "test-utils/std",
 ]
 runtime-benchmarks = [
     'frame-benchmarking',

@@ -71,13 +71,6 @@ git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
 
-[dependencies.pallet-balances]
-optional = true
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
 [dependencies.timestamp]
 default-features = false
 package = "pallet-timestamp"
@@ -93,11 +86,6 @@ path = "../teerex"
 [dependencies.test-utils]
 default-features = false
 path = '../tests-utils'
-
-[dev-dependencies]
-hex-literal = "*"
-env_logger = "0.7.1"
-log = "*"
 
 [dev-dependencies.externalities]
 package = "sp-externalities"
@@ -135,16 +123,14 @@ std = [
     'sp-std/std',
     'substrate-fixed/std',
     "teeracle-primitives/std",
-    "test-utils/std",
-    "timestamp/std",
     # benchmarking stuff
+    "timestamp/std",
     'frame-benchmarking/std',
-    "pallet-balances/std",
+    "test-utils/std",
 ]
 
 runtime-benchmarks = [
     'frame-benchmarking',
     "hex-literal",
-    "pallet-balances",
     "timestamp/runtime-benchmarks"
 ]

@@ -1267,7 +1267,6 @@ dependencies = [
 name = "pallet-teeracle"
 version = "0.1.0"
 dependencies = [
- "env_logger",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -2469,8 +2468,6 @@ dependencies = [
 name = "teerex-primitives"
 version = "0.1.0"
 dependencies = [
- "frame-support",
- "frame-system",
  "ias-verify",
  "parity-scale-codec",
  "scale-info",
