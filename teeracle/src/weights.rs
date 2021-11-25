@@ -15,13 +15,19 @@ limitations under the License.
 
 */
 use frame_support::weights::Weight;
+use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_exchange.
 pub trait WeightInfo {
 	fn update_exchange_rate() -> Weight;
 }
 
-//TODO
+pub struct IntegriteeWeight<T>(PhantomData<T>);
+impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
+	fn update_exchange_rate() -> Weight {
+		46_200_000 as Weight
+	}
+}
 // For tests
 impl WeightInfo for () {
 	fn update_exchange_rate() -> Weight {
