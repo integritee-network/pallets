@@ -13,6 +13,7 @@ resolver = "2"
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
 log = { version = "0.4.14", default-features = false }
 hex-literal = { version = "0.3.2", optional = true }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 codec = { default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0' }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
@@ -36,6 +37,7 @@ std = [
     "codec/std",
     "frame-support/std",
     "frame-system/std",
+    'scale-info/std',
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
