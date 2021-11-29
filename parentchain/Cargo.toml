@@ -15,6 +15,7 @@ log = { version = "0.4.14", default-features = false }
 hex-literal = { version = "0.3.2", optional = true }
 
 codec = { default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0' }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 frame-system = { default-features = false, package = 'frame-system', git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
@@ -34,6 +35,7 @@ default = ["std"]
 std = [
     "serde",
     "codec/std",
+    "scale-info/std",
     "frame-support/std",
     "frame-system/std",
     "sp-core/std",
