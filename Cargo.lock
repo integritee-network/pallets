@@ -1268,7 +1268,6 @@ name = "pallet-parentchain"
 version = "0.9.0"
 dependencies = [
  "env_logger",
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex-literal",

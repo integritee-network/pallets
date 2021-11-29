@@ -22,7 +22,6 @@ sp-core = { default-features = false, git = "https://github.com/paritytech/subst
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
-frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 
 [dev-dependencies]
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
