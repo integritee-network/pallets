@@ -17,7 +17,6 @@
 
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
-
 use codec::{Decode, Encode};
 use ias_verify::SgxBuildMode;
 use scale_info::TypeInfo;
@@ -47,9 +46,6 @@ impl<PubKey, Url> Enclave<PubKey, Url> {
 }
 
 pub type ShardIdentifier = H256;
-
-// Disambiguate associated types
-pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Request {
