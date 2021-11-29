@@ -55,11 +55,14 @@ hex-literal = "*"
 [features]
 default = ['std']
 std = [
+    'base64/std',
     'codec/std',
-    'scale-info/std',
+    'chrono/std',
     'frame-support/std',
+    'scale-info/std',
+    'serde_json/std',
+    'sp-core/std',
     'sp-std/std',
     'sp-io/std',
-    'serde_json/std',
     'webpki/std',
 ]

@@ -30,13 +30,13 @@
 //!
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
+pub use crate::weights::WeightInfo;
 pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::weights::WeightInfo;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
