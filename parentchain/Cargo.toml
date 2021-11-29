@@ -45,7 +45,3 @@ std = [
     "log/std",
 ]
 
-runtime-benchmarks = [
-    "frame-benchmarking",
-    "hex-literal"
-]
