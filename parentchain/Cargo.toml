@@ -1,0 +1,44 @@
+[package]
+name = "pallet-parentchain"
+description = "The remote attestation registry and verification pallet for integritee blockchains and parachains"
+version = "0.9.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallet-teerex/"
+license = "Apache-2.0"
+edition = "2018"
+resolver = "2"
+
+[dependencies]
+serde = { features = ['derive'], optional = true, version = '1.0.101' }
+log = { version = "0.4.14", default-features = false }
+
+codec = { default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0' }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+frame-system = { default-features = false, package = 'frame-system', git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+
+[dev-dependencies]
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
+env_logger = "0.7.1"
+
+[features]
+default = ["std"]
+std = [
+    "serde",
+    "codec/std",
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "log/std",
+]
+

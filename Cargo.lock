@@ -1264,6 +1264,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-parentchain"
+version = "0.9.0"
+dependencies = [
+ "env_logger",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-teeracle"
 version = "0.1.0"
 dependencies = [
