@@ -12,7 +12,6 @@ resolver = "2"
 [dependencies]
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
 log = { version = "0.4.14", default-features = false }
-hex-literal = { version = "0.3.2", optional = true }
 
 codec = { default-features = false, features = ['derive'], package = 'parity-scale-codec', version = '2.0.0' }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
@@ -26,7 +25,6 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 [dev-dependencies]
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "master", version = "4.0.0-dev" }
-hex-literal = "*"
 env_logger = "0.7.1"
 
 [features]
