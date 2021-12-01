@@ -38,7 +38,7 @@ pub use substrate_fixed::types::U32F32;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, WeakBoundedVec};
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
 	use teeracle_primitives::*;
@@ -52,18 +52,22 @@ pub mod pallet {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type WeightInfo: WeightInfo;
+		/// Max number of whitelisted oracles allowed
+		#[pallet::constant]
+		type MaxOracles: Get<u32>;
 	}
 
 	/// Exchange rates chain's cryptocurrency/currency
 	#[pallet::storage]
 	#[pallet::getter(fn exchange_rate)]
-	pub(super) type ExchangeRates<T> =
+	pub(super) type ExchangeRates<T: Config> =
 		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
 
 	/// whitelist of trusted exchange rate oracles
 	#[pallet::storage]
 	#[pallet::getter(fn whitelist)]
-	pub(super) type Whitelist<T> = StorageValue<_, Vec<[u8; 32]>, ValueQuery>;
+	pub(super) type Whitelist<T: Config> =
+		StorageValue<_, WeakBoundedVec<[u8; 32], T::MaxOracles>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -71,11 +75,18 @@ pub mod pallet {
 		/// The exchange rate of currency was set/updated. \[currency], [new value\]
 		ExchangeRateUpdated(CurrencyString, Option<ExchangeRate>),
 		ExchangeRateDeleted(CurrencyString),
+		AddedToWhitelist([u8; 32]),
+		RemovedFromWhitelist([u8; 32]),
+		OracleWhitelistCleared,
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		InvalidCurrency,
+		/// Too many oracles in the whitelist.
+		TooManyOracles,
+		NonWhitelistedOracle,
+		AlreadyWhitelistedOracle,
 	}
 
 	#[pallet::hooks]
@@ -86,29 +97,19 @@ pub mod pallet {
 		#[pallet::weight(<T as Config>::WeightInfo::add_to_whitelist())]
 		pub fn add_to_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
 			ensure_root(origin)?;
-			if Self::is_whitelisted(mrenclave) {
-				log::info!("Oracle already in the whitelist");
-				return Ok(())
-			}
-
-			/*let count = Whitelist::<T>::decode_len().unwrap_or(0) as u32;
-			count
-				.checked_add(1)
-				.ok_or("[Teeracle]: Overflow adding new oracle to whitelist")?;*/
-
-			<Whitelist<T>>::append(mrenclave);
+			ensure!(!Self::is_whitelisted(mrenclave), <Error<T>>::AlreadyWhitelistedOracle);
+			<Whitelist<T>>::try_append(mrenclave).map_err(|_| Error::<T>::TooManyOracles)?;
+			Self::deposit_event(Event::AddedToWhitelist(mrenclave));
 			Ok(())
 		}
 		#[pallet::weight(<T as Config>::WeightInfo::remove_from_whitelist())]
 		pub fn remove_from_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
 			ensure_root(origin)?;
-			if !Self::is_whitelisted(mrenclave) {
-				log::info!("Oracle is not int whitelist");
-				return Ok(())
-			}
+			ensure!(Self::is_whitelisted(mrenclave), <Error<T>>::NonWhitelistedOracle);
 			Whitelist::<T>::mutate(|mrenclaves| {
 				mrenclaves.retain(|m| m.encode() != mrenclave.encode())
 			});
+			Self::deposit_event(Event::RemovedFromWhitelist(mrenclave));
 			Ok(())
 		}
 
@@ -116,6 +117,7 @@ pub mod pallet {
 		pub fn clear_whitelist(origin: OriginFor<T>) -> DispatchResult {
 			ensure_root(origin)?;
 			<Whitelist<T>>::kill();
+			Self::deposit_event(Event::OracleWhitelistCleared);
 			Ok(())
 		}
 
@@ -143,6 +145,10 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	fn is_whitelisted(mrenclave: [u8; 32]) -> bool {
 		Self::whitelist().iter().any(|m| m.encode() == mrenclave.encode())
+	}
+
+	pub fn whitelisted_oracle_count() -> u32 {
+		Self::whitelist().len() as u32
 	}
 }
 

@@ -120,6 +120,7 @@ impl timestamp::Config for Test {
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
+	pub const MaxOracles: u32 = 2;
 }
 
 impl pallet_teerex::Config for Test {
@@ -133,6 +134,7 @@ impl pallet_teerex::Config for Test {
 impl Config for Test {
 	type Event = Event;
 	type WeightInfo = ();
+	type MaxOracles = MaxOracles;
 }
 
 // This function basically just builds a genesis storage key/value store according to
