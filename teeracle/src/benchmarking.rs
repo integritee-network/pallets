@@ -53,7 +53,8 @@ benchmarks! {
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
 		).unwrap();
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
+		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
 
 	}: _(RawOrigin::Signed(signer), currency, Some(rate))
 	verify {
@@ -70,7 +71,7 @@ benchmarks! {
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
 
 	}: _(RawOrigin::Root, mrenclave)
 	verify {
@@ -78,8 +79,9 @@ benchmarks! {
 	}
 
 	clear_whitelist {
+		ensure_not_skipping_ra_check();
 		let mrenclave = TEST4_MRENCLAVE;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
 
 	}: _(RawOrigin::Root)
 	verify {

@@ -37,7 +37,8 @@ fn register_enclave_and_add_oracle_to_whitelist_ok() {
 		TEST4_CERT.to_vec(),
 		URL.to_vec()
 	));
-	assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+	let mrenclave = Teerex::enclave(1).mr_enclave;
+	assert_ok!(Exchange::add_to_whitelist(Origin::root(), mrenclave));
 }
 
 fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
