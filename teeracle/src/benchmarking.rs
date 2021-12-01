@@ -53,11 +53,37 @@ benchmarks! {
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
 		).unwrap();
-
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
 
 	}: _(RawOrigin::Signed(signer), currency, Some(rate))
 	verify {
 		assert_eq!(Exchange::<T>::exchange_rate("usd".as_bytes().to_owned()), U32F32::from_num(43.65));
+	}
+
+	add_to_whitelist {
+		let mrenclave = TEST4_MRENCLAVE;
+
+	}: _(RawOrigin::Root, mrenclave)
+	verify {
+		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 1, "mrenclave not added to whitelist")
+	}
+
+	remove_from_whitelist {
+		let mrenclave = TEST4_MRENCLAVE;
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
+
+	}: _(RawOrigin::Root, mrenclave)
+	verify {
+		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 0, "mrenclave not removed from whitelist")
+	}
+
+	clear_whitelist {
+		let mrenclave = TEST4_MRENCLAVE;
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), TEST4_MRENCLAVE);
+
+	}: _(RawOrigin::Root)
+	verify {
+		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 0, "whitelist not cleared")
 	}
 }
 

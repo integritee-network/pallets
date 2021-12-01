@@ -87,6 +87,7 @@ pub mod pallet {
 		TooManyOracles,
 		NonWhitelistedOracle,
 		AlreadyWhitelistedOracle,
+		UntrustedOracle,
 	}
 
 	#[pallet::hooks]
@@ -129,6 +130,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
+			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
+			ensure!(
+				Self::is_whitelisted(<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave),
+				<Error<T>>::UntrustedOracle
+			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
 				ExchangeRates::<T>::mutate_exists(currency.clone(), |rate| *rate = None);

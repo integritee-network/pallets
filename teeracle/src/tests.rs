@@ -29,7 +29,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {
+fn register_enclave_and_add_oracle_to_whitelist_ok() {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Teerex::register_enclave(
@@ -37,24 +37,34 @@ fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {
 		TEST4_CERT.to_vec(),
 		URL.to_vec()
 	));
+	assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+}
+
+fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
+	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Exchange::update_exchange_rate(
 		Origin::signed(signer),
 		"usd".as_bytes().to_owned(),
-		Some(rate)
+		rate
 	));
-	let expected_event =
-		Event::Exchange(crate::Event::ExchangeRateUpdated("usd".as_bytes().to_owned(), Some(rate)));
-	assert!(System::events().iter().any(|a| a.event == expected_event));
 }
 
 #[test]
 fn verifiy_update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
+		register_enclave_and_add_oracle_to_whitelist_ok();
+
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
+		update_exchange_rate_for_dollars_ok(Some(rate));
+		let expected_event = Event::Exchange(crate::Event::ExchangeRateUpdated(
+			"usd".as_bytes().to_owned(),
+			Some(rate),
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
+
 		let rate2 = U32F32::from_num(4294967295.65);
-		verifiy_update_exchange_rate_for_dollars(rate2);
+		update_exchange_rate_for_dollars_ok(Some(rate2));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate2);
 	})
 }
@@ -63,7 +73,8 @@ fn verifiy_update_exchange_rate_works() {
 fn verifiy_get_existing_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
+		register_enclave_and_add_oracle_to_whitelist_ok();
+		update_exchange_rate_for_dollars_ok(Some(rate));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
 	})
 }
@@ -79,14 +90,12 @@ fn verifiy_get_inexisting_exchange_rate_is_zero() {
 #[test]
 fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
+		register_enclave_and_add_oracle_to_whitelist_ok();
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
-		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(signer),
-			"usd".as_bytes().to_owned(),
-			None
-		));
+		update_exchange_rate_for_dollars_ok(Some(rate));
+
+		update_exchange_rate_for_dollars_ok(None);
+
 		let expected_event =
 			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -97,18 +106,16 @@ fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
 #[test]
 fn verifiy_update_exchange_rate_to_zero_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		let rate = U32F32::from_num(43.65);
-		let key = "usd".as_bytes().to_owned();
-		verifiy_update_exchange_rate_for_dollars(rate);
-		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(signer),
-			key.clone(),
-			Some(U32F32::from_num(0))
-		));
-		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(key.clone()));
+		register_enclave_and_add_oracle_to_whitelist_ok();
+		let rate = Some(U32F32::from_num(43.65));
+		update_exchange_rate_for_dollars_ok(rate);
+
+		update_exchange_rate_for_dollars_ok(Some(U32F32::from_num(0)));
+
+		let expected_event =
+			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(ExchangeRates::<Test>::contains_key(key), false);
+		assert_eq!(ExchangeRates::<Test>::contains_key("usd".as_bytes().to_owned()), false);
 	})
 }
 
@@ -124,6 +131,29 @@ fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
 				Some(rate)
 			),
 			Error::<Test>::EnclaveIsNotRegistered
+		);
+	})
+}
+
+#[test]
+fn verifiy_update_exchange_rate_from_not_whitelisted_oracle_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer = get_signer(TEST4_SIGNER_PUB);
+		assert_ok!(Teerex::register_enclave(
+			Origin::signed(signer.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec()
+		));
+
+		let rate = U32F32::from_num(43.65);
+		assert_err!(
+			Exchange::update_exchange_rate(
+				Origin::signed(signer),
+				"usd".as_bytes().to_owned(),
+				Some(rate)
+			),
+			crate::Error::<Test>::UntrustedOracle
 		);
 	})
 }
