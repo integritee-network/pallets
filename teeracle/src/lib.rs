@@ -31,6 +31,7 @@
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use crate::weights::WeightInfo;
+use codec::Encode;
 pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
 
@@ -53,10 +54,16 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 	}
 
+	/// Exchange rates chain's cryptocurrency/currency
 	#[pallet::storage]
 	#[pallet::getter(fn exchange_rate)]
 	pub(super) type ExchangeRates<T> =
 		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
+
+	/// whitelist of trusted exchange rate oracles
+	#[pallet::storage]
+	#[pallet::getter(fn whitelist)]
+	pub(super) type Whitelist<T> = StorageValue<_, Vec<[u8; 32]>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -76,6 +83,42 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(<T as Config>::WeightInfo::add_to_whitelist())]
+		pub fn add_to_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+			ensure_root(origin)?;
+			if Self::is_whitelisted(mrenclave) {
+				log::info!("Oracle already in the whitelist");
+				return Ok(())
+			}
+
+			/*let count = Whitelist::<T>::decode_len().unwrap_or(0) as u32;
+			count
+				.checked_add(1)
+				.ok_or("[Teeracle]: Overflow adding new oracle to whitelist")?;*/
+
+			<Whitelist<T>>::append(mrenclave);
+			Ok(())
+		}
+		#[pallet::weight(<T as Config>::WeightInfo::remove_from_whitelist())]
+		pub fn remove_from_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+			ensure_root(origin)?;
+			if !Self::is_whitelisted(mrenclave) {
+				log::info!("Oracle is not int whitelist");
+				return Ok(())
+			}
+			Whitelist::<T>::mutate(|mrenclaves| {
+				mrenclaves.retain(|m| m.encode() != mrenclave.encode())
+			});
+			Ok(())
+		}
+
+		#[pallet::weight(<T as Config>::WeightInfo::clear_whitelist())]
+		pub fn clear_whitelist(origin: OriginFor<T>) -> DispatchResult {
+			ensure_root(origin)?;
+			<Whitelist<T>>::kill();
+			Ok(())
+		}
+
 		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
@@ -95,6 +138,11 @@ pub mod pallet {
 			}
 			Ok(().into())
 		}
+	}
+}
+impl<T: Config> Pallet<T> {
+	fn is_whitelisted(mrenclave: [u8; 32]) -> bool {
+		Self::whitelist().iter().any(|m| m.encode() == mrenclave.encode())
 	}
 }
 
