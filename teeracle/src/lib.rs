@@ -31,7 +31,6 @@
 //!
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use crate::weights::WeightInfo;
-use codec::Encode;
 pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
 
@@ -107,9 +106,7 @@ pub mod pallet {
 		pub fn remove_from_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(Self::is_whitelisted(mrenclave), <Error<T>>::NonWhitelistedOracle);
-			Whitelist::<T>::mutate(|mrenclaves| {
-				mrenclaves.retain(|m| m.encode() != mrenclave.encode())
-			});
+			Whitelist::<T>::mutate(|mrenclaves| mrenclaves.retain(|m| *m != mrenclave));
 			Self::deposit_event(Event::RemovedFromWhitelist(mrenclave));
 			Ok(())
 		}
@@ -150,7 +147,7 @@ pub mod pallet {
 }
 impl<T: Config> Pallet<T> {
 	fn is_whitelisted(mrenclave: [u8; 32]) -> bool {
-		Self::whitelist().iter().any(|m| m.encode() == mrenclave.encode())
+		Self::whitelist().iter().any(|m| *m == mrenclave)
 	}
 
 	pub fn whitelisted_oracle_count() -> u32 {

@@ -51,7 +51,7 @@ fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_works() {
+fn update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		register_enclave_and_add_oracle_to_whitelist_ok();
 
@@ -71,7 +71,7 @@ fn verifiy_update_exchange_rate_works() {
 }
 
 #[test]
-fn verifiy_get_existing_exchange_rate_works() {
+fn get_existing_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
 		register_enclave_and_add_oracle_to_whitelist_ok();
@@ -81,7 +81,7 @@ fn verifiy_get_existing_exchange_rate_works() {
 }
 
 #[test]
-fn verifiy_get_inexisting_exchange_rate_is_zero() {
+fn get_inexisting_exchange_rate_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(ExchangeRates::<Test>::contains_key("eur".as_bytes().to_owned()), false);
 		assert_eq!(Exchange::exchange_rate("eur".as_bytes().to_owned()), U32F32::from_num(0));
@@ -89,7 +89,7 @@ fn verifiy_get_inexisting_exchange_rate_is_zero() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
+fn update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
 		register_enclave_and_add_oracle_to_whitelist_ok();
 		let rate = U32F32::from_num(43.65);
@@ -105,7 +105,7 @@ fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_to_zero_delete_exchange_rate() {
+fn update_exchange_rate_to_zero_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
 		register_enclave_and_add_oracle_to_whitelist_ok();
 		let rate = Some(U32F32::from_num(43.65));
@@ -121,7 +121,7 @@ fn verifiy_update_exchange_rate_to_zero_delete_exchange_rate() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
+fn update_exchange_rate_from_not_registered_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let rate = U32F32::from_num(43.65);
@@ -137,7 +137,7 @@ fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_from_not_whitelisted_oracle_fails() {
+fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
@@ -160,7 +160,7 @@ fn verifiy_update_exchange_rate_from_not_whitelisted_oracle_fails() {
 }
 
 #[test]
-fn verifiy_add_to_whitelist_works() {
+fn add_to_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		let expected_event = Event::Exchange(crate::Event::AddedToWhitelist(TEST4_MRENCLAVE));
@@ -170,7 +170,7 @@ fn verifiy_add_to_whitelist_works() {
 }
 
 #[test]
-fn verifiy_add_two_times_to_whitelist_fails() {
+fn add_two_times_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_err!(
@@ -182,7 +182,7 @@ fn verifiy_add_two_times_to_whitelist_fails() {
 }
 
 #[test]
-fn verifiy_add_too_many_oracles_to_whitelist_fails() {
+fn add_too_many_oracles_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST5_MRENCLAVE));
@@ -195,7 +195,7 @@ fn verifiy_add_too_many_oracles_to_whitelist_fails() {
 }
 
 #[test]
-fn verifiy_non_root_add_to_whitelist_fails() {
+fn non_root_add_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_err!(Exchange::add_to_whitelist(Origin::signed(signer), TEST4_MRENCLAVE), BadOrigin);
@@ -204,7 +204,7 @@ fn verifiy_non_root_add_to_whitelist_fails() {
 }
 
 #[test]
-fn verifiy_remove_from_whitelist_works() {
+fn remove_from_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_ok!(Exchange::remove_from_whitelist(Origin::root(), TEST4_MRENCLAVE));
@@ -215,7 +215,7 @@ fn verifiy_remove_from_whitelist_works() {
 }
 
 #[test]
-fn verifiy_remove_from_whitelist_not_whitelisted_fails() {
+fn remove_from_whitelist_not_whitelisted_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_err!(
@@ -227,7 +227,7 @@ fn verifiy_remove_from_whitelist_not_whitelisted_fails() {
 }
 
 #[test]
-fn verifiy_remove_from_empty_whitelist_doesnt_crash() {
+fn remove_from_empty_whitelist_doesnt_crash() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
 		assert_err!(
@@ -239,7 +239,7 @@ fn verifiy_remove_from_empty_whitelist_doesnt_crash() {
 }
 
 #[test]
-fn verifiy_non_root_remove_from_whitelist_fails() {
+fn non_root_remove_from_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
@@ -252,7 +252,7 @@ fn verifiy_non_root_remove_from_whitelist_fails() {
 }
 
 #[test]
-fn verifiy_clear_whitelist_works() {
+fn clear_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
@@ -267,7 +267,7 @@ fn verifiy_clear_whitelist_works() {
 }
 
 #[test]
-fn verifiy_non_root_clear_whitelist_fails() {
+fn non_root_clear_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
