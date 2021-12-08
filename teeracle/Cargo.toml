@@ -103,6 +103,9 @@ git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
 
+[dev-dependencies.hex-literal]
+version = "0.3.2"
+
 [dependencies.teeracle-primitives]
 default-features = false
 package = "teeracle-primitives"

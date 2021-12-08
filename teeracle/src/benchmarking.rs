@@ -66,7 +66,7 @@ benchmarks! {
 
 	}: _(RawOrigin::Root, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 1, "mrenclave not added to whitelist")
+		assert_eq!(Exchange::<T>::whitelist().len(), 1, "mrenclave not added to whitelist")
 	}
 
 	remove_from_whitelist {
@@ -75,17 +75,7 @@ benchmarks! {
 
 	}: _(RawOrigin::Root, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 0, "mrenclave not removed from whitelist")
-	}
-
-	clear_whitelist {
-		ensure_not_skipping_ra_check();
-		let mrenclave = TEST4_MRENCLAVE;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
-
-	}: _(RawOrigin::Root)
-	verify {
-		assert_eq!(Exchange::<T>::whitelisted_oracle_count(), 0, "whitelist not cleared")
+		assert_eq!(Exchange::<T>::whitelist().len(), 0, "mrenclave not removed from whitelist")
 	}
 }
 

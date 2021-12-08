@@ -21,7 +21,6 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
 	fn add_to_whitelist() -> Weight;
 	fn remove_from_whitelist() -> Weight;
-	fn clear_whitelist() -> Weight;
 	fn update_exchange_rate() -> Weight;
 }
 
@@ -31,9 +30,6 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 		46_200_000 as Weight
 	}
 	fn remove_from_whitelist() -> Weight {
-		46_200_000 as Weight
-	}
-	fn clear_whitelist() -> Weight {
 		46_200_000 as Weight
 	}
 	fn update_exchange_rate() -> Weight {
@@ -46,9 +42,6 @@ impl WeightInfo for () {
 		46_200_000 as Weight
 	}
 	fn remove_from_whitelist() -> Weight {
-		46_200_000 as Weight
-	}
-	fn clear_whitelist() -> Weight {
 		46_200_000 as Weight
 	}
 	fn update_exchange_rate() -> Weight {

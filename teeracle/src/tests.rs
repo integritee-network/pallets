@@ -16,6 +16,7 @@
 */
 use crate::{mock::*, ExchangeRates};
 use frame_support::{assert_err, assert_ok};
+use hex_literal::hex;
 use pallet_teerex::Error;
 use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
@@ -154,7 +155,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 				"usd".as_bytes().to_owned(),
 				Some(rate)
 			),
-			crate::Error::<Test>::UntrustedOracle
+			crate::Error::<Test>::ReleaseNotWhitelisted
 		);
 	})
 }
@@ -165,7 +166,7 @@ fn add_to_whitelist_works() {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		let expected_event = Event::Exchange(crate::Event::AddedToWhitelist(TEST4_MRENCLAVE));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(Exchange::whitelisted_oracle_count(), 1);
+		assert_eq!(Exchange::whitelist().len(), 1);
 	})
 }
 
@@ -175,9 +176,9 @@ fn add_two_times_to_whitelist_fails() {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_err!(
 			Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE),
-			crate::Error::<Test>::AlreadyWhitelistedOracle
+			crate::Error::<Test>::ReleaseAlreadyWhitelisted
 		);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 1);
+		assert_eq!(Exchange::whitelist().len(), 1);
 	})
 }
 
@@ -186,11 +187,43 @@ fn add_too_many_oracles_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST5_MRENCLAVE));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d2")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d3")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d4")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d5")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d6")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d7")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d8")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9")
+		));
 		assert_err!(
 			Exchange::add_to_whitelist(Origin::root(), TEST8_MRENCLAVE),
-			crate::Error::<Test>::TooManyOracles
+			crate::Error::<Test>::ReleaseWhitelistOverflow
 		);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 2);
+		assert_eq!(Exchange::whitelist().len(), 10);
 	})
 }
 
@@ -199,7 +232,7 @@ fn non_root_add_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_err!(Exchange::add_to_whitelist(Origin::signed(signer), TEST4_MRENCLAVE), BadOrigin);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
+		assert_eq!(Exchange::whitelist().len(), 0);
 	})
 }
 
@@ -210,7 +243,7 @@ fn remove_from_whitelist_works() {
 		assert_ok!(Exchange::remove_from_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		let expected_event = Event::Exchange(crate::Event::RemovedFromWhitelist(TEST4_MRENCLAVE));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
+		assert_eq!(Exchange::whitelist().len(), 0);
 	})
 }
 
@@ -220,21 +253,21 @@ fn remove_from_whitelist_not_whitelisted_fails() {
 		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
 		assert_err!(
 			Exchange::remove_from_whitelist(Origin::root(), TEST5_MRENCLAVE),
-			crate::Error::<Test>::NonWhitelistedOracle
+			crate::Error::<Test>::ReleaseNotWhitelisted
 		);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 1);
+		assert_eq!(Exchange::whitelist().len(), 1);
 	})
 }
 
 #[test]
 fn remove_from_empty_whitelist_doesnt_crash() {
 	new_test_ext().execute_with(|| {
-		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
+		assert_eq!(Exchange::whitelist().len(), 0);
 		assert_err!(
 			Exchange::remove_from_whitelist(Origin::root(), TEST5_MRENCLAVE),
-			crate::Error::<Test>::NonWhitelistedOracle
+			crate::Error::<Test>::ReleaseNotWhitelisted
 		);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
+		assert_eq!(Exchange::whitelist().len(), 0);
 	})
 }
 
@@ -247,31 +280,6 @@ fn non_root_remove_from_whitelist_fails() {
 			Exchange::remove_from_whitelist(Origin::signed(signer), TEST4_MRENCLAVE),
 			BadOrigin
 		);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 1);
-	})
-}
-
-#[test]
-fn clear_whitelist_works() {
-	new_test_ext().execute_with(|| {
-		let signer = get_signer(TEST5_SIGNER_PUB);
-		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
-		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST5_MRENCLAVE));
-		assert_eq!(Exchange::whitelisted_oracle_count(), 2);
-
-		assert_ok!(Exchange::clear_whitelist(Origin::root()));
-		let expected_event = Event::Exchange(crate::Event::OracleWhitelistCleared);
-		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(Exchange::whitelisted_oracle_count(), 0);
-	})
-}
-
-#[test]
-fn non_root_clear_whitelist_fails() {
-	new_test_ext().execute_with(|| {
-		let signer = get_signer(TEST5_SIGNER_PUB);
-		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
-		assert_err!(Exchange::clear_whitelist(Origin::signed(signer)), BadOrigin);
-		assert_eq!(Exchange::whitelisted_oracle_count(), 1);
+		assert_eq!(Exchange::whitelist().len(), 1);
 	})
 }
