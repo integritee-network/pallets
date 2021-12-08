@@ -37,7 +37,7 @@ pub use substrate_fixed::types::U32F32;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, WeakBoundedVec};
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
 	use teeracle_primitives::*;
@@ -51,12 +51,22 @@ pub mod pallet {
 		/// The overarching event type.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type WeightInfo: WeightInfo;
+		/// Max number of whitelisted oracle's releases allowed
+		#[pallet::constant]
+		type MaxWhitelistedReleases: Get<u32>;
 	}
 
+	/// Exchange rates chain's cryptocurrency/currency
 	#[pallet::storage]
 	#[pallet::getter(fn exchange_rate)]
-	pub(super) type ExchangeRates<T> =
+	pub(super) type ExchangeRates<T: Config> =
 		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
+
+	/// whitelist of trusted oracle's releases
+	#[pallet::storage]
+	#[pallet::getter(fn whitelist)]
+	pub(super) type Whitelist<T: Config> =
+		StorageValue<_, WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -64,11 +74,17 @@ pub mod pallet {
 		/// The exchange rate of currency was set/updated. \[currency], [new value\]
 		ExchangeRateUpdated(CurrencyString, Option<ExchangeRate>),
 		ExchangeRateDeleted(CurrencyString),
+		AddedToWhitelist([u8; 32]),
+		RemovedFromWhitelist([u8; 32]),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		InvalidCurrency,
+		/// Too many MrEnclave in the whitelist.
+		ReleaseWhitelistOverflow,
+		ReleaseNotWhitelisted,
+		ReleaseAlreadyWhitelisted,
 	}
 
 	#[pallet::hooks]
@@ -76,6 +92,24 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::weight(<T as Config>::WeightInfo::add_to_whitelist())]
+		pub fn add_to_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+			ensure_root(origin)?;
+			ensure!(!Self::is_whitelisted(mrenclave), <Error<T>>::ReleaseAlreadyWhitelisted);
+			<Whitelist<T>>::try_append(mrenclave)
+				.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
+			Self::deposit_event(Event::AddedToWhitelist(mrenclave));
+			Ok(())
+		}
+		#[pallet::weight(<T as Config>::WeightInfo::remove_from_whitelist())]
+		pub fn remove_from_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+			ensure_root(origin)?;
+			ensure!(Self::is_whitelisted(mrenclave), <Error<T>>::ReleaseNotWhitelisted);
+			Whitelist::<T>::mutate(|mrenclaves| mrenclaves.retain(|m| *m != mrenclave));
+			Self::deposit_event(Event::RemovedFromWhitelist(mrenclave));
+			Ok(())
+		}
+
 		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
@@ -84,6 +118,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
+			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
+			ensure!(
+				Self::is_whitelisted(<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave),
+				<Error<T>>::ReleaseNotWhitelisted
+			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
 				ExchangeRates::<T>::mutate_exists(currency.clone(), |rate| *rate = None);
@@ -95,6 +134,11 @@ pub mod pallet {
 			}
 			Ok(().into())
 		}
+	}
+}
+impl<T: Config> Pallet<T> {
+	fn is_whitelisted(mrenclave: [u8; 32]) -> bool {
+		Self::whitelist().contains(&mrenclave)
 	}
 }
 

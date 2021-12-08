@@ -19,17 +19,31 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_exchange.
 pub trait WeightInfo {
+	fn add_to_whitelist() -> Weight;
+	fn remove_from_whitelist() -> Weight;
 	fn update_exchange_rate() -> Weight;
 }
 
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
+	fn add_to_whitelist() -> Weight {
+		46_200_000 as Weight
+	}
+	fn remove_from_whitelist() -> Weight {
+		46_200_000 as Weight
+	}
 	fn update_exchange_rate() -> Weight {
 		46_200_000 as Weight
 	}
 }
 // For tests
 impl WeightInfo for () {
+	fn add_to_whitelist() -> Weight {
+		46_200_000 as Weight
+	}
+	fn remove_from_whitelist() -> Weight {
+		46_200_000 as Weight
+	}
 	fn update_exchange_rate() -> Weight {
 		46_200_000 as Weight
 	}

@@ -16,16 +16,21 @@
 */
 use crate::{mock::*, ExchangeRates};
 use frame_support::{assert_err, assert_ok};
+use hex_literal::hex;
 use pallet_teerex::Error;
+use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
-use test_utils::ias::consts::{TEST4_CERT, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, URL};
+use test_utils::ias::consts::{
+	TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST5_MRENCLAVE,
+	TEST5_SIGNER_PUB, TEST8_MRENCLAVE, URL,
+};
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {
+fn register_enclave_and_add_oracle_to_whitelist_ok() {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Teerex::register_enclave(
@@ -33,39 +38,51 @@ fn verifiy_update_exchange_rate_for_dollars(rate: U32F32) {
 		TEST4_CERT.to_vec(),
 		URL.to_vec()
 	));
+	let mrenclave = Teerex::enclave(1).mr_enclave;
+	assert_ok!(Exchange::add_to_whitelist(Origin::root(), mrenclave));
+}
+
+fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
+	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Exchange::update_exchange_rate(
 		Origin::signed(signer),
 		"usd".as_bytes().to_owned(),
-		Some(rate)
+		rate
 	));
-	let expected_event =
-		Event::Exchange(crate::Event::ExchangeRateUpdated("usd".as_bytes().to_owned(), Some(rate)));
-	assert!(System::events().iter().any(|a| a.event == expected_event));
 }
 
 #[test]
-fn verifiy_update_exchange_rate_works() {
+fn update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
+		register_enclave_and_add_oracle_to_whitelist_ok();
+
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
+		update_exchange_rate_for_dollars_ok(Some(rate));
+		let expected_event = Event::Exchange(crate::Event::ExchangeRateUpdated(
+			"usd".as_bytes().to_owned(),
+			Some(rate),
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
+
 		let rate2 = U32F32::from_num(4294967295.65);
-		verifiy_update_exchange_rate_for_dollars(rate2);
+		update_exchange_rate_for_dollars_ok(Some(rate2));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate2);
 	})
 }
 
 #[test]
-fn verifiy_get_existing_exchange_rate_works() {
+fn get_existing_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
+		register_enclave_and_add_oracle_to_whitelist_ok();
+		update_exchange_rate_for_dollars_ok(Some(rate));
 		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
 	})
 }
 
 #[test]
-fn verifiy_get_inexisting_exchange_rate_is_zero() {
+fn get_inexisting_exchange_rate_is_zero() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(ExchangeRates::<Test>::contains_key("eur".as_bytes().to_owned()), false);
 		assert_eq!(Exchange::exchange_rate("eur".as_bytes().to_owned()), U32F32::from_num(0));
@@ -73,16 +90,14 @@ fn verifiy_get_inexisting_exchange_rate_is_zero() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
+fn update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
+		register_enclave_and_add_oracle_to_whitelist_ok();
 		let rate = U32F32::from_num(43.65);
-		verifiy_update_exchange_rate_for_dollars(rate);
-		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(signer),
-			"usd".as_bytes().to_owned(),
-			None
-		));
+		update_exchange_rate_for_dollars_ok(Some(rate));
+
+		update_exchange_rate_for_dollars_ok(None);
+
 		let expected_event =
 			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -91,25 +106,23 @@ fn verifiy_update_exchange_rate_to_none_delete_exchange_rate() {
 }
 
 #[test]
-fn verifiy_update_exchange_rate_to_zero_delete_exchange_rate() {
+fn update_exchange_rate_to_zero_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		let rate = U32F32::from_num(43.65);
-		let key = "usd".as_bytes().to_owned();
-		verifiy_update_exchange_rate_for_dollars(rate);
-		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Exchange::update_exchange_rate(
-			Origin::signed(signer),
-			key.clone(),
-			Some(U32F32::from_num(0))
-		));
-		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(key.clone()));
+		register_enclave_and_add_oracle_to_whitelist_ok();
+		let rate = Some(U32F32::from_num(43.65));
+		update_exchange_rate_for_dollars_ok(rate);
+
+		update_exchange_rate_for_dollars_ok(Some(U32F32::from_num(0)));
+
+		let expected_event =
+			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(ExchangeRates::<Test>::contains_key(key), false);
+		assert_eq!(ExchangeRates::<Test>::contains_key("usd".as_bytes().to_owned()), false);
 	})
 }
 
 #[test]
-fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
+fn update_exchange_rate_from_not_registered_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let rate = U32F32::from_num(43.65);
@@ -121,5 +134,152 @@ fn verifiy_update_exchange_rate_from_not_registered_enclave_fails() {
 			),
 			Error::<Test>::EnclaveIsNotRegistered
 		);
+	})
+}
+
+#[test]
+fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer = get_signer(TEST4_SIGNER_PUB);
+		assert_ok!(Teerex::register_enclave(
+			Origin::signed(signer.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec()
+		));
+
+		let rate = U32F32::from_num(43.65);
+		assert_err!(
+			Exchange::update_exchange_rate(
+				Origin::signed(signer),
+				"usd".as_bytes().to_owned(),
+				Some(rate)
+			),
+			crate::Error::<Test>::ReleaseNotWhitelisted
+		);
+	})
+}
+
+#[test]
+fn add_to_whitelist_works() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		let expected_event = Event::Exchange(crate::Event::AddedToWhitelist(TEST4_MRENCLAVE));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+		assert_eq!(Exchange::whitelist().len(), 1);
+	})
+}
+
+#[test]
+fn add_two_times_to_whitelist_fails() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		assert_err!(
+			Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE),
+			crate::Error::<Test>::ReleaseAlreadyWhitelisted
+		);
+		assert_eq!(Exchange::whitelist().len(), 1);
+	})
+}
+
+#[test]
+fn add_too_many_oracles_to_whitelist_fails() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST5_MRENCLAVE));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d2")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d3")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d4")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d5")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d6")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d7")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d8")
+		));
+		assert_ok!(Exchange::add_to_whitelist(
+			Origin::root(),
+			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9")
+		));
+		assert_err!(
+			Exchange::add_to_whitelist(Origin::root(), TEST8_MRENCLAVE),
+			crate::Error::<Test>::ReleaseWhitelistOverflow
+		);
+		assert_eq!(Exchange::whitelist().len(), 10);
+	})
+}
+
+#[test]
+fn non_root_add_to_whitelist_fails() {
+	new_test_ext().execute_with(|| {
+		let signer = get_signer(TEST5_SIGNER_PUB);
+		assert_err!(Exchange::add_to_whitelist(Origin::signed(signer), TEST4_MRENCLAVE), BadOrigin);
+		assert_eq!(Exchange::whitelist().len(), 0);
+	})
+}
+
+#[test]
+fn remove_from_whitelist_works() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		assert_ok!(Exchange::remove_from_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		let expected_event = Event::Exchange(crate::Event::RemovedFromWhitelist(TEST4_MRENCLAVE));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+		assert_eq!(Exchange::whitelist().len(), 0);
+	})
+}
+
+#[test]
+fn remove_from_whitelist_not_whitelisted_fails() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		assert_err!(
+			Exchange::remove_from_whitelist(Origin::root(), TEST5_MRENCLAVE),
+			crate::Error::<Test>::ReleaseNotWhitelisted
+		);
+		assert_eq!(Exchange::whitelist().len(), 1);
+	})
+}
+
+#[test]
+fn remove_from_empty_whitelist_doesnt_crash() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(Exchange::whitelist().len(), 0);
+		assert_err!(
+			Exchange::remove_from_whitelist(Origin::root(), TEST5_MRENCLAVE),
+			crate::Error::<Test>::ReleaseNotWhitelisted
+		);
+		assert_eq!(Exchange::whitelist().len(), 0);
+	})
+}
+
+#[test]
+fn non_root_remove_from_whitelist_fails() {
+	new_test_ext().execute_with(|| {
+		let signer = get_signer(TEST5_SIGNER_PUB);
+		assert_ok!(Exchange::add_to_whitelist(Origin::root(), TEST4_MRENCLAVE));
+		assert_err!(
+			Exchange::remove_from_whitelist(Origin::signed(signer), TEST4_MRENCLAVE),
+			BadOrigin
+		);
+		assert_eq!(Exchange::whitelist().len(), 1);
 	})
 }

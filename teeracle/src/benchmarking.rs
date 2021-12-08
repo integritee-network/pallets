@@ -53,11 +53,29 @@ benchmarks! {
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
 		).unwrap();
-
+		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
 
 	}: _(RawOrigin::Signed(signer), currency, Some(rate))
 	verify {
 		assert_eq!(Exchange::<T>::exchange_rate("usd".as_bytes().to_owned()), U32F32::from_num(43.65));
+	}
+
+	add_to_whitelist {
+		let mrenclave = TEST4_MRENCLAVE;
+
+	}: _(RawOrigin::Root, mrenclave)
+	verify {
+		assert_eq!(Exchange::<T>::whitelist().len(), 1, "mrenclave not added to whitelist")
+	}
+
+	remove_from_whitelist {
+		let mrenclave = TEST4_MRENCLAVE;
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
+
+	}: _(RawOrigin::Root, mrenclave)
+	verify {
+		assert_eq!(Exchange::<T>::whitelist().len(), 0, "mrenclave not removed from whitelist")
 	}
 }
 
