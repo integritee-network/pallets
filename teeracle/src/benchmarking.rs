@@ -46,6 +46,7 @@ benchmarks! {
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let currency = "usd".as_bytes().to_owned();
 		let rate = U32F32::from_num(43.65);
+		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -54,28 +55,30 @@ benchmarks! {
 			URL.to_vec()
 		).unwrap();
 		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave);
 
-	}: _(RawOrigin::Signed(signer), currency, Some(rate))
+	}: _(RawOrigin::Signed(signer), data_source, currency, Some(rate))
 	verify {
 		assert_eq!(Exchange::<T>::exchange_rate("usd".as_bytes().to_owned()), U32F32::from_num(43.65));
 	}
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
+		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
 
-	}: _(RawOrigin::Root, mrenclave)
+	}: _(RawOrigin::Root, data_source, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist().len(), 1, "mrenclave not added to whitelist")
+		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".as_bytes().to_owned()).len(), 1, "mrenclave not added to whitelist")
 	}
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), mrenclave);
+		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave);
 
-	}: _(RawOrigin::Root, mrenclave)
+	}: _(RawOrigin::Root, data_source, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist().len(), 0, "mrenclave not removed from whitelist")
+		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".as_bytes().to_owned()).len(), 0, "mrenclave not removed from whitelist")
 	}
 }
 

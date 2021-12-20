@@ -33,6 +33,7 @@
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
+use teeracle_primitives::MarketDataSourceString;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,11 +63,19 @@ pub mod pallet {
 	pub(super) type ExchangeRates<T: Config> =
 		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
 
-	/// whitelist of trusted oracle's releases
+	/// whitelist of trusted oracle's releases by sources
 	#[pallet::storage]
 	#[pallet::getter(fn whitelist)]
-	pub(super) type Whitelist<T: Config> =
-		StorageValue<_, WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>, ValueQuery>;
+	pub(super) type Whitelists<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		MarketDataSourceString,
+		WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>,
+		ValueQuery,
+	>;
+
+	// pub(super) type Whitelist<T: Config> =
+	// 	StorageValue<_, WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -74,8 +83,8 @@ pub mod pallet {
 		/// The exchange rate of currency was set/updated. \[currency], [new value\]
 		ExchangeRateUpdated(CurrencyString, Option<ExchangeRate>),
 		ExchangeRateDeleted(CurrencyString),
-		AddedToWhitelist([u8; 32]),
-		RemovedFromWhitelist([u8; 32]),
+		AddedToWhitelist(MarketDataSourceString, [u8; 32]),
+		RemovedFromWhitelist(MarketDataSourceString, [u8; 32]),
 	}
 
 	#[pallet::error]
@@ -93,26 +102,45 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(<T as Config>::WeightInfo::add_to_whitelist())]
-		pub fn add_to_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+		pub fn add_to_whitelist(
+			origin: OriginFor<T>,
+			data_source: MarketDataSourceString,
+			mrenclave: [u8; 32],
+		) -> DispatchResult {
 			ensure_root(origin)?;
-			ensure!(!Self::is_whitelisted(mrenclave), <Error<T>>::ReleaseAlreadyWhitelisted);
-			<Whitelist<T>>::try_append(mrenclave)
-				.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
-			Self::deposit_event(Event::AddedToWhitelist(mrenclave));
+			ensure!(
+				!Self::is_whitelisted(data_source.clone(), mrenclave),
+				<Error<T>>::ReleaseAlreadyWhitelisted
+			);
+			<Whitelists<T>>::try_mutate(data_source.clone(), |mrenclave_vec| {
+				mrenclave_vec.try_push(mrenclave)
+			})
+			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
+			Self::deposit_event(Event::AddedToWhitelist(data_source, mrenclave));
 			Ok(())
 		}
 		#[pallet::weight(<T as Config>::WeightInfo::remove_from_whitelist())]
-		pub fn remove_from_whitelist(origin: OriginFor<T>, mrenclave: [u8; 32]) -> DispatchResult {
+		pub fn remove_from_whitelist(
+			origin: OriginFor<T>,
+			data_source: MarketDataSourceString,
+			mrenclave: [u8; 32],
+		) -> DispatchResult {
 			ensure_root(origin)?;
-			ensure!(Self::is_whitelisted(mrenclave), <Error<T>>::ReleaseNotWhitelisted);
-			Whitelist::<T>::mutate(|mrenclaves| mrenclaves.retain(|m| *m != mrenclave));
-			Self::deposit_event(Event::RemovedFromWhitelist(mrenclave));
+			ensure!(
+				Self::is_whitelisted(data_source.clone(), mrenclave),
+				<Error<T>>::ReleaseNotWhitelisted
+			);
+			<Whitelists<T>>::mutate(data_source.clone(), |mrenclave_vec| {
+				mrenclave_vec.retain(|m| *m != mrenclave)
+			});
+			Self::deposit_event(Event::RemovedFromWhitelist(data_source, mrenclave));
 			Ok(())
 		}
 
 		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
+			data_source: MarketDataSourceString,
 			currency: CurrencyString,
 			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
@@ -120,7 +148,10 @@ pub mod pallet {
 			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
 			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
 			ensure!(
-				Self::is_whitelisted(<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave),
+				Self::is_whitelisted(
+					data_source,
+					<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave
+				),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
@@ -137,8 +168,8 @@ pub mod pallet {
 	}
 }
 impl<T: Config> Pallet<T> {
-	fn is_whitelisted(mrenclave: [u8; 32]) -> bool {
-		Self::whitelist().contains(&mrenclave)
+	fn is_whitelisted(data_source: MarketDataSourceString, mrenclave: [u8; 32]) -> bool {
+		Self::whitelist(data_source).contains(&mrenclave)
 	}
 }
 
