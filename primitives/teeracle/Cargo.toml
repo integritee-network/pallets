@@ -22,9 +22,16 @@ git = "https://github.com/paritytech/substrate.git"
 branch = "master"
 version = "4.0.0-dev"
 
+[dependencies.common-primitives]
+default-features = false
+package = "common-primitives"
+path = "../common"
+
+
 [features]
 default = ['std']
 std = [
     'sp-std/std',
     'substrate-fixed/std',
+    "common-primitives/std",
 ]

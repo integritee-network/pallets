@@ -1,0 +1,19 @@
+[package]
+name = "common-primitives"
+version = "0.1.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+
+# substrate deps
+sp-std = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", default-features = false, branch = "master" }
+
+[features]
+default = ['std']
+std = [
+    'sp-std/std',
+]
