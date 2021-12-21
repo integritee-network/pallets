@@ -122,7 +122,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::MarketDataSourceStringTooLong);
 			ensure!(
-				!Self::is_whitelisted(data_source.clone(), mrenclave),
+				!Self::is_whitelisted(&data_source, mrenclave),
 				<Error<T>>::ReleaseAlreadyWhitelisted
 			);
 			<Whitelists<T>>::try_mutate(data_source.clone(), |mrenclave_vec| {
@@ -140,10 +140,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
-				Self::is_whitelisted(data_source.clone(), mrenclave),
+				Self::is_whitelisted(&data_source, mrenclave),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
-			<Whitelists<T>>::mutate(data_source.clone(), |mrenclave_vec| {
+			<Whitelists<T>>::mutate(&data_source, |mrenclave_vec| {
 				mrenclave_vec.retain(|m| *m != mrenclave)
 			});
 			Self::deposit_event(Event::RemovedFromWhitelist(data_source, mrenclave));
@@ -166,26 +166,20 @@ pub mod pallet {
 			);
 			ensure!(
 				Self::is_whitelisted(
-					data_source.clone(),
+					&data_source,
 					<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave
 				),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
-				ExchangeRates::<T>::mutate_exists(
-					trading_pair.clone(),
-					data_source.clone(),
-					|rate| *rate = None,
-				);
+				ExchangeRates::<T>::mutate_exists(&trading_pair, &data_source, |rate| *rate = None);
 				Self::deposit_event(Event::ExchangeRateDeleted(data_source, trading_pair));
 			} else {
 				log::info!("Update exchange rate : {:?}", new_value);
-				ExchangeRates::<T>::mutate_exists(
-					trading_pair.clone(),
-					data_source.clone(),
-					|rate| *rate = new_value,
-				);
+				ExchangeRates::<T>::mutate_exists(&trading_pair, &data_source, |rate| {
+					*rate = new_value
+				});
 				Self::deposit_event(Event::ExchangeRateUpdated(
 					data_source,
 					trading_pair,
@@ -197,7 +191,7 @@ pub mod pallet {
 	}
 }
 impl<T: Config> Pallet<T> {
-	fn is_whitelisted(data_source: MarketDataSourceString, mrenclave: [u8; 32]) -> bool {
+	fn is_whitelisted(data_source: &MarketDataSourceString, mrenclave: [u8; 32]) -> bool {
 		Self::whitelist(data_source).contains(&mrenclave)
 	}
 }
