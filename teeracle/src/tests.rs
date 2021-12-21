@@ -25,18 +25,18 @@ use test_utils::ias::consts::{
 	TEST5_SIGNER_PUB, TEST8_MRENCLAVE, URL,
 };
 
-const COINGECKO_SRC: &[u8] = "https://api.coingecko.com".as_bytes();
-const COINMARKETCAP_SRC: &[u8] = "https://coinmarketcap.com/".as_bytes();
+const COINGECKO_SRC: &str = "https://api.coingecko.com";
+const COINMARKETCAP_SRC: &str = "https://coinmarketcap.com/";
 
-const DOT_USD_TRADING_PAIR: &[u8] = "DOT/USD".as_bytes();
-const TEER_USD_TRADING_PAIR: &[u8] = "TEER/USD".as_bytes();
+const DOT_USD_TRADING_PAIR: &str = "DOT/USD";
+const TEER_USD_TRADING_PAIR: &str = "TEER/USD";
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn register_enclave_and_add_oracle_to_whitelist_ok(src: &[u8]) {
+fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Teerex::register_enclave(
@@ -48,7 +48,7 @@ fn register_enclave_and_add_oracle_to_whitelist_ok(src: &[u8]) {
 	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
 }
 
-fn update_exchange_rate_dot_dollars_ok(src: &[u8], rate: Option<U32F32>) {
+fn update_exchange_rate_dot_dollars_ok(src: &str, rate: Option<U32F32>) {
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Exchange::update_exchange_rate(
 		Origin::signed(signer),
@@ -211,7 +211,7 @@ fn update_exchange_rate_with_too_long_trading_pair_fails() {
 
 		let rate = Some(U32F32::from_num(43.65));
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		let too_long_trading_pair = "123456789_12".as_bytes().to_owned();
+		let too_long_trading_pair = "123456789_12".to_owned();
 		assert_err!(
 			Exchange::update_exchange_rate(
 				Origin::signed(signer),
@@ -344,7 +344,7 @@ fn add_too_many_oracles_to_whitelist_fails() {
 #[test]
 fn add_to_whitelist_too_long_source_fails() {
 	new_test_ext().execute_with(|| {
-		let too_long_source = "123456789_223456789_323456789_423456789_1".as_bytes().to_owned();
+		let too_long_source = "123456789_223456789_323456789_423456789_1".to_owned();
 		assert_err!(
 			Exchange::add_to_whitelist(Origin::root(), too_long_source, TEST4_MRENCLAVE),
 			crate::Error::<Test>::MarketDataSourceStringTooLong

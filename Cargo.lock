@@ -279,6 +279,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "common-primitives"
+version = "0.1.0"
+dependencies = [
+ "sp-std",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2479,6 +2486,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 name = "teeracle-primitives"
 version = "0.1.0"
 dependencies = [
+ "common-primitives",
  "sp-std",
  "substrate-fixed",
 ]

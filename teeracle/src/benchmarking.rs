@@ -44,9 +44,9 @@ benchmarks! {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
-		let trading_pair =  "DOT/USD".as_bytes().to_owned();
+		let trading_pair =  "DOT/USD".to_owned();
 		let rate = U32F32::from_num(43.65);
-		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
+		let data_source = "https://api.coingecko.com".to_owned();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -59,26 +59,26 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(signer), data_source, trading_pair, Some(rate))
 	verify {
-		assert_eq!(Exchange::<T>::exchange_rate("DOT/USD".as_bytes().to_owned(), "https://api.coingecko.com".as_bytes().to_owned()), U32F32::from_num(43.65));
+		assert_eq!(Exchange::<T>::exchange_rate("DOT/USD".to_owned(), "https://api.coingecko.com".to_owned()), U32F32::from_num(43.65));
 	}
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
+		let data_source = "https://api.coingecko.com".to_owned();
 
 	}: _(RawOrigin::Root, data_source, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".as_bytes().to_owned()).len(), 1, "mrenclave not added to whitelist")
+		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".to_owned()).len(), 1, "mrenclave not added to whitelist")
 	}
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
+		let data_source = "https://api.coingecko.com".to_owned();
 		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave);
 
 	}: _(RawOrigin::Root, data_source, mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".as_bytes().to_owned()).len(), 0, "mrenclave not removed from whitelist")
+		assert_eq!(Exchange::<T>::whitelist("https://api.coingecko.com".to_owned()).len(), 0, "mrenclave not removed from whitelist")
 	}
 }
 
