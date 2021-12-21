@@ -14,7 +14,7 @@
 	limitations under the License.
 
 */
-
+#![cfg_attr(not(feature = "std"), no_std)]
 //!Primitives for all pallets
 
 #[cfg(not(feature = "std"))]
