@@ -44,7 +44,7 @@ benchmarks! {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
-		let currency = "usd".as_bytes().to_owned();
+		let trading_pair =  "DOT/USD".as_bytes().to_owned();
 		let rate = U32F32::from_num(43.65);
 		let data_source = "https://api.coingecko.com".as_bytes().to_owned();
 		// simply register the enclave before to make sure it already
@@ -57,9 +57,9 @@ benchmarks! {
 		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
 		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave);
 
-	}: _(RawOrigin::Signed(signer), data_source, currency, Some(rate))
+	}: _(RawOrigin::Signed(signer), data_source, trading_pair, Some(rate))
 	verify {
-		assert_eq!(Exchange::<T>::exchange_rate("usd".as_bytes().to_owned()), U32F32::from_num(43.65));
+		assert_eq!(Exchange::<T>::exchange_rate("DOT/USD".as_bytes().to_owned(), "https://api.coingecko.com".as_bytes().to_owned()), U32F32::from_num(43.65));
 	}
 
 	add_to_whitelist {

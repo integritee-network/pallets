@@ -28,12 +28,15 @@ use test_utils::ias::consts::{
 const COINGECKO_SRC: &[u8] = "https://api.coingecko.com".as_bytes();
 const COINMARKETCAP_SRC: &[u8] = "https://coinmarketcap.com/".as_bytes();
 
+const DOT_USD_TRADING_PAIR: &[u8] = "DOT/USD".as_bytes();
+const TEER_USD_TRADING_PAIR: &[u8] = "TEER/USD".as_bytes();
+
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn register_enclave_and_add_oracle_to_whitelist_ok() {
+fn register_enclave_and_add_oracle_to_whitelist_ok(src: &[u8]) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Teerex::register_enclave(
@@ -42,15 +45,15 @@ fn register_enclave_and_add_oracle_to_whitelist_ok() {
 		URL.to_vec()
 	));
 	let mrenclave = Teerex::enclave(1).mr_enclave;
-	assert_ok!(Exchange::add_to_whitelist(Origin::root(), COINGECKO_SRC.to_owned(), mrenclave));
+	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
 }
 
-fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
+fn update_exchange_rate_dot_dollars_ok(src: &[u8], rate: Option<U32F32>) {
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Exchange::update_exchange_rate(
 		Origin::signed(signer),
-		COINGECKO_SRC.to_owned(),
-		"usd".as_bytes().to_owned(),
+		src.to_owned(),
+		DOT_USD_TRADING_PAIR.to_owned(),
 		rate
 	));
 }
@@ -58,20 +61,27 @@ fn update_exchange_rate_for_dollars_ok(rate: Option<U32F32>) {
 #[test]
 fn update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok();
+		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 
 		let rate = U32F32::from_num(43.65);
-		update_exchange_rate_for_dollars_ok(Some(rate));
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
 		let expected_event = Event::Exchange(crate::Event::ExchangeRateUpdated(
-			"usd".as_bytes().to_owned(),
+			COINGECKO_SRC.to_owned(),
+			DOT_USD_TRADING_PAIR.to_owned(),
 			Some(rate),
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
+		assert_eq!(
+			Exchange::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
+			rate
+		);
 
 		let rate2 = U32F32::from_num(4294967295.65);
-		update_exchange_rate_for_dollars_ok(Some(rate2));
-		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate2);
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate2));
+		assert_eq!(
+			Exchange::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
+			rate2
+		);
 	})
 }
 
@@ -79,49 +89,78 @@ fn update_exchange_rate_works() {
 fn get_existing_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
-		register_enclave_and_add_oracle_to_whitelist_ok();
-		update_exchange_rate_for_dollars_ok(Some(rate));
-		assert_eq!(Exchange::exchange_rate("usd".as_bytes().to_owned()), rate);
+		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
+		assert_eq!(
+			Exchange::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
+			rate
+		);
 	})
 }
 
 #[test]
 fn get_inexisting_exchange_rate_is_zero() {
 	new_test_ext().execute_with(|| {
-		assert_eq!(ExchangeRates::<Test>::contains_key("eur".as_bytes().to_owned()), false);
-		assert_eq!(Exchange::exchange_rate("eur".as_bytes().to_owned()), U32F32::from_num(0));
+		assert_eq!(
+			ExchangeRates::<Test>::contains_key(
+				DOT_USD_TRADING_PAIR.to_owned(),
+				COINGECKO_SRC.to_owned()
+			),
+			false
+		);
+		assert_eq!(
+			Exchange::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
+			U32F32::from_num(0)
+		);
 	})
 }
 
 #[test]
 fn update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok();
+		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 		let rate = U32F32::from_num(43.65);
-		update_exchange_rate_for_dollars_ok(Some(rate));
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
 
-		update_exchange_rate_for_dollars_ok(None);
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, None);
 
-		let expected_event =
-			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
+		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(
+			COINGECKO_SRC.to_owned(),
+			DOT_USD_TRADING_PAIR.to_owned(),
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(ExchangeRates::<Test>::contains_key("usd".as_bytes().to_owned()), false);
+		assert_eq!(
+			ExchangeRates::<Test>::contains_key(
+				DOT_USD_TRADING_PAIR.to_owned(),
+				COINGECKO_SRC.to_owned()
+			),
+			false
+		);
 	})
 }
 
 #[test]
 fn update_exchange_rate_to_zero_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok();
+		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 		let rate = Some(U32F32::from_num(43.65));
-		update_exchange_rate_for_dollars_ok(rate);
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, rate);
 
-		update_exchange_rate_for_dollars_ok(Some(U32F32::from_num(0)));
+		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(U32F32::from_num(0)));
 
-		let expected_event =
-			Event::Exchange(crate::Event::ExchangeRateDeleted("usd".as_bytes().to_owned()));
+		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(
+			COINGECKO_SRC.to_owned(),
+			DOT_USD_TRADING_PAIR.to_owned(),
+		));
+
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(ExchangeRates::<Test>::contains_key("usd".as_bytes().to_owned()), false);
+		assert_eq!(
+			ExchangeRates::<Test>::contains_key(
+				DOT_USD_TRADING_PAIR.to_owned(),
+				COINGECKO_SRC.to_owned()
+			),
+			false
+		);
 	})
 }
 
@@ -134,7 +173,7 @@ fn update_exchange_rate_from_not_registered_enclave_fails() {
 			Exchange::update_exchange_rate(
 				Origin::signed(signer),
 				COINGECKO_SRC.to_owned(),
-				"usd".as_bytes().to_owned(),
+				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
 			),
 			Error::<Test>::EnclaveIsNotRegistered
@@ -158,7 +197,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 			Exchange::update_exchange_rate(
 				Origin::signed(signer),
 				COINGECKO_SRC.to_owned(),
-				"usd".as_bytes().to_owned(),
+				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
 			),
 			crate::Error::<Test>::ReleaseNotWhitelisted

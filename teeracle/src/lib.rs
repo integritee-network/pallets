@@ -57,13 +57,20 @@ pub mod pallet {
 		type MaxWhitelistedReleases: Get<u32>;
 	}
 
-	/// Exchange rates chain's cryptocurrency/currency
+	/// Exchange rates chain's cryptocurrency/currency (trading pair) from different sources
 	#[pallet::storage]
 	#[pallet::getter(fn exchange_rate)]
-	pub(super) type ExchangeRates<T: Config> =
-		StorageMap<_, Blake2_128Concat, CurrencyString, ExchangeRate, ValueQuery>;
+	pub(super) type ExchangeRates<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		TradinPairString,
+		Blake2_128Concat,
+		MarketDataSourceString,
+		ExchangeRate,
+		ValueQuery,
+	>;
 
-	/// whitelist of trusted oracle's releases by sources
+	/// whitelist of trusted oracle's releases for different data sources
 	#[pallet::storage]
 	#[pallet::getter(fn whitelist)]
 	pub(super) type Whitelists<T: Config> = StorageMap<
@@ -80,9 +87,9 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// The exchange rate of currency was set/updated. \[currency], [new value\]
-		ExchangeRateUpdated(CurrencyString, Option<ExchangeRate>),
-		ExchangeRateDeleted(CurrencyString),
+		/// The exchange rate of trading pair was set/updated with value from source. \[data_source], [trading_pair], [new value\]
+		ExchangeRateUpdated(MarketDataSourceString, TradinPairString, Option<ExchangeRate>),
+		ExchangeRateDeleted(MarketDataSourceString, TradinPairString),
 		AddedToWhitelist(MarketDataSourceString, [u8; 32]),
 		RemovedFromWhitelist(MarketDataSourceString, [u8; 32]),
 	}
@@ -141,7 +148,7 @@ pub mod pallet {
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
 			data_source: MarketDataSourceString,
-			currency: CurrencyString,
+			trading_pair: TradinPairString,
 			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -149,19 +156,31 @@ pub mod pallet {
 			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
 			ensure!(
 				Self::is_whitelisted(
-					data_source,
+					data_source.clone(),
 					<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave
 				),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
-				ExchangeRates::<T>::mutate_exists(currency.clone(), |rate| *rate = None);
-				Self::deposit_event(Event::ExchangeRateDeleted(currency));
+				ExchangeRates::<T>::mutate_exists(
+					trading_pair.clone(),
+					data_source.clone(),
+					|rate| *rate = None,
+				);
+				Self::deposit_event(Event::ExchangeRateDeleted(data_source, trading_pair));
 			} else {
 				log::info!("Update exchange rate : {:?}", new_value);
-				ExchangeRates::<T>::mutate_exists(currency.clone(), |rate| *rate = new_value);
-				Self::deposit_event(Event::ExchangeRateUpdated(currency, new_value));
+				ExchangeRates::<T>::mutate_exists(
+					trading_pair.clone(),
+					data_source.clone(),
+					|rate| *rate = new_value,
+				);
+				Self::deposit_event(Event::ExchangeRateUpdated(
+					data_source,
+					trading_pair,
+					new_value,
+				));
 			}
 			Ok(().into())
 		}
