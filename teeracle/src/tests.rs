@@ -204,6 +204,25 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 		);
 	})
 }
+#[test]
+fn update_exchange_rate_with_too_long_trading_pair_fails() {
+	new_test_ext().execute_with(|| {
+		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+
+		let rate = Some(U32F32::from_num(43.65));
+		let signer = get_signer(TEST4_SIGNER_PUB);
+		let too_long_trading_pair = "123456789_12".as_bytes().to_owned();
+		assert_err!(
+			Exchange::update_exchange_rate(
+				Origin::signed(signer),
+				COINGECKO_SRC.to_owned(),
+				too_long_trading_pair,
+				rate
+			),
+			crate::Error::<Test>::TradingPairStringTooLong
+		);
+	})
+}
 
 #[test]
 fn add_to_whitelist_works() {
@@ -320,6 +339,16 @@ fn add_too_many_oracles_to_whitelist_fails() {
 			crate::Error::<Test>::ReleaseWhitelistOverflow
 		);
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 10);
+	})
+}
+#[test]
+fn add_to_whitelist_too_long_source_fails() {
+	new_test_ext().execute_with(|| {
+		let too_long_source = "123456789_223456789_323456789_423456789_1".as_bytes().to_owned();
+		assert_err!(
+			Exchange::add_to_whitelist(Origin::root(), too_long_source, TEST4_MRENCLAVE),
+			crate::Error::<Test>::MarketDataSourceStringTooLong
+		);
 	})
 }
 

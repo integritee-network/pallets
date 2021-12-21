@@ -4,5 +4,5 @@ use sp_std::prelude::*;
 use substrate_fixed::types::U32F32;
 
 pub type ExchangeRate = U32F32;
-pub type TradinPairString = Vec<u8>;
+pub type TradingPairString = Vec<u8>;
 pub type MarketDataSourceString = Vec<u8>;

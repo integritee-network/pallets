@@ -35,6 +35,9 @@ pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
 use teeracle_primitives::MarketDataSourceString;
 
+const MAX_TRADING_PAIR_LEN: usize = 11;
+const MAX_SOURCE_LEN: usize = 40;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -63,7 +66,7 @@ pub mod pallet {
 	pub(super) type ExchangeRates<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		TradinPairString,
+		TradingPairString,
 		Blake2_128Concat,
 		MarketDataSourceString,
 		ExchangeRate,
@@ -88,8 +91,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// The exchange rate of trading pair was set/updated with value from source. \[data_source], [trading_pair], [new value\]
-		ExchangeRateUpdated(MarketDataSourceString, TradinPairString, Option<ExchangeRate>),
-		ExchangeRateDeleted(MarketDataSourceString, TradinPairString),
+		ExchangeRateUpdated(MarketDataSourceString, TradingPairString, Option<ExchangeRate>),
+		ExchangeRateDeleted(MarketDataSourceString, TradingPairString),
 		AddedToWhitelist(MarketDataSourceString, [u8; 32]),
 		RemovedFromWhitelist(MarketDataSourceString, [u8; 32]),
 	}
@@ -101,6 +104,8 @@ pub mod pallet {
 		ReleaseWhitelistOverflow,
 		ReleaseNotWhitelisted,
 		ReleaseAlreadyWhitelisted,
+		TradingPairStringTooLong,
+		MarketDataSourceStringTooLong,
 	}
 
 	#[pallet::hooks]
@@ -115,6 +120,7 @@ pub mod pallet {
 			mrenclave: [u8; 32],
 		) -> DispatchResult {
 			ensure_root(origin)?;
+			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::MarketDataSourceStringTooLong);
 			ensure!(
 				!Self::is_whitelisted(data_source.clone(), mrenclave),
 				<Error<T>>::ReleaseAlreadyWhitelisted
@@ -148,12 +154,16 @@ pub mod pallet {
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
 			data_source: MarketDataSourceString,
-			trading_pair: TradinPairString,
+			trading_pair: TradingPairString,
 			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
 			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
+			ensure!(
+				trading_pair.len() <= MAX_TRADING_PAIR_LEN,
+				Error::<T>::TradingPairStringTooLong
+			);
 			ensure!(
 				Self::is_whitelisted(
 					data_source.clone(),
