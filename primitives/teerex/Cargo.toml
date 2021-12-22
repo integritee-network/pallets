@@ -6,7 +6,6 @@ homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
 license = "Apache-2.0"
 edition = "2021"
-resolver = "2"
 
 [dependencies]
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
