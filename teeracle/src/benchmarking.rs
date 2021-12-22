@@ -69,7 +69,6 @@ benchmarks! {
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
-		// help the compiler with type inference
 		assert_eq!(Exchange::<T>::whitelist(data_source).len(), 1, "mrenclave not added to whitelist")
 	}
 
