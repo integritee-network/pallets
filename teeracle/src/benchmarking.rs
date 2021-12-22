@@ -56,7 +56,7 @@ benchmarks! {
 			URL.to_vec()
 		).unwrap();
 		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone().into(), mrenclave).unwrap();
+		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
 	}: _(RawOrigin::Signed(signer), data_source.clone(), trading_pair.clone(), Some(rate))
 	verify {
