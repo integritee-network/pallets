@@ -29,6 +29,7 @@ use ::test_utils::{
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::CheckedConversion;
+use sp_std::vec;
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]
