@@ -6,8 +6,7 @@ authors = ["Integritee AG"]
 homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
 license = "Apache-2.0"
-edition = "2018"
-resolver = "2"
+edition = "2021"
 
 [dependencies]
 serde = { features = ['derive'], optional = true, version = '1.0.101' }
