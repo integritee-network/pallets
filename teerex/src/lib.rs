@@ -26,7 +26,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::traits::{SaturatedConversion};
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
@@ -55,13 +55,14 @@ decl_event!(
 	pub enum Event<T>
 	where
 		<T as system::Config>::AccountId,
+		<T as system::Config>::Hash,
 	{
 		AddedEnclave(AccountId, Vec<u8>),
 		RemovedEnclave(AccountId),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(AccountId),
-		ProcessedParentchainBlock(AccountId, H256, H256),
+		ProcessedParentchainBlock(AccountId, Hash, H256),
 		ProposedSidechainBlock(AccountId, H256),
 	}
 );
@@ -148,9 +149,13 @@ decl_module! {
 
 		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
 		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_processed_parentchain_block(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+		pub fn confirm_processed_parentchain_block(origin, block_hash: T::Hash, trusted_calls_merkle_root: H256) -> DispatchResult {
+			let sender = ensure_signed(origin.clone())?;
 			Self::is_registered_enclave(&sender)?;
+			if system::pallet::BlockHash::<T>::iter_values().find(|bh| *bh == block_hash).is_none() {
+				Self::unregister_enclave(origin)?;
+				return Err(<Error<T>>::UnknownBlockHash.into());
+			}
 			log::debug!("Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}", sender, block_hash);
 			Self::deposit_event(RawEvent::ProcessedParentchainBlock(sender, block_hash, trusted_calls_merkle_root));
 			Ok(())
@@ -226,6 +231,8 @@ decl_error! {
 		RaReportTooLong,
 		///The enclave doesn't exists
 		InexistentEnclave,
+		/// The BlockHash is invalid
+		UnknownBlockHash,
 	}
 }
 
