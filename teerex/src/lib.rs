@@ -26,7 +26,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::{SaturatedConversion};
+use sp_runtime::traits::SaturatedConversion;
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
