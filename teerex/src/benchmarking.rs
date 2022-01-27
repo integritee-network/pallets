@@ -112,7 +112,7 @@ benchmarks! {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
-		let block_hash: H256 = [2; 32].into();
+		let block_hash = frame_system::pallet::BlockHash::<T>::iter().next().unwrap().1;
 		let merkle_root: H256 = [4; 32].into();
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
