@@ -239,7 +239,7 @@ fn update_enclave_url_works() {
 fn update_ipfs_hash_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
-		let block_hash = H256::default();
+		let block_hash = frame_system::pallet::BlockHash::<Test>::get(0);
 		let merkle_root = H256::default();
 		let signer = get_signer(TEST4_SIGNER_PUB);
 
@@ -622,7 +622,7 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 fn confirm_processed_parentchain_block_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
+		let block_hash = frame_system::pallet::BlockHash::<Test>::get(0);
 		let merkle_root = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		//Ensure that enclave is registered
