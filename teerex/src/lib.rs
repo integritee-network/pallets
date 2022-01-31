@@ -36,6 +36,16 @@ use ias_verify::{verify_ias_report, SgxReport};
 pub use crate::weights::WeightInfo;
 use ias_verify::SgxBuildMode;
 
+mod benchmarking;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+pub mod weights;
+
+const MAX_RA_REPORT_LEN: usize = 4096;
+const MAX_URL_LEN: usize = 256;
+
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
@@ -46,42 +56,6 @@ pub trait Config: system::Config + timestamp::Config {
 	type MomentsPerDay: Get<Self::Moment>;
 	type WeightInfo: WeightInfo;
 	type MaxSilenceTime: Get<Self::Moment>;
-}
-
-const MAX_RA_REPORT_LEN: usize = 4096;
-const MAX_URL_LEN: usize = 256;
-
-decl_event!(
-	pub enum Event<T>
-	where
-		<T as system::Config>::AccountId,
-	{
-		AddedEnclave(AccountId, Vec<u8>),
-		RemovedEnclave(AccountId),
-		Forwarded(ShardIdentifier),
-		ShieldFunds(Vec<u8>),
-		UnshieldedFunds(AccountId),
-		ProcessedParentchainBlock(AccountId, H256, H256),
-		ProposedSidechainBlock(AccountId, H256),
-	}
-);
-
-decl_storage! {
-	trait Store for Module<T: Config> as Teerex {
-		// Simple lists are not supported in runtime modules as theoretically O(n)
-		// operations can be executed while only being charged O(1), see substrate
-		// Kitties tutorial Chapter 2, Tracking all Kitties.
-
-		// watch out: we start indexing with 1 instead of zero in order to
-		// avoid ambiguity between Null and 0
-		pub EnclaveRegistry get(fn enclave): map hasher(blake2_128_concat) u64 => Enclave<T::AccountId, Vec<u8>>;
-		pub EnclaveCount get(fn enclave_count): u64;
-		pub EnclaveIndex get(fn enclave_index): map hasher(blake2_128_concat) T::AccountId => u64;
-		// enclave index of the worker that recently committed an update
-		pub WorkerForShard get(fn worker_for_shard) : map hasher(blake2_128_concat) ShardIdentifier => u64;
-		pub ExecutedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
-		pub AllowSGXDebugMode get(fn allow_sgx_debug_mode) config(allow_sgx_debug_mode): bool;
-	}
 }
 
 decl_module! {
@@ -203,6 +177,21 @@ decl_module! {
 	}
 }
 
+decl_event!(
+	pub enum Event<T>
+	where
+		<T as system::Config>::AccountId,
+	{
+		AddedEnclave(AccountId, Vec<u8>),
+		RemovedEnclave(AccountId),
+		Forwarded(ShardIdentifier),
+		ShieldFunds(Vec<u8>),
+		UnshieldedFunds(AccountId),
+		ProcessedParentchainBlock(AccountId, H256, H256),
+		ProposedSidechainBlock(AccountId, H256),
+	}
+);
+
 decl_error! {
 	pub enum Error for Module<T: Config> {
 		/// failed to decode enclave signer
@@ -226,6 +215,24 @@ decl_error! {
 		RaReportTooLong,
 		///The enclave doesn't exists
 		InexistentEnclave,
+	}
+}
+
+decl_storage! {
+	trait Store for Module<T: Config> as Teerex {
+		// Simple lists are not supported in runtime modules as theoretically O(n)
+		// operations can be executed while only being charged O(1), see substrate
+		// Kitties tutorial Chapter 2, Tracking all Kitties.
+
+		// watch out: we start indexing with 1 instead of zero in order to
+		// avoid ambiguity between Null and 0
+		pub EnclaveRegistry get(fn enclave): map hasher(blake2_128_concat) u64 => Enclave<T::AccountId, Vec<u8>>;
+		pub EnclaveCount get(fn enclave_count): u64;
+		pub EnclaveIndex get(fn enclave_index): map hasher(blake2_128_concat) T::AccountId => u64;
+		// enclave index of the worker that recently committed an update
+		pub WorkerForShard get(fn worker_for_shard) : map hasher(blake2_128_concat) ShardIdentifier => u64;
+		pub ExecutedCalls get(fn confirmed_calls): map hasher(blake2_128_concat) H256 => u64;
+		pub AllowSGXDebugMode get(fn allow_sgx_debug_mode) config(allow_sgx_debug_mode): bool;
 	}
 }
 
@@ -348,10 +355,3 @@ impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 		Self::unregister_silent_workers(moment)
 	}
 }
-
-mod benchmarking;
-#[cfg(test)]
-mod mock;
-#[cfg(test)]
-mod tests;
-pub mod weights;
