@@ -44,13 +44,6 @@ pub use pallet::*;
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_URL_LEN: usize = 256;
 
-mod benchmarking;
-#[cfg(test)]
-mod mock;
-#[cfg(test)]
-mod tests;
-pub mod weights;
-
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -71,6 +64,73 @@ pub mod pallet {
 		type MomentsPerDay: Get<Self::Moment>;
 		type WeightInfo: WeightInfo;
 		type MaxSilenceTime: Get<Self::Moment>;
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		AddedEnclave(T::AccountId, Vec<u8>),
+		RemovedEnclave(T::AccountId),
+		Forwarded(ShardIdentifier),
+		ShieldFunds(Vec<u8>),
+		UnshieldedFunds(T::AccountId),
+		ProcessedParentchainBlock(T::AccountId, H256, H256),
+		ProposedSidechainBlock(T::AccountId, H256),
+	}
+
+	// Watch out: we start indexing with 1 instead of zero in order to
+	// avoid ambiguity between Null and 0.
+	#[pallet::storage]
+	#[pallet::getter(fn enclave)]
+	pub type EnclaveRegistry<T: Config> =
+		StorageMap<_, Blake2_128Concat, u64, Enclave<T::AccountId, Vec<u8>>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn enclave_count)]
+	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn enclave_index)]
+	pub type EnclaveIndex<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
+
+	// Enclave index of the worker that recently committed an update.
+	#[pallet::storage]
+	#[pallet::getter(fn worker_for_shard)]
+	pub type WorkerForShard<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn confirmed_calls)]
+	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn allow_sgx_debug_mode)]
+	pub type AllowSGXDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub allow_sgx_debug_mode: bool,
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			Self { allow_sgx_debug_mode: Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			{
+				let data = &self.allow_sgx_debug_mode;
+				let v: &bool = data;
+				<AllowSGXDebugMode<T> as frame_support::storage::StorageValue<bool>>::put::<&bool>(
+					v,
+				);
+			}
+		}
 	}
 
 	#[pallet::call]
@@ -247,18 +307,6 @@ pub mod pallet {
 		}
 	}
 
-	#[pallet::event]
-	#[pallet::generate_deposit(pub(super) fn deposit_event)]
-	pub enum Event<T: Config> {
-		AddedEnclave(T::AccountId, Vec<u8>),
-		RemovedEnclave(T::AccountId),
-		Forwarded(ShardIdentifier),
-		ShieldFunds(Vec<u8>),
-		UnshieldedFunds(T::AccountId),
-		ProcessedParentchainBlock(T::AccountId, H256, H256),
-		ProposedSidechainBlock(T::AccountId, H256),
-	}
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Failed to decode enclave signer.
@@ -282,61 +330,6 @@ pub mod pallet {
 		RaReportTooLong,
 		/// The enclave doesn't exists.
 		InexistentEnclave,
-	}
-
-	// Watch out: we start indexing with 1 instead of zero in order to
-	// avoid ambiguity between Null and 0.
-	#[pallet::storage]
-	#[pallet::getter(fn enclave)]
-	pub type EnclaveRegistry<T: Config> =
-		StorageMap<_, Blake2_128Concat, u64, Enclave<T::AccountId, Vec<u8>>, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn enclave_count)]
-	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn enclave_index)]
-	pub type EnclaveIndex<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
-
-	// Enclave index of the worker that recently committed an update.
-	#[pallet::storage]
-	#[pallet::getter(fn worker_for_shard)]
-	pub type WorkerForShard<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn confirmed_calls)]
-	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn allow_sgx_debug_mode)]
-	pub type AllowSGXDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
-
-	#[pallet::genesis_config]
-	pub struct GenesisConfig {
-		pub allow_sgx_debug_mode: bool,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			Self { allow_sgx_debug_mode: Default::default() }
-		}
-	}
-
-	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
-		fn build(&self) {
-			{
-				let data = &self.allow_sgx_debug_mode;
-				let v: &bool = data;
-				<AllowSGXDebugMode<T> as frame_support::storage::StorageValue<bool>>::put::<&bool>(
-					v,
-				);
-			}
-		}
 	}
 }
 
@@ -459,3 +452,10 @@ impl<T: Config> OnTimestampSet<T::Moment> for Pallet<T> {
 		Self::unregister_silent_workers(moment)
 	}
 }
+
+mod benchmarking;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+pub mod weights;
