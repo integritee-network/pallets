@@ -158,8 +158,8 @@ pub mod pallet {
 			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			<pallet_teerex::Module<T>>::is_registered_enclave(&sender)?;
-			let sender_index = <pallet_teerex::Module<T>>::enclave_index(sender);
+			<pallet_teerex::Pallet<T>>::is_registered_enclave(&sender)?;
+			let sender_index = <pallet_teerex::Pallet<T>>::enclave_index(sender);
 			ensure!(
 				trading_pair.len() <= MAX_TRADING_PAIR_LEN,
 				Error::<T>::TradingPairStringTooLong
@@ -167,7 +167,7 @@ pub mod pallet {
 			ensure!(
 				Self::is_whitelisted(
 					&data_source,
-					<pallet_teerex::Module<T>>::enclave(sender_index).mr_enclave
+					<pallet_teerex::Pallet<T>>::enclave(sender_index).mr_enclave
 				),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
