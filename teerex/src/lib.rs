@@ -36,50 +36,59 @@ use ias_verify::{verify_ias_report, SgxReport};
 pub use crate::weights::WeightInfo;
 use ias_verify::SgxBuildMode;
 
-mod benchmarking;
-#[cfg(test)]
-mod mock;
-#[cfg(test)]
-mod tests;
-pub mod weights;
-
-const MAX_RA_REPORT_LEN: usize = 4096;
-const MAX_URL_LEN: usize = 256;
-
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
 
-pub trait Config: system::Config + timestamp::Config {
-	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-	type Currency: Currency<<Self as system::Config>::AccountId>;
-	type MomentsPerDay: Get<Self::Moment>;
-	type WeightInfo: WeightInfo;
-	type MaxSilenceTime: Get<Self::Moment>;
-}
+pub use pallet::*;
 
-decl_module! {
-	pub struct Module<T: Config> for enum Call where origin: T::Origin {
+const MAX_RA_REPORT_LEN: usize = 4096;
+const MAX_URL_LEN: usize = 256;
+#[frame_support::pallet]
+pub mod pallet {
+	use super::*;
+	use frame_support::pallet_prelude::*;
+	use frame_system::pallet_prelude::*;
+
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T, I = ()>(PhantomData<T>);
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
 		type Error = Error<T>;
-		fn deposit_event() = default;
 
 		// the integritee-service wants to register his enclave
-		#[weight = (<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes)]
-		pub fn register_enclave(origin, ra_report: Vec<u8>, worker_url: Vec<u8>) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes)]
+		pub fn register_enclave(
+			origin: OriginFor<T>,
+			ra_report: Vec<u8>,
+			worker_url: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
 			log::info!("teerex: called into runtime call register_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
-			ensure!(worker_url.len() <= MAX_URL_LEN,  <Error<T>>::EnclaveUrlTooLong);
+			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
 			log::info!("teerex: parameter lenght ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_report(&sender, ra_report)
-				.map(|report| Enclave::new(sender.clone(), report.mr_enclave, report.timestamp, worker_url.clone(), report.build_mode))?;
+			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
+				Enclave::new(
+					sender.clone(),
+					report.mr_enclave,
+					report.timestamp,
+					worker_url.clone(),
+					report.build_mode,
+				)
+			})?;
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			if !<AllowSGXDebugMode>::get() && enclave.sgx_mode == SgxBuildMode::Debug {
 				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
-				return Err(<Error<T>>::SgxModeNotAllowed.into());
+				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
 			#[cfg(feature = "skip-ias-check")]
@@ -88,23 +97,23 @@ decl_module! {
 			#[cfg(feature = "skip-ias-check")]
 			let enclave = Enclave::new(
 				sender.clone(),
-				 // insert mrenclave if the ra_report represents one, otherwise insert default
+				// insert mrenclave if the ra_report represents one, otherwise insert default
 				<[u8; 32]>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
 				worker_url.clone(),
-				SgxBuildMode::default()
+				SgxBuildMode::default(),
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
 			Self::deposit_event(RawEvent::AddedEnclave(sender, worker_url));
-			Ok(())
+			Ok(().into())
 		}
 
 		// TODO: we can't expect a dead enclave to unregister itself
 		// alternative: allow anyone to unregister an enclave that hasn't recently supplied a RA
 		// such a call should be feeless if successful
-		#[weight = (<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes)]
-		pub fn unregister_enclave(origin) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes)]
+		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			Self::remove_enclave(&sender)?;
@@ -112,110 +121,184 @@ decl_module! {
 			Ok(())
 		}
 
-		#[weight = (<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes)]
-		pub fn call_worker(origin, request: Request) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes)]
+		pub fn call_worker(origin: OriginFor<T>, request: Request) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
 			log::info!("call_worker with {:?}", request);
 			Self::deposit_event(RawEvent::Forwarded(request.shard));
-			Ok(())
+			Ok(().into())
 		}
 
 		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
-		#[weight = (<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_processed_parentchain_block(origin, block_hash: H256, trusted_calls_merkle_root: H256) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_processed_parentchain_block(
+			origin: OriginFor<T>,
+			block_hash: H256,
+			trusted_calls_merkle_root: H256,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
-			log::debug!("Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}", sender, block_hash);
-			Self::deposit_event(RawEvent::ProcessedParentchainBlock(sender, block_hash, trusted_calls_merkle_root));
-			Ok(())
+			log::debug!(
+				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
+				sender,
+				block_hash
+			);
+			Self::deposit_event(RawEvent::ProcessedParentchainBlock(
+				sender,
+				block_hash,
+				trusted_calls_merkle_root,
+			));
+			Ok(().into())
 		}
 
 		/// The integritee worker calls this function for every proposed sidechain_block.
-		#[weight = (<T as Config>::WeightInfo::confirm_proposed_sidechain_block(), DispatchClass::Normal, Pays::Yes)]
-		pub fn confirm_proposed_sidechain_block(origin, shard_id: ShardIdentifier, block_hash: H256) -> DispatchResult {
+		#[pallet::weight(<T as Config>::WeightInfo::confirm_proposed_sidechain_block(), DispatchClass::Normal, Pays::Yes)]
+		pub fn confirm_proposed_sidechain_block(
+			origin: OriginFor<T>,
+			shard_id: ShardIdentifier,
+			block_hash: H256,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
-			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),<Error<T>>::WrongMrenclaveForShard);
+			ensure!(
+				<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),
+				<Error<T>>::WrongMrenclaveForShard
+			);
 			<WorkerForShard>::insert(shard_id, sender_index);
-			log::debug!("Proposed sidechain block confirmed with shard {:?}, block hash {:?}", shard_id, block_hash);
+			log::debug!(
+				"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
+				shard_id,
+				block_hash
+			);
 			Self::deposit_event(RawEvent::ProposedSidechainBlock(sender, block_hash));
-			Ok(())
+			Ok(().into())
 		}
 
 		/// Sent by a client who requests to get shielded funds managed by an enclave. For this on-chain balance is sent to the bonding_account of the enclave.
 		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
 		/// Note: The bonding_account is bit-equivalent to the worker shard.
-		#[weight = (1000, DispatchClass::Normal, Pays::No)]
-		pub fn shield_funds(origin, incognito_account_encrypted: Vec<u8>, amount: BalanceOf<T>, bonding_account: T::AccountId) -> DispatchResult {
+		#[pallet::weight(1000, DispatchClass::Normal, Pays::No)]
+		pub fn shield_funds(
+			origin: OriginFor<T>,
+			incognito_account_encrypted: Vec<u8>,
+			amount: BalanceOf<T>,
+			bonding_account: T::AccountId,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			T::Currency::transfer(&sender, &bonding_account, amount, ExistenceRequirement::AllowDeath)?;
+			T::Currency::transfer(
+				&sender,
+				&bonding_account,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
 			Self::deposit_event(RawEvent::ShieldFunds(incognito_account_encrypted));
-			Ok(())
+			Ok(().into())
 		}
 
 		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
-		#[weight = (1000, DispatchClass::Normal, Pays::No)]
-		pub fn unshield_funds(origin, public_account: T::AccountId, amount: BalanceOf<T>, bonding_account: T::AccountId, call_hash: H256) -> DispatchResult {
+		#[pallet::weight(1000, DispatchClass::Normal, Pays::No)]
+		pub fn unshield_funds(
+			origin: OriginFor<T>,
+			public_account: T::AccountId,
+			amount: BalanceOf<T>,
+			bonding_account: T::AccountId,
+			call_hash: H256,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = <EnclaveIndex<T>>::get(sender);
-			ensure!(<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == bonding_account.encode(),<Error<T>>::WrongMrenclaveForBondingAccount);
+			ensure!(
+				<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() ==
+					bonding_account.encode(),
+				<Error<T>>::WrongMrenclaveForBondingAccount
+			);
 
 			if !<ExecutedCalls>::contains_key(call_hash) {
 				log::info!("Executing unshielding call: {:?}", call_hash);
-				T::Currency::transfer(&bonding_account, &public_account, amount, ExistenceRequirement::AllowDeath)?;
+				T::Currency::transfer(
+					&bonding_account,
+					&public_account,
+					amount,
+					ExistenceRequirement::AllowDeath,
+				)?;
 				<ExecutedCalls>::insert(call_hash, 0);
 				Self::deposit_event(RawEvent::UnshieldedFunds(public_account));
 			} else {
 				log::info!("Already executed unshielding call: {:?}", call_hash);
 			}
 
-			<ExecutedCalls>::mutate(call_hash, |confirmations| {*confirmations += 1 });
-			Ok(())
+			<ExecutedCalls>::mutate(call_hash, |confirmations| *confirmations += 1);
+			Ok(().into())
 		}
 	}
-}
 
-decl_event!(
-	pub enum Event<T>
-	where
-		<T as system::Config>::AccountId,
-	{
-		AddedEnclave(AccountId, Vec<u8>),
-		RemovedEnclave(AccountId),
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: system::Config> {
+		AddedEnclave(T::AccountId, Vec<u8>),
+		RemovedEnclave(T::AccountId),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
-		UnshieldedFunds(AccountId),
-		ProcessedParentchainBlock(AccountId, H256, H256),
-		ProposedSidechainBlock(AccountId, H256),
+		UnshieldedFunds(T::AccountId),
+		ProcessedParentchainBlock(T::AccountId, H256, H256),
+		ProposedSidechainBlock(T::AccountId, H256),
 	}
-);
 
-decl_error! {
-	pub enum Error for Module<T: Config> {
-		/// failed to decode enclave signer
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Failed to decode enclave signer.
 		EnclaveSignerDecodeError,
-		/// Sender does not match attested enclave in report
+		/// Sender does not match attested enclave in report.
 		SenderIsNotAttestedEnclave,
-		/// Verifying RA report failed
+		/// Verifying RA report failed.
 		RemoteAttestationVerificationFailed,
 		RemoteAttestationTooOld,
-		///The enclave cannot attest, because its building mode is not allowed
+		/// The enclave cannot attest, because its building mode is not allowed.
 		SgxModeNotAllowed,
-		///The enclave is not registered
+		/// The enclave is not registered.
 		EnclaveIsNotRegistered,
-		///The bonding account doesn't match the enclave
+		/// The bonding account doesn't match the enclave.
 		WrongMrenclaveForBondingAccount,
-		///The shard doesn't match the enclave
+		/// The shard doesn't match the enclave.
 		WrongMrenclaveForShard,
-		///The worker url is too long
+		/// The worker url is too long.
 		EnclaveUrlTooLong,
-		///The RA report is too long
+		/// The Remote Attestation report is too long.
 		RaReportTooLong,
-		///The enclave doesn't exists
+		/// The enclave doesn't exists.
 		InexistentEnclave,
 	}
+
+	// Watch out: we start indexing with 1 instead of zero in order to
+	// avoid ambiguity between Null and 0.
+	#[pallet::storage]
+	#[pallet::getter(fn enclave)]
+	pub type EnclaveRegistry<T: Config> =
+		StorageMap<_, Blake2_128Concat, u64, Enclave<T::AccountId, Vec<u8>>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn enclave_count)]
+	pub type EnclaveCount<T: Config> =
+		StorageValue<_, u64, Enclave<T::AccountId, Vec<u8>>, OptionQuery>;
+
+	// #[pallet::config]
+	// pub trait Config: frame_system::Config + pallet_teerex::Config {
+	// 	/// The overarching event type.
+	// 	type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+	// 	type WeightInfo: WeightInfo;
+	// 	/// Max number of whitelisted oracle's releases allowed
+	// 	#[pallet::constant]
+	// 	type MaxWhitelistedReleases: Get<u32>;
+	// }
+}
+
+pub trait Config: system::Config + timestamp::Config {
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
+	type Currency: Currency<<Self as system::Config>::AccountId>;
+	type MomentsPerDay: Get<Self::Moment>;
+	type WeightInfo: WeightInfo;
+	type MaxSilenceTime: Get<Self::Moment>;
 }
 
 decl_storage! {
@@ -355,3 +438,10 @@ impl<T: Config> OnTimestampSet<T::Moment> for Module<T> {
 		Self::unregister_silent_workers(moment)
 	}
 }
+
+mod benchmarking;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
+pub mod weights;
