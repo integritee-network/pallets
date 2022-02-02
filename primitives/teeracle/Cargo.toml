@@ -8,29 +8,20 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
+# local
+common-primitives = {path = "../common", default-features = false }
 
-[dependencies.substrate-fixed]
-default-features = false
-git = "https://github.com/encointer/substrate-fixed.git"
-package = "substrate-fixed"
-tag = "v0.5.7"
+# encointer
+substrate-fixed = { tag = "v0.5.7", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
 
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.common-primitives]
-default-features = false
-package = "common-primitives"
-path = "../common"
+# substrate
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'sp-std/std',
-    'substrate-fixed/std',
     "common-primitives/std",
+    "substrate-fixed/std",
+    "sp-std/std",
 ]

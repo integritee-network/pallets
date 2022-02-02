@@ -13,7 +13,7 @@ edition = "2021"
 sp-std = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", default-features = false, branch = "master" }
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'sp-std/std',
+    "sp-std/std",
 ]
