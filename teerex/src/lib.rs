@@ -123,13 +123,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
-			{
-				let data = &self.allow_sgx_debug_mode;
-				let v: &bool = data;
-				<AllowSGXDebugMode<T> as frame_support::storage::StorageValue<bool>>::put::<&bool>(
-					v,
-				);
-			}
+			AllowSGXDebugMode::<T>::put(&self.allow_sgx_debug_mode);
 		}
 	}
 
