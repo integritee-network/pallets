@@ -31,6 +31,7 @@ sp-std = { version = "4.0.0-dev", default-features = false, git = "https://githu
 # benchmarking
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 hex-literal = { version = "0.3.2", optional = true }
+test-utils = { path = "../test-utils", optional = true, default-features = false }
 timestamp = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-timestamp" }
 
 [dev-dependencies]
@@ -65,5 +66,6 @@ std = [
 runtime-benchmarks = [
     "frame-benchmarking",
     "hex-literal",
+    "test-utils",
     "timestamp/runtime-benchmarks"
 ]
