@@ -22,14 +22,14 @@
 use super::*;
 
 use crate::Pallet as Teerex;
-use ::test_utils::{
-	get_signer,
-	ias::{consts::*, ias::*},
-};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::vec;
+use test_utils::{
+	get_signer,
+	ias::{consts::*, ias::*},
+};
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]
@@ -48,7 +48,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 			a,
 			&Enclave::default().with_pubkey(a.clone()).with_mr_enclave(TEST4_SETUP.mrenclave),
 		)
-		.unwrap()
+		.unwrap();
 	}
 }
 
@@ -133,7 +133,7 @@ benchmarks! {
 }
 
 #[cfg(test)]
-use crate::{Config, Module as PalletModule};
+use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
