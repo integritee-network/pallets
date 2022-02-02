@@ -44,7 +44,7 @@ fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 		TEST4_CERT.to_vec(),
 		URL.to_vec()
 	));
-	let mrenclave = Teerex::enclave(1).mr_enclave;
+	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
 	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
 }
 

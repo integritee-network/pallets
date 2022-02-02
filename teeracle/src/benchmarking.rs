@@ -22,16 +22,16 @@
 use super::*;
 
 use crate::Pallet as Exchange;
-use ::test_utils::{
-	get_signer,
-	ias::{consts::*, ias::*},
-};
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::borrow::ToOwned;
 use teeracle_primitives::{MarketDataSourceString, TradingPairString};
+use test_utils::{
+	get_signer,
+	ias::{consts::*, ias::*},
+};
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]
@@ -55,7 +55,7 @@ benchmarks! {
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
 		).unwrap();
-		let mrenclave = Teerex::<T>::enclave(1).mr_enclave;
+		let mrenclave = Teerex::<T>::enclave(1).unwrap().mr_enclave;
 		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
 	}: _(RawOrigin::Signed(signer), data_source.clone(), trading_pair.clone(), Some(rate))

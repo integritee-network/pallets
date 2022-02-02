@@ -48,6 +48,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
@@ -160,15 +161,14 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			<pallet_teerex::Pallet<T>>::is_registered_enclave(&sender)?;
 			let sender_index = <pallet_teerex::Pallet<T>>::enclave_index(sender);
+			let sender_enclave = <pallet_teerex::Pallet<T>>::enclave(sender_index)
+				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
 			ensure!(
 				trading_pair.len() <= MAX_TRADING_PAIR_LEN,
 				Error::<T>::TradingPairStringTooLong
 			);
 			ensure!(
-				Self::is_whitelisted(
-					&data_source,
-					<pallet_teerex::Pallet<T>>::enclave(sender_index).mr_enclave
-				),
+				Self::is_whitelisted(&data_source, sender_enclave.mr_enclave),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
