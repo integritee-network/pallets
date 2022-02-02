@@ -15,7 +15,6 @@
 
 */
 
-//use super::*;
 use crate::{
 	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request,
 	ShardIdentifier,
