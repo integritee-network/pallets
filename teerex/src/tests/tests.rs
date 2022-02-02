@@ -17,7 +17,8 @@
 
 //use super::*;
 use crate::{
-	mock::*, Enclave, EnclaveRegistry, Error, ExecutedCalls, RawEvent, Request, ShardIdentifier,
+	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request,
+	ShardIdentifier,
 };
 use frame_support::{assert_err, assert_ok, IterableStorageMap, StorageMap};
 use ias_verify::SgxBuildMode;
@@ -256,7 +257,7 @@ fn update_ipfs_hash_works() {
 		));
 
 		let expected_event =
-			Event::Teerex(RawEvent::ProcessedParentchainBlock(signer, block_hash, merkle_root));
+			Event::Teerex(TeerexEvent::ProcessedParentchainBlock(signer, block_hash, merkle_root));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -283,7 +284,7 @@ fn call_worker_works() {
 		// don't care who signs
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert!(Teerex::call_worker(Origin::signed(signer), req.clone()).is_ok());
-		let expected_event = Event::Teerex(RawEvent::Forwarded(req.shard));
+		let expected_event = Event::Teerex(TeerexEvent::Forwarded(req.shard));
 		println!("events:{:?}", System::events());
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
@@ -327,7 +328,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 		)
 		.is_ok());
 
-		assert_eq!(<ExecutedCalls>::get(call_hash), 2)
+		assert_eq!(<ExecutedCalls<Test>>::get(call_hash), 2)
 	})
 }
 #[test]
@@ -378,7 +379,7 @@ fn timestamp_callback_works() {
 		run_to_block(2);
 		set_timestamp(TEST5_TIMESTAMP + 2 * TWENTY_FOUR_HOURS + 1);
 
-		let expected_event = Event::Teerex(RawEvent::RemovedEnclave(signer5));
+		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer5));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 2);
 		//2 and 3 are still there. 3 and 1 were swapped -> 3 and 2
@@ -393,14 +394,14 @@ fn timestamp_callback_works() {
 
 		//unregister 6 to generate an error next call of callbakc
 		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer6.clone())));
-		let expected_event = Event::Teerex(RawEvent::RemovedEnclave(signer6));
+		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer6));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		//enclave 6 and 7 silent since TWENTY_FOUR_HOURS + 1 -> unregistered
 		run_to_block(4);
 		set_timestamp(TEST7_TIMESTAMP + 2 * TWENTY_FOUR_HOURS + 1);
-		let expected_event = Event::Teerex(RawEvent::RemovedEnclave(signer7));
+		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer7));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 0);
 	})
@@ -527,7 +528,7 @@ fn verify_unshield_funds_works() {
 
 		assert_eq!(Balances::free_balance(bonding_account.clone()), 100);
 
-		let expected_event = Event::Teerex(RawEvent::ShieldFunds(incognito_account));
+		let expected_event = Event::Teerex(TeerexEvent::ShieldFunds(incognito_account));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert!(Teerex::unshield_funds(
@@ -541,7 +542,7 @@ fn verify_unshield_funds_works() {
 		assert_eq!(Balances::free_balance(bonding_account), 50);
 
 		let expected_event =
-			Event::Teerex(RawEvent::UnshieldedFunds(AccountKeyring::Alice.to_account_id()));
+			Event::Teerex(TeerexEvent::UnshieldedFunds(AccountKeyring::Alice.to_account_id()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -640,7 +641,7 @@ fn confirm_processed_parentchain_block_works() {
 		));
 
 		let expected_event =
-			Event::Teerex(RawEvent::ProcessedParentchainBlock(signer7, block_hash, merkle_root));
+			Event::Teerex(TeerexEvent::ProcessedParentchainBlock(signer7, block_hash, merkle_root));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -667,7 +668,8 @@ fn confirm_proposed_sidechain_block_works_for_correct_shard() {
 			block_hash.clone(),
 		));
 
-		let expected_event = Event::Teerex(RawEvent::ProposedSidechainBlock(signer7, block_hash));
+		let expected_event =
+			Event::Teerex(TeerexEvent::ProposedSidechainBlock(signer7, block_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }

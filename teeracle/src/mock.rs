@@ -15,7 +15,7 @@
 
 */
 use crate as pallet_exchange;
-use frame_support::parameter_types;
+use frame_support::{pallet_prelude::GenesisBuild, parameter_types};
 use frame_system as system;
 use pallet_exchange::Config;
 use sp_core::H256;
@@ -147,9 +147,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	pallet_teerex::GenesisConfig { allow_sgx_debug_mode: true }
-		.assimilate_storage(&mut t)
-		.unwrap();
+	let teerex_config = pallet_teerex::GenesisConfig { allow_sgx_debug_mode: true };
+	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
+
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext

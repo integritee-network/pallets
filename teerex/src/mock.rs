@@ -18,10 +18,10 @@
 // Creating mock runtime here
 use crate as pallet_teerex;
 use frame_support::{
+	pallet_prelude::GenesisBuild,
 	parameter_types,
 	traits::{OnFinalize, OnInitialize},
 };
-
 use frame_system as system;
 use pallet_teerex::Config;
 use sp_core::H256;
@@ -145,9 +145,9 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	crate::GenesisConfig { allow_sgx_debug_mode: true }
-		.assimilate_storage(&mut t)
-		.unwrap();
+	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: true };
+	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
+
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext
@@ -161,9 +161,10 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	crate::GenesisConfig { allow_sgx_debug_mode: false }
-		.assimilate_storage(&mut t)
-		.unwrap();
+
+	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: false };
+	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
+
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext
