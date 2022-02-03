@@ -1,13 +1,13 @@
 [workspace]
 members = [
-    'claims',
-    'teerex',
-    'parentchain',
-    'teerex/ias-verify',
-    'teeracle',
-    'test-utils',
-    'primitives/claims',
-    'primitives/teerex',
-    'primitives/teeracle',
-    'primitives/common',
+    "claims",
+    "teerex",
+    "parentchain",
+    "teerex/ias-verify",
+    "teeracle",
+    "test-utils",
+    "primitives/claims",
+    "primitives/teerex",
+    "primitives/teeracle",
+    "primitives/common",
 ]
