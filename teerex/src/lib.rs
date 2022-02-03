@@ -14,6 +14,7 @@
 	limitations under the License.
 
 */
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
@@ -52,6 +53,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
@@ -83,7 +85,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn enclave)]
 	pub type EnclaveRegistry<T: Config> =
-		StorageMap<_, Blake2_128Concat, u64, Enclave<T::AccountId, Vec<u8>>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, u64, Enclave<T::AccountId, Vec<u8>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enclave_count)]
@@ -229,8 +231,10 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = Self::enclave_index(&sender);
+			let sender_enclave =
+				<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			ensure!(
-				<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() == shard_id.encode(),
+				sender_enclave.mr_enclave.encode() == shard_id.encode(),
 				<Error<T>>::WrongMrenclaveForShard
 			);
 			<WorkerForShard<T>>::insert(shard_id, sender_index);
@@ -276,9 +280,10 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
 			let sender_index = <EnclaveIndex<T>>::get(sender);
+			let sender_enclave =
+				<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			ensure!(
-				<EnclaveRegistry::<T>>::get(sender_index).mr_enclave.encode() ==
-					bonding_account.encode(),
+				sender_enclave.mr_enclave.encode() == bonding_account.encode(),
 				<Error<T>>::WrongMrenclaveForBondingAccount
 			);
 
@@ -322,8 +327,8 @@ pub mod pallet {
 		EnclaveUrlTooLong,
 		/// The Remote Attestation report is too long.
 		RaReportTooLong,
-		/// The enclave doesn't exists.
-		InexistentEnclave,
+		/// No enclave is registered.
+		EmptyEnclaveRegistry,
 	}
 }
 
@@ -349,7 +354,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn remove_enclave(sender: &T::AccountId) -> DispatchResultWithPostInfo {
-		ensure!(<EnclaveIndex<T>>::contains_key(sender), <Error<T>>::InexistentEnclave);
+		ensure!(<EnclaveIndex<T>>::contains_key(sender), <Error<T>>::EnclaveIsNotRegistered);
 		let index_to_remove = <EnclaveIndex<T>>::take(sender);
 
 		let enclaves_count = Self::enclave_count();
@@ -364,11 +369,12 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Our list implementation would introduce holes in out list if if we try to remove elements from the middle.
-	/// As the order of the enclave entries is not important, we use the swap an pop method to remove elements from
+	/// As the order of the enclave entries is not important, we use the swap and pop method to remove elements from
 	/// the registry.
 	fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> DispatchResultWithPostInfo {
 		if index_to_remove != new_enclaves_count {
-			let last_enclave = <EnclaveRegistry<T>>::get(&new_enclaves_count);
+			let last_enclave = <EnclaveRegistry<T>>::get(&new_enclaves_count)
+				.ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			<EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
 			<EnclaveIndex<T>>::insert(last_enclave.pubkey, index_to_remove);
 		}
@@ -395,6 +401,7 @@ impl<T: Config> Pallet<T> {
 			};
 		}
 	}
+
 	/// Check if the sender is a registered enclave
 	pub fn is_registered_enclave(
 		account: &T::AccountId,

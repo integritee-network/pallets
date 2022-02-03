@@ -15,12 +15,11 @@
 
 */
 
-//use super::*;
 use crate::{
 	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request,
 	ShardIdentifier,
 };
-use frame_support::{assert_err, assert_ok, IterableStorageMap, StorageMap};
+use frame_support::{assert_err, assert_ok};
 use ias_verify::SgxBuildMode;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
@@ -223,14 +222,14 @@ fn update_enclave_url_works() {
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
-		assert_eq!(Teerex::enclave(1).url, URL.to_vec());
+		assert_eq!(Teerex::enclave(1).unwrap().url, URL.to_vec());
 
 		assert_ok!(Teerex::register_enclave(
 			Origin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			url2.to_vec(),
 		));
-		assert_eq!(Teerex::enclave(1).url, url2.to_vec());
+		assert_eq!(Teerex::enclave(1).unwrap().url, url2.to_vec());
 		let enclaves = list_enclaves();
 		assert_eq!(enclaves[0].1.pubkey, signer)
 	})

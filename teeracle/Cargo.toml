@@ -9,130 +9,63 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
+codec = { version = "2.3.1", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4.14", default-features = false }
-hex-literal = { version = "0.3.2", optional = true }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
-[dependencies.codec]
-default-features = false
-features = ['derive']
-package = 'parity-scale-codec'
-version = '2.0.0'
+# local
+pallet-teerex = { path = "../teerex", default-features = false }
+teeracle-primitives = { path = "../primitives/teeracle", default-features = false }
 
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
+# encointer
+substrate-fixed = { tag = "v0.5.8", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
 
-[dependencies.frame-system]
-default-features = false
-package = 'frame-system'
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
+# substrate
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { version = "4.1.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master"  }
+sp-runtime = { version = "4.1.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
+# benchmarking
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+hex-literal = { version = "0.3.2", optional = true }
+test-utils = { path = "../test-utils", optional = true, default-features = false }
+timestamp = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-timestamp" }
 
-[dependencies.sp-core]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.1.0-dev"
+[dev-dependencies]
+externalities = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "sp-externalities" }
+frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+hex-literal = "0.3.2"
+sp-keyring = { version = "4.1.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+pallet-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+test-utils = { path = "../test-utils" }
+timestamp = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "pallet-timestamp" }
 
-[dependencies.sp-runtime]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.substrate-fixed]
-default-features = false
-git = "https://github.com/encointer/substrate-fixed.git"
-package = "substrate-fixed"
-tag = "v0.5.7"
-
-## benchmarking stuff
-[dependencies.frame-benchmarking]
-default-features = false
-optional = true
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.timestamp]
-default-features = false
-package = "pallet-timestamp"
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.pallet-teerex]
-default-features = false
-package = "pallet-teerex"
-path = "../teerex"
-
-[dependencies.test-utils]
-default-features = false
-path = '../tests-utils'
-
-[dev-dependencies.externalities]
-package = "sp-externalities"
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "0.10.0-dev"
-
-[dev-dependencies.sp-keyring]
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dev-dependencies.pallet-balances]
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dev-dependencies.hex-literal]
-version = "0.3.2"
-
-[dependencies.teeracle-primitives]
-default-features = false
-package = "teeracle-primitives"
-path = "../primitives/teeracle"
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'codec/std',
-    'log/std',
-    'frame-support/std',
-    'frame-system/std',
+    "codec/std",
+    "log/std",
+    "scale-info/std",
+    # local
     "pallet-teerex/std",
-    'scale-info/std',
-    'sp-core/std',
-    'sp-io/std',
-    'sp-runtime/std',
-    'sp-std/std',
-    'substrate-fixed/std',
     "teeracle-primitives/std",
-    # benchmarking stuff
-    "timestamp/std",
-    'frame-benchmarking/std',
-    "test-utils/std",
+    # encointer
+    "substrate-fixed/std",
+    # substrate
+    "frame-support/std",
+    "frame-system/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 ]
-
 runtime-benchmarks = [
-    'frame-benchmarking',
+    "frame-benchmarking",
     "hex-literal",
+    "test-utils",
     "timestamp/runtime-benchmarks"
 ]
