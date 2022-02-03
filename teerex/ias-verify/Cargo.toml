@@ -9,60 +9,34 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-base64 = { version = "0.11", default-features = false, features = ["alloc"] }
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+base64 = { version = "0.13", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4", default-features = false }
+codec = { version = "2.3.1", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+webpki = { default-features = false, git = "https://github.com/scs/webpki-nostd.git" }
 
-[dependencies.codec]
-default-features = false
-features = ['derive']
-package = 'parity-scale-codec'
-version = '2.0.0'
-
-[dependencies.frame-support]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.sp-std]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-
-[dependencies.sp-io]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.0.0-dev"
-#features = ["disable_panic_handler", "disable_oom"]
-
-[dependencies.sp-core]
-default-features = false
-git = "https://github.com/paritytech/substrate.git"
-branch = "master"
-version = "4.1.0-dev"
-
-[dependencies.webpki]
-git = 'https://github.com/scs/webpki-nostd.git'
-default_features = false
+# substrate dependencies
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-io = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 [dev-dependencies]
 hex-literal = "*"
 
 [features]
-default = ['std']
+default = ["std"]
 std = [
-    'base64/std',
-    'codec/std',
-    'chrono/std',
-    'frame-support/std',
-    'scale-info/std',
-    'serde_json/std',
-    'sp-core/std',
-    'sp-std/std',
-    'sp-io/std',
-    'webpki/std',
+    "base64/std",
+    "chrono/std",
+    "codec/std",
+    "scale-info/std",
+    "serde_json/std",
+    "webpki/std",
+    # substrate
+    "frame-support/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-std/std",
 ]

@@ -22,7 +22,7 @@ claims-primitives = {package = "claims-primitives", path = "../primitives/claims
 
 [dev-dependencies]
 hex-literal = "0.3.3"
-sp-core = { version = "4.1.0-dev", git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-core = { version = "5.0.0", git = "https://github.com/paritytech/substrate", branch = "master" }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "master" }
 libsecp256k1 = "0.7.0"
 pallet-vesting = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
