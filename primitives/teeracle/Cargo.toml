@@ -12,7 +12,7 @@ edition = "2021"
 common-primitives = {path = "../common", default-features = false }
 
 # encointer
-substrate-fixed = { tag = "v0.5.7", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
+substrate-fixed = { tag = "v0.5.8", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
 
 # substrate
 sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
