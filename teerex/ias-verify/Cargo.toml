@@ -11,15 +11,15 @@ edition = "2021"
 [dependencies]
 base64 = { version = "0.13", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4", default-features = false }
-codec = { version = "2.3.1", default-features = false, features = ["derive"], package = "parity-scale-codec" }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 webpki = { default-features = false, git = "https://github.com/scs/webpki-nostd.git" }
 
 # substrate dependencies
 frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-core = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
-sp-io = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-io = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
 
 [dev-dependencies]
