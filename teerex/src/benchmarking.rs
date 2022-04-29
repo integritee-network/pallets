@@ -125,8 +125,14 @@ benchmarks! {
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
+		let header = Header {
+			parent_hash: block_hash,
+			block_number: 1,
+			shard_id: shard,
+			block_data_hash: block_hash,
+		};
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash)
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, header)
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}

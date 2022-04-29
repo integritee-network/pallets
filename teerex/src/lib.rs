@@ -107,6 +107,14 @@ pub mod pallet {
 	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn lastest_sidechain_block_header)]
+	pub type LatestSidechainBlockHeader<T: Config> = StorageValue<_, Header, ValueQuery>;
+
+	#[pallet::storage]
+	pub type SidechainBlockHeaderQueue<T: Config> =
+		StorageMap<_, Blake2_128Concat, u64, Header, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
 	pub type AllowSGXDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
 
@@ -226,7 +234,7 @@ pub mod pallet {
 		pub fn confirm_proposed_sidechain_block(
 			origin: OriginFor<T>,
 			shard_id: ShardIdentifier,
-			block_hash: H256,
+			block_header: Header,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
@@ -237,13 +245,23 @@ pub mod pallet {
 				sender_enclave.mr_enclave.encode() == shard_id.encode(),
 				<Error<T>>::WrongMrenclaveForShard
 			);
-			<WorkerForShard<T>>::insert(shard_id, sender_index);
-			log::debug!(
-				"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
-				shard_id,
-				block_hash
-			);
-			Self::deposit_event(Event::ProposedSidechainBlock(sender, block_hash));
+
+			let mut latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+			let block_number = block_header.block_number;
+			if latest_block_number + 1 == block_number {
+				Self::confirm_sidechain_block(shard_id, block_header, &sender, sender_index);
+			} else {
+				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
+					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
+				}
+			}
+			latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+			while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
+				let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
+				<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
+				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+			}
 			Ok(().into())
 		}
 
@@ -445,6 +463,23 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err(<Error<T>>::RemoteAttestationTooOld.into())
 		}
+	}
+
+	fn confirm_sidechain_block(
+		shard_id: ShardIdentifier,
+		block_header: Header,
+		sender: &T::AccountId,
+		sender_index: u64,
+	) {
+		<LatestSidechainBlockHeader<T>>::put(block_header);
+		<WorkerForShard<T>>::insert(shard_id, sender_index);
+		let block_hash = block_header.block_data_hash;
+		log::debug!(
+			"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
+			shard_id,
+			block_hash
+		);
+		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
 	}
 }
 

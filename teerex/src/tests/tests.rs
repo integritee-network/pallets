@@ -16,8 +16,8 @@
 */
 
 use crate::{
-	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request,
-	ShardIdentifier,
+	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls,
+	Header as SidechainHeader, Request, ShardIdentifier,
 };
 use frame_support::{assert_err, assert_ok};
 use ias_verify::SgxBuildMode;
@@ -661,10 +661,17 @@ fn confirm_proposed_sidechain_block_works_for_correct_shard() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
+		let header = SidechainHeader {
+			parent_hash: block_hash,
+			block_number: 1,
+			shard_id: shard7,
+			block_data_hash: block_hash,
+		};
+
 		assert_ok!(Teerex::confirm_proposed_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
-			block_hash.clone(),
+			header.clone(),
 		));
 
 		let expected_event =
@@ -689,11 +696,18 @@ fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
+		let header = SidechainHeader {
+			parent_hash: block_hash,
+			block_number: 1,
+			shard_id: shard4,
+			block_data_hash: block_hash,
+		};
+
 		assert_err!(
 			Teerex::confirm_proposed_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
-				block_hash.clone(),
+				header,
 			),
 			Error::<Test>::WrongMrenclaveForShard
 		);
