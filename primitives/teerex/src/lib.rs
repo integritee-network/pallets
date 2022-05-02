@@ -21,6 +21,7 @@ use codec::{Decode, Encode};
 use ias_verify::SgxBuildMode;
 use scale_info::TypeInfo;
 use sp_core::H256;
+use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
 
 #[cfg(feature = "std")]
@@ -70,4 +71,11 @@ pub struct Header {
 
 	/// The payload hash.
 	pub block_data_hash: H256,
+}
+
+impl Header {
+	/// get the `blake2_256` hash of the header.
+	pub fn hash(&self) -> H256 {
+		self.using_encoded(blake2_256).into()
+	}
 }

@@ -107,7 +107,7 @@ pub mod pallet {
 	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn lastest_sidechain_block_header)]
+	#[pallet::getter(fn latest_sidechain_block_header)]
 	pub type LatestSidechainBlockHeader<T: Config> = StorageValue<_, Header, ValueQuery>;
 
 	#[pallet::storage]
@@ -246,22 +246,39 @@ pub mod pallet {
 				<Error<T>>::WrongMrenclaveForShard
 			);
 
-			let mut latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get();
+			let mut latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
+			log::error!("Got new block: {:?}", block_number);
 			if latest_block_number + 1 == block_number {
-				Self::confirm_sidechain_block(shard_id, block_header, &sender, sender_index);
-			} else {
+				latest_block_header = Self::check_block_and_get_latest_header(
+					shard_id,
+					block_header,
+					&sender,
+					sender_index,
+					latest_block_header,
+				);
+			} else if latest_block_number + 1 < block_number {
+				log::error!("latest block number {:?}. Going into queue.", latest_block_number);
 				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
 					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
 				}
 			}
-			latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+			log::error!("Latest block: {:?}", <LatestSidechainBlockHeader<T>>::get());
+			latest_block_number = latest_block_header.block_number;
 			while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
 				let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
 				<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
-				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
-				latest_block_number = <LatestSidechainBlockHeader<T>>::get().block_number;
+				latest_block_header = Self::check_block_and_get_latest_header(
+					shard_id,
+					header,
+					&sender,
+					sender_index,
+					latest_block_header,
+				);
+				latest_block_number = latest_block_header.block_number;
 			}
+
 			Ok(().into())
 		}
 
@@ -465,12 +482,34 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	fn check_block_and_get_latest_header(
+		shard_id: ShardIdentifier,
+		block_header: Header,
+		sender: &T::AccountId,
+		sender_index: u64,
+		latest_block_header: Header,
+	) -> Header {
+		log::error!("Importing new block, checking hash ...");
+		// Confirm that the parent hash is the hash of the previous block.
+		// Block number 1 does not have a previous block, hence skip checking there.
+		if latest_block_header.hash() == block_header.parent_hash || block_header.block_number == 1
+		{
+			log::error!("Hash correct.");
+			Self::confirm_sidechain_block(shard_id, block_header, &sender, sender_index);
+			return block_header
+		} else {
+			log::error!("Error: Parent hash of proposed block not correct!");
+		}
+		latest_block_header
+	}
+
 	fn confirm_sidechain_block(
 		shard_id: ShardIdentifier,
 		block_header: Header,
 		sender: &T::AccountId,
 		sender_index: u64,
 	) {
+		log::error!("Confirming block: {:?}", block_header.block_number);
 		<LatestSidechainBlockHeader<T>>::put(block_header);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_hash = block_header.block_data_hash;
