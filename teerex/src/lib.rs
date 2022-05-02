@@ -249,7 +249,6 @@ pub mod pallet {
 			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get();
 			let mut latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
-			log::error!("Got new block: {:?}", block_number);
 			if latest_block_number + 1 == block_number {
 				latest_block_header = Self::check_block_and_get_latest_header(
 					shard_id,
@@ -259,12 +258,10 @@ pub mod pallet {
 					latest_block_header,
 				);
 			} else if latest_block_number + 1 < block_number {
-				log::error!("latest block number {:?}. Going into queue.", latest_block_number);
 				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
 					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
 				}
 			}
-			log::error!("Latest block: {:?}", <LatestSidechainBlockHeader<T>>::get());
 			latest_block_number = latest_block_header.block_number;
 			while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
 				let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
@@ -489,16 +486,13 @@ impl<T: Config> Pallet<T> {
 		sender_index: u64,
 		latest_block_header: Header,
 	) -> Header {
-		log::error!("Importing new block, checking hash ...");
 		// Confirm that the parent hash is the hash of the previous block.
 		// Block number 1 does not have a previous block, hence skip checking there.
 		if latest_block_header.hash() == block_header.parent_hash || block_header.block_number == 1
 		{
-			log::error!("Hash correct.");
 			Self::confirm_sidechain_block(shard_id, block_header, &sender, sender_index);
 			return block_header
 		} else {
-			log::error!("Error: Parent hash of proposed block not correct!");
 		}
 		latest_block_header
 	}
@@ -509,7 +503,6 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		sender_index: u64,
 	) {
-		log::error!("Confirming block: {:?}", block_header.block_number);
 		<LatestSidechainBlockHeader<T>>::put(block_header);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_hash = block_header.block_data_hash;
