@@ -781,6 +781,42 @@ fn confirm_proposed_sidechain_block_wrong_order() {
 }
 
 #[test]
+fn confirm_proposed_sidechain_block_too_late() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let signer7 = get_signer(TEST7_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			Origin::signed(signer7.clone()),
+			TEST7_CERT.to_vec(),
+			URL.to_vec(),
+		));
+		assert_eq!(Teerex::enclave_count(), 1);
+
+		let header1 = new_header(1, H256::default());
+		let header2 = new_header(2, header1.hash());
+		let header3 = new_header(3, header2.hash());
+		let header4 = new_header(4, header3.hash());
+		let header2b = new_header(2, header4.hash());
+		let header3b = new_header(3, header2.hash());
+
+		confirm_block(header1);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 1);
+		confirm_block(header2);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 2);
+		confirm_block(header3);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 3);
+		confirm_block(header4);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 4);
+		confirm_block(header2b);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 4);
+		confirm_block(header3b);
+		assert_eq!(Teerex::latest_sidechain_block_header().block_number, 4);
+	})
+}
+
+#[test]
 fn confirm_proposed_sidechain_block_wrong_parent_hash() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
