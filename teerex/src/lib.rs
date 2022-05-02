@@ -257,23 +257,23 @@ pub mod pallet {
 					sender_index,
 					latest_block_header,
 				);
+				latest_block_number = latest_block_header.block_number;
+				while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
+					let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
+					<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
+					latest_block_header = Self::check_block_and_get_latest_header(
+						shard_id,
+						header,
+						&sender,
+						sender_index,
+						latest_block_header,
+					);
+					latest_block_number = latest_block_header.block_number;
+				}
 			} else if latest_block_number + 1 < block_number {
 				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
 					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
 				}
-			}
-			latest_block_number = latest_block_header.block_number;
-			while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
-				let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
-				<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
-				latest_block_header = Self::check_block_and_get_latest_header(
-					shard_id,
-					header,
-					&sender,
-					sender_index,
-					latest_block_header,
-				);
-				latest_block_number = latest_block_header.block_number;
 			}
 
 			Ok(().into())
