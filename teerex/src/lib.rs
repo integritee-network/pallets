@@ -395,7 +395,7 @@ pub mod pallet {
 		EmptyEnclaveRegistry,
 		/// A proposed block is too early.
 		BlockNumberTooHigh,
-		/// bla
+		/// A propsed block is too late and already outdated.
 		OutdatedBlockNumber,
 	}
 }
