@@ -111,11 +111,19 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_header)]
-	pub type LatestSidechainBlockHeader<T: Config> = StorageValue<_, Header, ValueQuery>;
+	pub type LatestSidechainBlockHeader<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, Header, ValueQuery>;
 
 	#[pallet::storage]
-	pub type SidechainBlockHeaderQueue<T: Config> =
-		StorageMap<_, Blake2_128Concat, u64, Header, ValueQuery>;
+	pub type SidechainBlockHeaderQueue<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		ShardIdentifier,
+		Blake2_128Concat,
+		u64,
+		Header,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
@@ -250,7 +258,7 @@ pub mod pallet {
 			);
 
 			let early_block_proposal_lenience = T::EarlyBlockProposalLenience::get();
-			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get();
+			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get(shard_id);
 			let mut latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
 
@@ -261,8 +269,8 @@ pub mod pallet {
 			{
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
 			} else if block_number > latest_block_number + 1 {
-				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
-					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
+				if !<SidechainBlockHeaderQueue<T>>::contains_key(shard_id, block_number) {
+					<SidechainBlockHeaderQueue<T>>::insert(shard_id, block_number, block_header);
 				}
 			} else if block_number ==
 				latest_block_number
@@ -278,11 +286,14 @@ pub mod pallet {
 				);
 				latest_block_number = latest_block_header.block_number;
 				let mut i: u64 = 0;
-				while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) &&
-					i < early_block_proposal_lenience
+				while <SidechainBlockHeaderQueue<T>>::contains_key(
+					shard_id,
+					latest_block_number + 1,
+				) && i < early_block_proposal_lenience
 				{
-					let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
-					<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
+					let header =
+						<SidechainBlockHeaderQueue<T>>::take(shard_id, latest_block_number + 1);
+					<SidechainBlockHeaderQueue<T>>::remove(shard_id, latest_block_number + 1);
 					latest_block_header = Self::check_block_and_get_latest_header(
 						shard_id,
 						header,
@@ -528,7 +539,7 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		sender_index: u64,
 	) {
-		<LatestSidechainBlockHeader<T>>::put(block_header);
+		<LatestSidechainBlockHeader<T>>::insert(shard_id, block_header);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_hash = block_header.block_data_hash;
 		log::debug!(
