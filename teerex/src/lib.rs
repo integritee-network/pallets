@@ -66,6 +66,9 @@ pub mod pallet {
 		type MomentsPerDay: Get<Self::Moment>;
 		type WeightInfo: WeightInfo;
 		type MaxSilenceTime: Get<Self::Moment>;
+		// If a block arrives far too early, an error should be returned
+		#[pallet::constant]
+		type EarlyBlockProposalLenience: Get<u64>;
 	}
 
 	#[pallet::event]
@@ -204,7 +207,7 @@ pub mod pallet {
 			let _sender = ensure_signed(origin)?;
 			log::info!("call_worker with {:?}", request);
 			Self::deposit_event(Event::Forwarded(request.shard));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
@@ -249,7 +252,14 @@ pub mod pallet {
 			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get();
 			let mut latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
-			if latest_block_number + 1 == block_number {
+
+			if block_number > latest_block_number + T::EarlyBlockProposalLenience::get() {
+				return Err(<Error<T>>::BlockNumberTooHigh.into())
+			} else if block_number > latest_block_number + 1 {
+				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
+					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
+				}
+			} else if block_number == latest_block_number + 1 {
 				latest_block_header = Self::check_block_and_get_latest_header(
 					shard_id,
 					block_header,
@@ -270,10 +280,8 @@ pub mod pallet {
 					);
 					latest_block_number = latest_block_header.block_number;
 				}
-			} else if latest_block_number + 1 < block_number {
-				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
-					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
-				}
+			} else {
+				return Err(<Error<T>>::OutdatedBlockNumber.into())
 			}
 
 			Ok(().into())
@@ -361,6 +369,10 @@ pub mod pallet {
 		RaReportTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
+		/// A proposed block is too early.
+		BlockNumberTooHigh,
+		/// bla
+		OutdatedBlockNumber,
 	}
 }
 
@@ -490,7 +502,7 @@ impl<T: Config> Pallet<T> {
 		// Block number 1 does not have a previous block, hence skip checking there.
 		if latest_block_header.hash() == block_header.parent_hash || block_header.block_number == 1
 		{
-			Self::confirm_sidechain_block(shard_id, block_header, &sender, sender_index);
+			Self::confirm_sidechain_block(shard_id, block_header, sender, sender_index);
 			return block_header
 		} else {
 		}
