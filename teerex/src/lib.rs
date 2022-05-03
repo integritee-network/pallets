@@ -249,17 +249,26 @@ pub mod pallet {
 				<Error<T>>::WrongMrenclaveForShard
 			);
 
+			let early_block_proposal_lenience = T::EarlyBlockProposalLenience::get();
 			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get();
 			let mut latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
 
-			if block_number > latest_block_number + T::EarlyBlockProposalLenience::get() {
+			if block_number >
+				latest_block_number
+					.checked_add(early_block_proposal_lenience)
+					.ok_or("[Teerex]: Overflow adding new block")?
+			{
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
 			} else if block_number > latest_block_number + 1 {
 				if !<SidechainBlockHeaderQueue<T>>::contains_key(block_number) {
 					<SidechainBlockHeaderQueue<T>>::insert(block_number, block_header);
 				}
-			} else if block_number == latest_block_number + 1 {
+			} else if block_number ==
+				latest_block_number
+					.checked_add(1)
+					.ok_or("[Teerex]: Overflow adding new block")?
+			{
 				latest_block_header = Self::check_block_and_get_latest_header(
 					shard_id,
 					block_header,
@@ -268,7 +277,10 @@ pub mod pallet {
 					latest_block_header,
 				);
 				latest_block_number = latest_block_header.block_number;
-				while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) {
+				let mut i: u64 = 0;
+				while <SidechainBlockHeaderQueue<T>>::contains_key(latest_block_number + 1) &&
+					i < early_block_proposal_lenience
+				{
 					let header = <SidechainBlockHeaderQueue<T>>::take(latest_block_number + 1);
 					<SidechainBlockHeaderQueue<T>>::remove(latest_block_number + 1);
 					latest_block_header = Self::check_block_and_get_latest_header(
@@ -279,6 +291,7 @@ pub mod pallet {
 						latest_block_header,
 					);
 					latest_block_number = latest_block_header.block_number;
+					i += 1;
 				}
 			} else {
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
