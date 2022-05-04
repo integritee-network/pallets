@@ -735,16 +735,54 @@ fn confirm_proposed_sidechain_block_correct_order() {
 		let header4 = new_header(4, header3.hash());
 		let header5 = new_header(5, header4.hash());
 
-		assert_ok!(confirm_block(header1));
+		assert_ok!(confirm_block(header1, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2));
+		assert_ok!(confirm_block(header2, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3));
+		assert_ok!(confirm_block(header3, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4));
+		assert_ok!(confirm_block(header4, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5));
+		assert_ok!(confirm_block(header5, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 5);
+	})
+}
+
+#[test]
+fn confirm_proposed_sidechain_first_proposed_block() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let signer7 = get_signer(TEST7_SIGNER_PUB);
+		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			Origin::signed(signer7.clone()),
+			TEST7_CERT.to_vec(),
+			URL.to_vec(),
+		));
+		assert_eq!(Teerex::enclave_count(), 1);
+
+		let header1 = new_header(1, H256::default());
+		let header2 = new_header(2, header1.hash());
+		let mut header3a = new_header(3, header2.hash());
+		header3a.block_data_hash = [2; 32].into();
+		let mut header3b = new_header(3, header2.hash());
+		header3b.block_data_hash = [3; 32].into();
+
+		assert_ok!(confirm_block(header1, true));
+		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
+		assert_ok!(confirm_block(header3a, false));
+		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
+		assert_ok!(confirm_block(header3b, false));
+		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
+		assert_ok!(confirm_block(header2, true));
+		log::error!("block {:?}", Teerex::latest_sidechain_block_header(shard7));
+		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 3);
+		assert_eq!(
+			Teerex::latest_sidechain_block_header(shard7).block_data_hash,
+			header3a.block_data_hash
+		);
 	})
 }
 
@@ -769,15 +807,15 @@ fn confirm_proposed_sidechain_block_wrong_order() {
 		let header4 = new_header(4, header3.hash());
 		let header5 = new_header(5, header4.hash());
 
-		assert_ok!(confirm_block(header1));
+		assert_ok!(confirm_block(header1, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header4));
+		assert_ok!(confirm_block(header4, false));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3));
+		assert_ok!(confirm_block(header3, false));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2));
+		assert_ok!(confirm_block(header2, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5));
+		assert_ok!(confirm_block(header5, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 5);
 	})
 }
@@ -804,17 +842,17 @@ fn confirm_proposed_sidechain_block_too_late() {
 		let header2b = new_header(2, header4.hash());
 		let header3b = new_header(3, header2.hash());
 
-		assert_ok!(confirm_block(header1));
+		assert_ok!(confirm_block(header1, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2));
+		assert_ok!(confirm_block(header2, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3));
+		assert_ok!(confirm_block(header3, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4));
+		assert_ok!(confirm_block(header4, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header2b), Error::<Test>::OutdatedBlockNumber);
+		assert_err!(confirm_block(header2b, true), Error::<Test>::OutdatedBlockNumber);
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header3b), Error::<Test>::OutdatedBlockNumber);
+		assert_err!(confirm_block(header3b, true), Error::<Test>::OutdatedBlockNumber);
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 4);
 	})
 }
@@ -838,13 +876,13 @@ fn confirm_proposed_sidechain_block_far_too_early() {
 		let header3 = new_header(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, header2.hash());
 		let header4 = new_header(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, header3.hash());
 
-		assert_ok!(confirm_block(header1));
+		assert_ok!(confirm_block(header1, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2));
+		assert_ok!(confirm_block(header2, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3));
+		assert_ok!(confirm_block(header3, false));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 2);
-		assert_err!(confirm_block(header4), Error::<Test>::BlockNumberTooHigh);
+		assert_err!(confirm_block(header4, false), Error::<Test>::BlockNumberTooHigh);
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 2);
 	})
 }
@@ -866,14 +904,14 @@ fn confirm_proposed_sidechain_block_wrong_parent_hash() {
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, H256::default());
 
-		assert_ok!(confirm_block(header1));
+		assert_ok!(confirm_block(header1, true));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2));
+		assert_ok!(confirm_block(header2, false));
 		assert_eq!(Teerex::latest_sidechain_block_header(shard7).block_number, 1);
 	})
 }
 
-fn confirm_block(header: SidechainHeader) -> DispatchResultWithPostInfo {
+fn confirm_block(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 	let signer7 = get_signer(TEST7_SIGNER_PUB);
 
@@ -883,14 +921,16 @@ fn confirm_block(header: SidechainHeader) -> DispatchResultWithPostInfo {
 		header.clone(),
 	)?;
 
-	let expected_event =
-		Event::Teerex(TeerexEvent::ProposedSidechainBlock(signer7, header.block_data_hash));
-	assert!(System::events().iter().any(|a| a.event == expected_event));
+	if check_for_event {
+		let expected_event =
+			Event::Teerex(TeerexEvent::ProposedSidechainBlock(signer7, header.block_data_hash));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+	}
 	Ok(().into())
 }
 
 fn new_header(block_number: u64, parent_hash: H256) -> SidechainHeader {
-	let block_hash = H256::default();
+	let block_hash = [(block_number % 8) as u8; 32].into();
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 	let header = SidechainHeader {

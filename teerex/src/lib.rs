@@ -259,27 +259,19 @@ pub mod pallet {
 				<Error<T>>::WrongMrenclaveForShard
 			);
 
-			let early_block_proposal_lenience = T::EarlyBlockProposalLenience::get();
+			let lenience = T::EarlyBlockProposalLenience::get();
 			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get(shard_id);
 			let latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
 
-			if block_number >
-				latest_block_number
-					.checked_add(early_block_proposal_lenience)
-					.ok_or("[Teerex]: Overflow adding new block")?
-			{
+			if block_number > Self::compare_block_number(latest_block_number, lenience)? {
 				// Block is far too early and hence refused.
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number >
-				latest_block_number
-					.checked_add(1)
-					.ok_or("[Teerex]: Overflow adding new block")?
-			{
+			} else if block_number > Self::compare_block_number(latest_block_number, 1)? {
 				// Block is too early and stored in the queue for later import.
 				if !<SidechainBlockHeaderQueue<T>>::contains_key(
 					(shard_id, block_number),
-					latest_block_header.hash(),
+					block_header.parent_hash,
 				) {
 					<SidechainBlockHeaderQueue<T>>::insert(
 						(shard_id, block_number),
@@ -287,11 +279,7 @@ pub mod pallet {
 						block_header,
 					);
 				}
-			} else if block_number ==
-				latest_block_number
-					.checked_add(1)
-					.ok_or("[Teerex]: Overflow adding new block")?
-			{
+			} else if block_number == Self::compare_block_number(latest_block_number, 1)? {
 				// Block number is correct to be imported.
 				latest_block_header = Self::check_block_and_get_latest_header(
 					shard_id,
@@ -579,6 +567,10 @@ impl<T: Config> Pallet<T> {
 			latest_block_number = latest_block_header.block_number;
 			i += 1;
 		}
+	}
+
+	fn compare_block_number(block_number: u64, diff: u64) -> Result<u64, &'static str> {
+		block_number.checked_add(diff).ok_or("[Teerex]: Overflow adding new block")
 	}
 }
 
