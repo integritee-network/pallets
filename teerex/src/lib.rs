@@ -114,13 +114,15 @@ pub mod pallet {
 	pub type LatestSidechainBlockHeader<T: Config> =
 		StorageMap<_, Blake2_128Concat, ShardIdentifier, Header, ValueQuery>;
 
+	pub type ShardBlockNumber = (ShardIdentifier, u64);
+
 	#[pallet::storage]
 	pub type SidechainBlockHeaderQueue<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		ShardIdentifier,
+		ShardBlockNumber,
 		Blake2_128Concat,
-		u64,
+		H256,
 		Header,
 		ValueQuery,
 	>;
@@ -259,7 +261,7 @@ pub mod pallet {
 
 			let early_block_proposal_lenience = T::EarlyBlockProposalLenience::get();
 			let mut latest_block_header = <LatestSidechainBlockHeader<T>>::get(shard_id);
-			let mut latest_block_number = latest_block_header.block_number;
+			let latest_block_number = latest_block_header.block_number;
 			let block_number = block_header.block_number;
 
 			if block_number >
@@ -267,16 +269,30 @@ pub mod pallet {
 					.checked_add(early_block_proposal_lenience)
 					.ok_or("[Teerex]: Overflow adding new block")?
 			{
+				// Block is far too early and hence refused.
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number > latest_block_number + 1 {
-				if !<SidechainBlockHeaderQueue<T>>::contains_key(shard_id, block_number) {
-					<SidechainBlockHeaderQueue<T>>::insert(shard_id, block_number, block_header);
+			} else if block_number >
+				latest_block_number
+					.checked_add(1)
+					.ok_or("[Teerex]: Overflow adding new block")?
+			{
+				// Block is too early and stored in the queue for later import.
+				if !<SidechainBlockHeaderQueue<T>>::contains_key(
+					(shard_id, block_number),
+					latest_block_header.hash(),
+				) {
+					<SidechainBlockHeaderQueue<T>>::insert(
+						(shard_id, block_number),
+						block_header.parent_hash,
+						block_header,
+					);
 				}
 			} else if block_number ==
 				latest_block_number
 					.checked_add(1)
 					.ok_or("[Teerex]: Overflow adding new block")?
 			{
+				// Block number is correct to be imported.
 				latest_block_header = Self::check_block_and_get_latest_header(
 					shard_id,
 					block_header,
@@ -284,27 +300,9 @@ pub mod pallet {
 					sender_index,
 					latest_block_header,
 				);
-				latest_block_number = latest_block_header.block_number;
-				let mut i: u64 = 0;
-				while <SidechainBlockHeaderQueue<T>>::contains_key(
-					shard_id,
-					latest_block_number + 1,
-				) && i < early_block_proposal_lenience
-				{
-					let header =
-						<SidechainBlockHeaderQueue<T>>::take(shard_id, latest_block_number + 1);
-					<SidechainBlockHeaderQueue<T>>::remove(shard_id, latest_block_number + 1);
-					latest_block_header = Self::check_block_and_get_latest_header(
-						shard_id,
-						header,
-						&sender,
-						sender_index,
-						latest_block_header,
-					);
-					latest_block_number = latest_block_header.block_number;
-					i += 1;
-				}
+				Self::import_blocks_from_queue(shard_id, &sender, sender_index, latest_block_header)
 			} else {
+				// Block is too late and hence refused.
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
 			}
 
@@ -528,7 +526,6 @@ impl<T: Config> Pallet<T> {
 		{
 			Self::confirm_sidechain_block(shard_id, block_header, sender, sender_index);
 			return block_header
-		} else {
 		}
 		latest_block_header
 	}
@@ -548,6 +545,40 @@ impl<T: Config> Pallet<T> {
 			block_hash
 		);
 		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
+	}
+
+	fn import_blocks_from_queue(
+		shard_id: ShardIdentifier,
+		sender: &T::AccountId,
+		sender_index: u64,
+		mut latest_block_header: Header,
+	) {
+		let mut latest_block_number = latest_block_header.block_number;
+		let early_block_proposal_lenience = T::EarlyBlockProposalLenience::get();
+		let mut i: u64 = 0;
+		while <SidechainBlockHeaderQueue<T>>::contains_key(
+			(shard_id, latest_block_number + 1),
+			latest_block_header.hash(),
+		) && i < early_block_proposal_lenience
+		{
+			let header = <SidechainBlockHeaderQueue<T>>::take(
+				(shard_id, latest_block_number + 1),
+				latest_block_header.hash(),
+			);
+			<SidechainBlockHeaderQueue<T>>::remove_prefix(
+				(shard_id, latest_block_number + 1),
+				None,
+			);
+			latest_block_header = Self::check_block_and_get_latest_header(
+				shard_id,
+				header,
+				&sender,
+				sender_index,
+				latest_block_header,
+			);
+			latest_block_number = latest_block_header.block_number;
+			i += 1;
+		}
 	}
 }
 
