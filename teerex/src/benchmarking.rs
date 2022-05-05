@@ -125,7 +125,7 @@ benchmarks! {
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let block_hash: H256 = [2; 32].into();
-		let header = Header {
+		let header = SidechainHeader {
 			parent_hash: block_hash,
 			block_number: 1,
 			shard_id: shard,

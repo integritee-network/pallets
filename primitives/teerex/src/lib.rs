@@ -59,7 +59,7 @@ pub struct Request {
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct Header {
+pub struct SidechainHeader {
 	/// The parent hash.
 	pub parent_hash: H256,
 
@@ -73,7 +73,7 @@ pub struct Header {
 	pub block_data_hash: H256,
 }
 
-impl Header {
+impl SidechainHeader {
 	/// get the `blake2_256` hash of the header.
 	pub fn hash(&self) -> H256 {
 		self.using_encoded(blake2_256).into()
