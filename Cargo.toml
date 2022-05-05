@@ -3,6 +3,7 @@ members = [
     "claims",
     "teerex",
     "parentchain",
+    "sidechain",
     "teerex/ias-verify",
     "teeracle",
     "test-utils",

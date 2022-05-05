@@ -1,0 +1,72 @@
+[package]
+name = "pallet-sidechain"
+description = "Pallet for integritee sidechains"
+version = "0.9.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+log = { version = "0.4.14", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+serde = { version = "1.0.101", features = ["derive"], optional = true }
+
+# local
+pallet-teerex = { path = "../teerex", default-features = false }
+teerex-primitives = { path = "../primitives/teerex", default-features = false }
+sidechain-primitives = { path = "../primitives/sidechain", default-features = false }
+
+# substrate dependencies
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+sp-io = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20", package = "pallet-timestamp" }
+
+# benchmarking
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+hex-literal = { version = "0.3.2", optional = true }
+pallet-balances = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+test-utils = { path = "../test-utils", default-features = false, optional = true }
+
+[dev-dependencies]
+env_logger = "0.9.0"
+externalities = { version = "0.12.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20", package = "sp-externalities" }
+frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+hex-literal = "0.3.2"
+pallet-balances = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+test-utils = { path = "../test-utils" }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "log/std",
+    "scale-info/std",
+    "serde",
+    # local
+    "teerex-primitives/std",
+    # substrate
+    "frame-support/std",
+    "frame-system/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "timestamp/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "hex-literal",
+    "pallet-balances",
+    "test-utils",
+    "timestamp/runtime-benchmarks"
+]
+# allow workers to register without remote attestation for dev purposes
+skip-ias-check = []
