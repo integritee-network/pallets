@@ -122,7 +122,6 @@ parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
 	pub const MaxWhitelistedReleases: u32 = 10;
-	pub const EarlyBlockProposalLenience: u64 = 100;
 }
 
 impl pallet_teerex::Config for Test {
@@ -131,7 +130,6 @@ impl pallet_teerex::Config for Test {
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
 	type MaxSilenceTime = MaxSilenceTime;
-	type EarlyBlockProposalLenience = EarlyBlockProposalLenience;
 }
 
 impl Config for Test {

@@ -52,10 +52,6 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	}
 }
 
-fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
-	assert_eq!(Teerex::<T>::worker_for_shard(shard), Teerex::<T>::enclave_index(sender));
-}
-
 benchmarks! {
 	// Note: The storage-map structure has the following complexity for updating:
 	//   DB Reads: O(1) Encoding: O(1) DB Writes: O(1)
@@ -116,26 +112,6 @@ benchmarks! {
 		let merkle_root: H256 = [4; 32].into();
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
-
-	// Benchmark `confirm_proposed_sidechain_block` with the worst possible conditions:
-	// * sender enclave is registered
-	confirm_proposed_sidechain_block {
-		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
-
-		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
-		let block_hash: H256 = [2; 32].into();
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard,
-			block_data_hash: block_hash,
-		};
-
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, header)
-	verify {
-		assert_latest_worker_update::<T>(&accounts[0], &shard)
-	}
 }
 
 #[cfg(test)]
