@@ -53,7 +53,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
 		Sidechain: pallet_sidechain::{Pallet, Call, Storage, Event<T>},
 	}
@@ -113,7 +113,7 @@ parameter_types! {
 
 pub type Moment = u64;
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
 	type Moment = Moment;
 	type OnTimestampSet = Teerex;
 	type MinimumPeriod = MinimumPeriod;
@@ -142,9 +142,6 @@ parameter_types! {
 
 impl Config for Test {
 	type Event = Event;
-	type Currency = Balances;
-	type MomentsPerDay = MomentsPerDay;
-	type MaxSilenceTime = MaxSilenceTime;
 	type WeightInfo = ();
 	type EarlyBlockProposalLenience = EarlyBlockProposalLenience;
 }

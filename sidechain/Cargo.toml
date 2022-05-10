@@ -16,17 +16,17 @@ serde = { version = "1.0.101", features = ["derive"], optional = true }
 
 # local
 pallet-teerex = { path = "../teerex", default-features = false }
-teerex-primitives = { path = "../primitives/teerex", default-features = false }
 sidechain-primitives = { path = "../primitives/sidechain", default-features = false }
+teerex-primitives = { path = "../primitives/teerex", default-features = false }
 
 # substrate dependencies
 frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
+pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 sp-core = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 sp-io = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 sp-runtime = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
 sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
-timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20", package = "pallet-timestamp" }
 
 # benchmarking
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.20" }
@@ -51,22 +51,25 @@ std = [
     "scale-info/std",
     "serde",
     # local
+    "pallet-teerex/std",
+    "sidechain-primitives/std",
     "teerex-primitives/std",
     # substrate
     "frame-support/std",
     "frame-system/std",
+    "pallet-timestamp/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
-    "timestamp/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
     "hex-literal",
     "pallet-balances",
+    "pallet-timestamp/runtime-benchmarks",
     "test-utils",
-    "timestamp/runtime-benchmarks"
 ]
-# allow workers to register without remote attestation for dev purposes
+# Allow workers to register without remote attestation for dev purposes.
+# This pallet needs the flag only to run the tests, otherwise skip-ias-check should only be set in the pallet-teerex.
 skip-ias-check = []

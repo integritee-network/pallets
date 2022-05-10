@@ -18,10 +18,7 @@ limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-use frame_support::{
-	dispatch::DispatchResultWithPostInfo,
-	traits::{Currency, Get},
-};
+use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
 use sidechain_primitives::*;
@@ -54,10 +51,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_teerex::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
-		type MomentsPerDay: Get<Self::Moment>;
 		type WeightInfo: WeightInfo;
-		type MaxSilenceTime: Get<Self::Moment>;
 		// If a block arrives far too early, an error should be returned
 		#[pallet::constant]
 		type EarlyBlockProposalLenience: Get<u64>;
