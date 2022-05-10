@@ -21,7 +21,11 @@ use codec::{Decode, Encode};
 use ias_verify::SgxBuildMode;
 use scale_info::TypeInfo;
 use sp_core::H256;
+use sp_io::hashing::blake2_256;
 use sp_std::prelude::*;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Enclave<PubKey, Url> {
@@ -51,4 +55,27 @@ pub type ShardIdentifier = H256;
 pub struct Request {
 	pub shard: ShardIdentifier,
 	pub cyphertext: Vec<u8>,
+}
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct SidechainHeader {
+	/// The parent hash.
+	pub parent_hash: H256,
+
+	/// The block number.
+	pub block_number: u64,
+
+	/// The Shard id.
+	pub shard_id: ShardIdentifier,
+
+	/// The payload hash.
+	pub block_data_hash: H256,
+}
+
+impl SidechainHeader {
+	/// get the `blake2_256` hash of the header.
+	pub fn hash(&self) -> H256 {
+		self.using_encoded(blake2_256).into()
+	}
 }

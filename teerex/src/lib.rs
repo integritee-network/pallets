@@ -39,6 +39,7 @@ use ias_verify::SgxBuildMode;
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
+pub type ShardBlockNumber = (ShardIdentifier, u64);
 
 pub use pallet::*;
 
@@ -66,6 +67,9 @@ pub mod pallet {
 		type MomentsPerDay: Get<Self::Moment>;
 		type WeightInfo: WeightInfo;
 		type MaxSilenceTime: Get<Self::Moment>;
+		/// Maximum allowed sidechain block number on top of the expected number to enter the `SidechainBlockHeaderQueue`.
+		#[pallet::constant]
+		type EarlyBlockProposalLenience: Get<u64>;
 	}
 
 	#[pallet::event]
@@ -105,6 +109,22 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn confirmed_calls)]
 	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn latest_sidechain_header)]
+	pub type LatestSidechainHeader<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainHeader, ValueQuery>;
+
+	#[pallet::storage]
+	pub type SidechainHeaderQueue<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		ShardBlockNumber,
+		Blake2_128Concat,
+		H256,
+		SidechainHeader,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
@@ -196,7 +216,7 @@ pub mod pallet {
 			let _sender = ensure_signed(origin)?;
 			log::info!("call_worker with {:?}", request);
 			Self::deposit_event(Event::Forwarded(request.shard));
-			Ok(().into())
+			Ok(())
 		}
 
 		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
@@ -226,7 +246,7 @@ pub mod pallet {
 		pub fn confirm_proposed_sidechain_block(
 			origin: OriginFor<T>,
 			shard_id: ShardIdentifier,
-			block_hash: H256,
+			header: SidechainHeader,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::is_registered_enclave(&sender)?;
@@ -237,13 +257,41 @@ pub mod pallet {
 				sender_enclave.mr_enclave.encode() == shard_id.encode(),
 				<Error<T>>::WrongMrenclaveForShard
 			);
-			<WorkerForShard<T>>::insert(shard_id, sender_index);
-			log::debug!(
-				"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
-				shard_id,
-				block_hash
-			);
-			Self::deposit_event(Event::ProposedSidechainBlock(sender, block_hash));
+
+			let lenience = T::EarlyBlockProposalLenience::get();
+			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
+			let latest_block_number = latest_header.block_number;
+			let block_number = header.block_number;
+
+			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
+				// Block is far too early and hence refused.
+				return Err(<Error<T>>::BlockNumberTooHigh.into())
+			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
+				// Block is too early and stored in the queue for later import.
+				if !<SidechainHeaderQueue<T>>::contains_key(
+					(shard_id, block_number),
+					header.parent_hash,
+				) {
+					<SidechainHeaderQueue<T>>::insert(
+						(shard_id, block_number),
+						header.parent_hash,
+						header,
+					);
+				}
+			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
+				// Block number is correct to be imported.
+				// Confirm that the parent hash is the hash of the previous block.
+				// Block number 1 does not have a previous block, hence skip checking there.
+				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
+					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+					latest_header = header;
+				}
+				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+			} else {
+				// Block is too late and hence refused.
+				return Err(<Error<T>>::OutdatedBlockNumber.into())
+			}
+
 			Ok(().into())
 		}
 
@@ -329,6 +377,10 @@ pub mod pallet {
 		RaReportTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
+		/// A proposed block is too early.
+		BlockNumberTooHigh,
+		/// A propsed block is too late and already outdated.
+		OutdatedBlockNumber,
 	}
 }
 
@@ -445,6 +497,60 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err(<Error<T>>::RemoteAttestationTooOld.into())
 		}
+	}
+
+	fn confirm_sidechain_block(
+		shard_id: ShardIdentifier,
+		header: SidechainHeader,
+		sender: &T::AccountId,
+		sender_index: u64,
+	) {
+		<LatestSidechainHeader<T>>::insert(shard_id, header);
+		<WorkerForShard<T>>::insert(shard_id, sender_index);
+		let block_hash = header.block_data_hash;
+		log::debug!(
+			"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
+			shard_id,
+			block_hash
+		);
+		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
+	}
+
+	fn finalize_blocks_from_queue(
+		shard_id: ShardIdentifier,
+		sender: &T::AccountId,
+		sender_index: u64,
+		mut latest_header: SidechainHeader,
+	) -> DispatchResultWithPostInfo {
+		let mut latest_block_number = latest_header.block_number;
+		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+		let lenience = T::EarlyBlockProposalLenience::get();
+		let mut i: u64 = 0;
+		while <SidechainHeaderQueue<T>>::contains_key(
+			(shard_id, expected_block_number),
+			latest_header.hash(),
+		) && i < lenience
+		{
+			let header = <SidechainHeaderQueue<T>>::take(
+				(shard_id, expected_block_number),
+				latest_header.hash(),
+			);
+			<SidechainHeaderQueue<T>>::remove_prefix((shard_id, expected_block_number), None);
+			// Confirm that the parent hash is the hash of the previous block.
+			// Block number 1 does not have a previous block, hence skip checking there.
+			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
+				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				latest_header = header;
+			}
+			latest_block_number = latest_header.block_number;
+			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+			i = Self::add_to_block_number(i, 1)?;
+		}
+		Ok(().into())
+	}
+
+	fn add_to_block_number(block_number: u64, diff: u64) -> Result<u64, &'static str> {
+		block_number.checked_add(diff).ok_or("[Teerex]: Overflow adding new block")
 	}
 }
 
