@@ -20,7 +20,7 @@ use crate::traits::Header as HeaderTrait;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::H256;
-use sp_io::hashing::blake2_256;
+use sp_runtime::traits::{BlakeTwo256, Hash};
 use sp_std::prelude::*;
 
 #[cfg(feature = "std")]
@@ -47,7 +47,7 @@ pub struct SidechainHeader {
 impl SidechainHeader {
 	/// get the `blake2_256` hash of the header.
 	pub fn hash(&self) -> H256 {
-		self.using_encoded(blake2_256).into()
+		self.using_encoded(BlakeTwo256::hash).into()
 	}
 }
 
