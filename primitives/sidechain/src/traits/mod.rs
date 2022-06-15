@@ -22,7 +22,7 @@
 
 use codec::{Decode, Encode};
 use core::hash::Hash;
-use sp_core::{blake2_256, Pair, Public, H256};
+use sp_core::{blake2_256, Public, H256};
 use sp_runtime::traits::Member;
 use sp_std::{fmt::Debug, prelude::*};
 
@@ -138,28 +138,37 @@ pub trait SignedBlock: Encode + Decode + Send + Sync + Debug + Clone {
 	fn verify_signature(&self) -> bool;
 }
 
-/// Provide signing logic blanket implementations for all block types satisfying the trait bounds.
-pub trait SignBlock<
-	SidechainBlock: Block,
-	SignedSidechainBlock: SignedBlock<Block = SidechainBlock>,
->
-{
-	fn sign_block<P: Pair>(self, signer: &P) -> SignedSidechainBlock
-	where
-		<SignedSidechainBlock as SignedBlock>::Signature: From<<P as sp_core::Pair>::Signature>;
-}
+#[cfg(feature = "full_crypto")]
+pub use crypto::*;
 
-impl<SidechainBlock, SignedSidechainBlock> SignBlock<SidechainBlock, SignedSidechainBlock>
-	for SidechainBlock
-where
-	SidechainBlock: Block,
-	SignedSidechainBlock: SignedBlock<Block = SidechainBlock>,
-{
-	fn sign_block<P: Pair>(self, signer: &P) -> SignedSidechainBlock
-	where
-		<SignedSidechainBlock as SignedBlock>::Signature: From<<P as sp_core::Pair>::Signature>,
+#[cfg(feature = "full_crypto")]
+mod crypto {
+	use super::*;
+	use sp_core::Pair;
+
+	/// Provide signing logic blanket implementations for all block types satisfying the trait bounds.
+	pub trait SignBlock<
+		SidechainBlock: Block,
+		SignedSidechainBlock: SignedBlock<Block = SidechainBlock>,
+	>
 	{
-		let signature = self.using_encoded(|b| signer.sign(b)).into();
-		SignedSidechainBlock::new(self, signature)
+		fn sign_block<P: Pair>(self, signer: &P) -> SignedSidechainBlock
+		where
+			<SignedSidechainBlock as SignedBlock>::Signature: From<<P as sp_core::Pair>::Signature>;
+	}
+
+	impl<SidechainBlock, SignedSidechainBlock> SignBlock<SidechainBlock, SignedSidechainBlock>
+		for SidechainBlock
+	where
+		SidechainBlock: Block,
+		SignedSidechainBlock: SignedBlock<Block = SidechainBlock>,
+	{
+		fn sign_block<P: Pair>(self, signer: &P) -> SignedSidechainBlock
+		where
+			<SignedSidechainBlock as SignedBlock>::Signature: From<<P as sp_core::Pair>::Signature>,
+		{
+			let signature = self.using_encoded(|b| signer.sign(b)).into();
+			SignedSidechainBlock::new(self, signature)
+		}
 	}
 }

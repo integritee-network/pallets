@@ -16,7 +16,6 @@
 */
 
 //!Primitives for the sidechain
-#![cfg_attr(not(feature = "std"), no_std)]
 use crate::traits::Header as HeaderTrait;
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
