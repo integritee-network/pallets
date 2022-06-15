@@ -21,7 +21,7 @@ use codec::Encode;
 use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
-use sidechain_primitives::*;
+use sidechain_primitives::types::header::SidechainHeader;
 use sp_core::H256;
 use sp_std::{prelude::*, str};
 use teerex_primitives::ShardIdentifier;
