@@ -21,7 +21,10 @@ sp-std = { version = "4.0.0-dev", default-features = false, git = "https://githu
 
 
 [features]
-default = ["std"]
+default = ["std", "full_crypto"]
+full_crypto = [
+    "sp-core/full_crypto"
+]
 std = [
     "codec/std",
     "scale-info/std",
