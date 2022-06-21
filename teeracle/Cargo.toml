@@ -35,7 +35,7 @@ test-utils = { path = "../test-utils", optional = true, default-features = false
 timestamp = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", package = "pallet-timestamp" }
 
 [dev-dependencies]
-externalities = { version = "0.12.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", package = "sp-externalities" }
+externalities = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", package = "sp-externalities" }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 hex-literal = "0.3.2"
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
