@@ -33,9 +33,6 @@ use substrate_api_client::{
 	UncheckedExtrinsicV4,
 };
 
-pub use rpc::*;
-pub mod light_client_init_params;
-pub mod rpc;
 pub mod storage;
 
 /// Substrate runtimes provide no string type. Hence, for arbitrary data of varying length the
