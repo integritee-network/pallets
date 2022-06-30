@@ -4,6 +4,7 @@ members = [
     "teerex",
     "parentchain",
     "sidechain",
+    "sidechain/sidechain_block_verification",
     "teerex/ias-verify",
     "teeracle",
     "test-utils",

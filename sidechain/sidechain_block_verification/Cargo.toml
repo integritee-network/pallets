@@ -1,0 +1,24 @@
+[package]
+name = "sidechain_block_verification"
+description = "Verification logic for sidechain blocks"
+version = "0.9.0"
+authors = ["Integritee AG"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
+
+
+[dependencies]
+log = { version = "0.4.17", default-features = false }
+thiserror = { version = "1.0.26" }
+
+# substrate deps
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
+sp-consensus-slots = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
+
+# local deps
+itp-types = { path = "../../primitives/types", default-features = false}
+itp-utils = { path = "../../primitives/utils", default-features = false}
+sidechain-primitives = { path = "../../primitives/sidechain", default-features = false }
