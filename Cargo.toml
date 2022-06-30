@@ -11,4 +11,6 @@ members = [
     "primitives/teerex",
     "primitives/teeracle",
     "primitives/common",
+    "primitives/types",
+    "primitives/utils",
 ]
