@@ -11,14 +11,35 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17", default-features = false }
-thiserror = { version = "1.0.26" }
+thiserror = { version = "1.0.26", optional = true }
+
+# local deps
+itp-types = { path = "../../primitives/types", default-features = false}
+itp-utils = { path = "../../primitives/utils", default-features = false}
+sidechain-primitives = { path = "../../primitives/sidechain", default-features = false }
 
 # substrate deps
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 sp-consensus-slots = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 
-# local deps
-itp-types = { path = "../../primitives/types", default-features = false}
-itp-utils = { path = "../../primitives/utils", default-features = false}
-sidechain-primitives = { path = "../../primitives/sidechain", default-features = false }
+# sgx deps
+thiserror-sgx = { package = "thiserror", git = "https://github.com/mesalock-linux/thiserror-sgx", tag = "sgx_1.1.3", optional = true }
+sgx_tstd = { branch = "master", features = ["untrusted_fs", "net", "backtrace"], git = "https://github.com/apache/teaclave-sgx-sdk.git", optional = true}
+
+[features]
+default = ["std"]
+std = [
+    "log/std",
+    "thiserror",
+    # local
+    "itp-types/std",
+    "itp-utils/std",
+    "sidechain-primitives/std",
+    # substrate
+    "sp-runtime/std",
+]
+sgx = [
+    "sgx_tstd",
+    "thiserror-sgx",
+]

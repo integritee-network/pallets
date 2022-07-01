@@ -23,6 +23,9 @@ use std::string::String;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[cfg(all(not(feature = "std"), feature = "sgx"))]
+pub use thiserror_sgx as thiserror;
+
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
