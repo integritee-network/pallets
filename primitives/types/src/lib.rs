@@ -27,7 +27,7 @@ use sp_runtime::{
 	traits::BlakeTwo256,
 	OpaqueExtrinsic,
 };
-use std::vec::Vec;
+use sp_std::vec::Vec;
 use substrate_api_client::{
 	PlainTip, PlainTipExtrinsicParams, PlainTipExtrinsicParamsBuilder, SubstrateDefaultSignedExtra,
 	UncheckedExtrinsicV4,

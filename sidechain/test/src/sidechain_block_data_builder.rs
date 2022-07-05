@@ -24,7 +24,7 @@ use sidechain_primitives::types::{
 	block_data::BlockData,
 };
 use sp_core::{ed25519, Pair};
-use std::time::SystemTime;
+use std::{time::SystemTime, vec};
 
 type Seed = [u8; 32];
 const ENCLAVE_SEED: Seed = *b"12345678901234567890123456789012";

@@ -3,6 +3,7 @@ members = [
     "claims",
     "teerex",
     "parentchain",
+    "parentchain/test",
     "sidechain",
     "sidechain/sidechain_block_verification",
     "sidechain/test",

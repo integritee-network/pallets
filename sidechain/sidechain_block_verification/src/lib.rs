@@ -45,6 +45,7 @@ use std::{fmt::Debug, time::Duration};
 
 pub mod error;
 pub mod state;
+pub mod state_mock;
 
 type AuthorityId<P> = <P as Pair>::Public;
 
@@ -229,34 +230,34 @@ fn ensure_first_block<SidechainBlock: SidechainBlockTrait>(
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::test::{
-		fixtures::{default_header, types::TestAuraVerifier, validateer, SLOT_DURATION},
-		mocks::state_mock::StateMock,
-	};
 	use core::assert_matches::assert_matches;
 	use frame_support::assert_ok;
-	use itp_test::{
-		builders::parentchain_header_builder::ParentchainHeaderBuilder,
-		mock::onchain_mock::OnchainMock,
+	use itp_types::{AccountId, Block as ParentchainBlock};
+	use parentchain_test::parentchain_header_builder::ParentchainHeaderBuilder;
+	use sidechain_primitives::types::{
+		block::SignedBlock, header::SidechainHeader as Header, Block,
 	};
-	use its_test::{
+	use sidechain_test::{
 		sidechain_block_builder::SidechainBlockBuilder,
 		sidechain_block_data_builder::SidechainBlockDataBuilder,
 		sidechain_header_builder::SidechainHeaderBuilder,
 	};
-	use sidechain_primitives::types::{block::SignedBlock, header::SidechainHeader as Header};
+	use sp_core::{ed25519::Pair, ByteArray, H256};
 	use sp_keyring::ed25519::Keyring;
-	use sp_runtime::testing::H256;
+	use state_mock::StateMock;
+
+	pub const SLOT_DURATION: Duration = Duration::from_millis(300);
 
 	fn assert_ancestry_mismatch_err<T: Debug>(result: Result<T, ConsensusError>) {
 		assert_matches!(result, Err(ConsensusError::BlockAncestryMismatch(_, _, _,)))
 	}
 
 	fn block(signer: Keyring, header: Header) -> SignedBlock {
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
 		let block_data = SidechainBlockDataBuilder::default()
 			.with_signer(signer.pair())
 			.with_timestamp(0)
-			.with_layer_one_head(default_header().hash())
+			.with_layer_one_head(parentchain_header.hash())
 			.build();
 
 		SidechainBlockBuilder::default()
@@ -354,113 +355,136 @@ mod tests {
 
 	#[test]
 	fn verify_works() {
-		// block 0
-		let last_block = SidechainBlockBuilder::default().build();
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
+		let last_block = SidechainBlockBuilder::default().build();
 		let curr_block = block2(signer, last_block.hash());
 
-		let state_mock = StateMock { last_block: Some(last_block) };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
-		assert_ok!(aura_verifier.verify(curr_block, &default_header(), &onchain_mock));
+		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			curr_block,
+			SLOT_DURATION,
+			&Some(last_block),
+			&parentchain_header,
+			&authorities,
+		));
 	}
 
 	#[test]
 	fn verify_works_for_first_block() {
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
 		let curr_block = block1(signer);
 
-		let state_mock = StateMock { last_block: None };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
-		assert_ok!(aura_verifier.verify(curr_block, &default_header(), &onchain_mock));
+		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			curr_block,
+			SLOT_DURATION,
+			&None,
+			&parentchain_header,
+			&authorities,
+		));
 	}
 
 	#[test]
 	fn verify_errs_on_wrong_authority() {
-		let last_block = SidechainBlockBuilder::default().build();
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let bob_account: AccountId = Keyring::Bob.public().into();
+		let authorities = [
+			AuthorityId::<Pair>::from_slice(bob_account.as_ref()).unwrap(),
+			AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap(),
+		];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
+		let last_block = SidechainBlockBuilder::default().build();
 		let curr_block = block2(signer, last_block.hash());
 
-		let state_mock = StateMock { last_block: Some(last_block) };
-		let onchain_mock = OnchainMock::default().with_validateer_set(Some(vec![
-			validateer(Keyring::Bob.public().into()),
-			validateer(signer.public().into()),
-		]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
 		assert_matches!(
-			aura_verifier.verify(curr_block, &default_header(), &onchain_mock).unwrap_err(),
+			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+				curr_block,
+				SLOT_DURATION,
+				&Some(last_block),
+				&parentchain_header,
+				&authorities,
+			)
+			.unwrap_err(),
 			ConsensusError::InvalidAuthority(_)
 		);
 	}
 
 	#[test]
 	fn verify_errs_on_invalid_ancestry() {
-		let last_block = SidechainBlockBuilder::default().build();
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
+		let last_block = SidechainBlockBuilder::default().build();
 		let curr_block = block2(signer, Default::default());
 
-		let state_mock = StateMock { last_block: Some(last_block) };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
-		assert_ancestry_mismatch_err(aura_verifier.verify(
+		assert_ancestry_mismatch_err(verify_sidechain_block::<
+			Pair,
+			ParentchainBlock,
+			_,
+			StateMock<Block>,
+		>(
 			curr_block,
-			&default_header(),
-			&onchain_mock,
+			SLOT_DURATION,
+			&Some(last_block),
+			&parentchain_header,
+			&authorities,
 		));
 	}
 
 	#[test]
 	fn verify_errs_on_wrong_first_block() {
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
 		let curr_block = block2(signer, Default::default());
 
-		let state_mock = StateMock { last_block: None };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
 		assert_matches!(
-			aura_verifier.verify(curr_block, &default_header(), &onchain_mock),
-			Err(ConsensusError::InvalidFirstBlock(2, _))
+			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+				curr_block,
+				SLOT_DURATION,
+				&None,
+				&parentchain_header,
+				&authorities,
+			)
+			.unwrap_err(),
+			ConsensusError::InvalidFirstBlock(2, _)
 		);
 	}
 
 	#[test]
 	fn verify_errs_on_already_imported_block() {
-		let last_block = SidechainBlockBuilder::default().build();
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
+		let parentchain_header = ParentchainHeaderBuilder::default().build();
+		let last_block = SidechainBlockBuilder::default().build();
 		// Current block has also number 1, same as last. So import should return an error
 		// that a block with this number is already imported.
 		let curr_block = block3(signer, last_block.hash(), 1);
 
-		let state_mock = StateMock { last_block: Some(last_block) };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
 		assert_matches!(
-			aura_verifier.verify(curr_block, &default_header(), &onchain_mock),
-			Err(ConsensusError::BlockAlreadyImported(1, 1))
+			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+				curr_block,
+				SLOT_DURATION,
+				&Some(last_block),
+				&parentchain_header,
+				&authorities,
+			)
+			.unwrap_err(),
+			ConsensusError::BlockAlreadyImported(1, 1)
 		);
 	}
 
@@ -471,6 +495,8 @@ mod tests {
 		// Important because client of the verifier acts differently for an 'AlreadyImported' error than an 'AncestryErrorMismatch'.
 
 		let signer = Keyring::Alice;
+		let signer_account: AccountId = signer.public().into();
+		let authorities = [AuthorityId::<Pair>::from_slice(signer_account.as_ref()).unwrap()];
 
 		let parentchain_header_1 = ParentchainHeaderBuilder::default().with_number(1).build();
 		let parentchain_header_2 = ParentchainHeaderBuilder::default().with_number(2).build();
@@ -493,15 +519,16 @@ mod tests {
 			.with_signer(signer.pair())
 			.build_signed();
 
-		let state_mock = StateMock { last_block: Some(last_block) };
-		let onchain_mock = OnchainMock::default()
-			.with_validateer_set(Some(vec![validateer(signer.public().into())]));
-
-		let aura_verifier = TestAuraVerifier::new(SLOT_DURATION, state_mock);
-
 		assert_matches!(
-			aura_verifier.verify(signed_block_to_verify, &parentchain_header_2, &onchain_mock),
-			Err(ConsensusError::BlockAlreadyImported(1, 1))
+			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+				signed_block_to_verify,
+				SLOT_DURATION,
+				&Some(last_block),
+				&parentchain_header_2,
+				&authorities,
+			)
+			.unwrap_err(),
+			ConsensusError::BlockAlreadyImported(1, 1)
 		);
 	}
 }

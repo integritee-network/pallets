@@ -8,16 +8,14 @@ edition = "2018"
 codec  = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 
 # sgx dependencies
-sgx_tstd = { branch = "master", git = "https://github.com/apache/teaclave-sgx-sdk.git", optional = true }
+sgx_tstd = { branch = "master", git = "https://github.com/apache/teaclave-sgx-sdk.git", features = ["untrusted_time"], optional = true }
 
 # Substrate dependencies
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", default_features = false }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 
 # local
 itp-types = { path = "../../primitives/types" }
 sidechain-primitives = { path = "../../primitives/sidechain" }
-
 
 [features]
 default = ["std"]
@@ -27,7 +25,6 @@ std = [
     "sidechain-primitives/std",
     # substrate
     "sp-core/std",
-    "sp-runtime/std",
 ]
 sgx = [
     "itp-types/sgx",
