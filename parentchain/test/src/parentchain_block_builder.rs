@@ -20,7 +20,7 @@
 
 extern crate alloc;
 
-use super::parentchain_header_builder::ParentchainHeaderBuilder;
+use crate::parentchain_header_builder::ParentchainHeaderBuilder;
 use alloc::vec::Vec;
 use itp_types::{Block, Header, SignedBlock};
 use sp_runtime::OpaqueExtrinsic;

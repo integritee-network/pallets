@@ -20,6 +20,9 @@
 #[cfg(all(feature = "std", feature = "sgx"))]
 compile_error!("feature \"std\" and feature \"sgx\" cannot be enabled at the same time");
 
+#[cfg(all(not(feature = "std"), not(feature = "sgx")))]
+compile_error!("feature \"std\" and feature \"sgx\" cannot be disabled at the same time");
+
 #[cfg(all(not(feature = "std"), feature = "sgx"))]
 #[macro_use]
 extern crate sgx_tstd as std;
@@ -313,13 +316,6 @@ mod tests {
 
 		assert_ancestry_mismatch_err(verify_block_ancestry(&curr_block, &last_block));
 	}
-
-	/////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////
 
 	#[test]
 	fn verify_works() {

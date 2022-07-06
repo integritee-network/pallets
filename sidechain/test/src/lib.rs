@@ -17,6 +17,9 @@
 #[cfg(all(feature = "std", feature = "sgx"))]
 compile_error!("feature \"std\" and feature \"sgx\" cannot be enabled at the same time");
 
+#[cfg(all(not(feature = "std"), not(feature = "sgx")))]
+compile_error!("feature \"std\" and feature \"sgx\" cannot be disabled at the same time");
+
 #[cfg(all(not(feature = "std"), feature = "sgx"))]
 #[macro_use]
 extern crate sgx_tstd as std;

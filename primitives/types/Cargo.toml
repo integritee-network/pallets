@@ -12,8 +12,6 @@ serde = { version = "1.0", default-features = false, features = ["alloc", "deriv
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 substrate-api-client = { git = "https://github.com/scs/substrate-api-client", branch = "polkadot-v0.9.24", default-features = false }
 
-sgx_tstd = { branch = "master", features = ["untrusted_fs", "net", "backtrace"], git = "https://github.com/apache/teaclave-sgx-sdk.git", optional = true }
-
 # substrate-deps
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24"}
 sp-core = { default-features = false, features = ["full_crypto"], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
@@ -32,7 +30,6 @@ std = [ "codec/std",
         "sp-runtime/std",
         "substrate-api-client/std",
 ]
-sgx = [ "sgx_tstd" ]
 test = []
 
 [dev-dependencies]

@@ -41,11 +41,12 @@ std = [
     "sp-runtime/std",
 ]
 sgx = [
+    "itp-utils/sgx",
     "sgx_tstd",
     "thiserror-sgx",
 ]
 
 [dev-dependencies]
-parentchain-test = { path = "../../parentchain/test", default-features = false }
-sidechain-test = { path = "../../sidechain/test", default-features = false }
+parentchain-test = { path = "../../parentchain/test" }
+sidechain-test = { path = "../../sidechain/test" }
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
