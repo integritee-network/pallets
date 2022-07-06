@@ -24,7 +24,7 @@ compile_error!("feature \"std\" and feature \"sgx\" cannot be enabled at the sam
 #[macro_use]
 extern crate sgx_tstd as std;
 
-use crate::state::LastBlockExt;
+use crate::slot::{slot_author, slot_from_timestamp_and_duration};
 use error::Error as ConsensusError;
 use frame_support::ensure;
 use itp_utils::stringify::public_to_string;
@@ -44,41 +44,11 @@ use sp_runtime::{
 use std::{fmt::Debug, time::Duration};
 
 pub mod error;
-pub mod state;
-pub mod state_mock;
+pub mod slot;
 
 type AuthorityId<P> = <P as Pair>::Public;
 
-/// Get slot author for given block along with authorities.
-fn slot_author<P: Pair>(slot: Slot, authorities: &[AuthorityId<P>]) -> Option<&AuthorityId<P>> {
-	if authorities.is_empty() {
-		log::warn!("Authorities list is empty, cannot determine slot author");
-		return None
-	}
-
-	let idx = *slot % (authorities.len() as u64);
-	assert!(
-		idx <= usize::MAX as u64,
-		"It is impossible to have a vector with length beyond the address space; qed",
-	);
-
-	let current_author = authorities.get(idx as usize).expect(
-		"authorities not empty; index constrained to list length;this is a valid index; qed",
-	);
-
-	Some(current_author)
-}
-
-pub fn slot_from_timestamp_and_duration(timestamp: Duration, duration: Duration) -> Slot {
-	((timestamp.as_millis() / duration.as_millis()) as u64).into()
-}
-
-pub fn verify_sidechain_block<
-	AuthorityPair,
-	ParentchainBlock,
-	SignedSidechainBlock,
-	SidechainState,
->(
+pub fn verify_sidechain_block<AuthorityPair, ParentchainBlock, SignedSidechainBlock>(
 	signed_block: SignedSidechainBlock,
 	slot_duration: Duration,
 	last_block: &Option<<SignedSidechainBlock as SignedBlock>::Block>,
@@ -89,7 +59,6 @@ where
 	AuthorityPair: Pair,
 	AuthorityPair::Public: Debug,
 	ParentchainBlock: ParentchainBlockTrait<Hash = BlockHash>,
-	SidechainState: LastBlockExt<SignedSidechainBlock::Block> + Send + Sync,
 	SignedSidechainBlock: 'static + SignedSidechainBlockTrait<Public = AuthorityPair::Public>,
 	SignedSidechainBlock::Block: SidechainBlockTrait,
 {
@@ -244,7 +213,6 @@ mod tests {
 	};
 	use sp_core::{ed25519::Pair, ByteArray, H256};
 	use sp_keyring::ed25519::Keyring;
-	use state_mock::StateMock;
 
 	pub const SLOT_DURATION: Duration = Duration::from_millis(300);
 
@@ -363,7 +331,7 @@ mod tests {
 		let last_block = SidechainBlockBuilder::default().build();
 		let curr_block = block2(signer, last_block.hash());
 
-		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _>(
 			curr_block,
 			SLOT_DURATION,
 			&Some(last_block),
@@ -381,7 +349,7 @@ mod tests {
 		let parentchain_header = ParentchainHeaderBuilder::default().build();
 		let curr_block = block1(signer);
 
-		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+		assert_ok!(verify_sidechain_block::<Pair, ParentchainBlock, _>(
 			curr_block,
 			SLOT_DURATION,
 			&None,
@@ -405,7 +373,7 @@ mod tests {
 		let curr_block = block2(signer, last_block.hash());
 
 		assert_matches!(
-			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			verify_sidechain_block::<Pair, ParentchainBlock, _>(
 				curr_block,
 				SLOT_DURATION,
 				&Some(last_block),
@@ -427,12 +395,7 @@ mod tests {
 		let last_block = SidechainBlockBuilder::default().build();
 		let curr_block = block2(signer, Default::default());
 
-		assert_ancestry_mismatch_err(verify_sidechain_block::<
-			Pair,
-			ParentchainBlock,
-			_,
-			StateMock<Block>,
-		>(
+		assert_ancestry_mismatch_err(verify_sidechain_block::<Pair, ParentchainBlock, _>(
 			curr_block,
 			SLOT_DURATION,
 			&Some(last_block),
@@ -451,7 +414,7 @@ mod tests {
 		let curr_block = block2(signer, Default::default());
 
 		assert_matches!(
-			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			verify_sidechain_block::<Pair, ParentchainBlock, _>(
 				curr_block,
 				SLOT_DURATION,
 				&None,
@@ -476,7 +439,7 @@ mod tests {
 		let curr_block = block3(signer, last_block.hash(), 1);
 
 		assert_matches!(
-			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			verify_sidechain_block::<Pair, ParentchainBlock, _>(
 				curr_block,
 				SLOT_DURATION,
 				&Some(last_block),
@@ -520,7 +483,7 @@ mod tests {
 			.build_signed();
 
 		assert_matches!(
-			verify_sidechain_block::<Pair, ParentchainBlock, _, StateMock<Block>>(
+			verify_sidechain_block::<Pair, ParentchainBlock, _>(
 				signed_block_to_verify,
 				SLOT_DURATION,
 				&Some(last_block),
