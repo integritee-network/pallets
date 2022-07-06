@@ -1,0 +1,31 @@
+[package]
+name = "sidechain-test"
+version = "0.8.0"
+authors = ["Integritee AG <hello@integritee.network>"]
+edition = "2018"
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+
+# sgx dependencies
+sgx_tstd = { branch = "master", git = "https://github.com/apache/teaclave-sgx-sdk.git", features = ["untrusted_time"], optional = true }
+
+# Substrate dependencies
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", default_features = false }
+
+# local
+itp-types = { path = "../../primitives/types", default_features = false }
+sidechain-primitives = { path = "../../primitives/sidechain", default_features = false }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "itp-types/std",
+    "sidechain-primitives/std",
+    # substrate
+    "sp-core/std",
+]
+sgx = [
+    "sgx_tstd",
+]
