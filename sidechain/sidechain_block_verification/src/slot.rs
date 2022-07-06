@@ -22,7 +22,6 @@ use std::time::Duration;
 
 /// Get slot author for given block along with authorities.
 pub fn slot_author<P: Pair>(slot: Slot, authorities: &[AuthorityId<P>]) -> Option<&AuthorityId<P>> {
-	// TODO What?
 	if authorities.is_empty() {
 		log::warn!("Authorities list is empty, cannot determine slot author");
 		return None
@@ -42,6 +41,5 @@ pub fn slot_author<P: Pair>(slot: Slot, authorities: &[AuthorityId<P>]) -> Optio
 }
 
 pub fn slot_from_timestamp_and_duration(timestamp: Duration, duration: Duration) -> Slot {
-	// TODO What?
 	((timestamp.as_millis() / duration.as_millis()) as u64).into()
 }
