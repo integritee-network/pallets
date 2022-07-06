@@ -20,8 +20,8 @@ sidechain-primitives = { path = "../../primitives/sidechain", default-features =
 
 # substrate deps
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 sp-consensus-slots = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24" }
 
 # sgx deps
@@ -38,6 +38,9 @@ std = [
     "itp-utils/std",
     "sidechain-primitives/std",
     # substrate
+    "frame-support/std",
+    "sp-consensus-slots/std",
+    "sp-core/std",
     "sp-runtime/std",
 ]
 sgx = [
