@@ -32,16 +32,16 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 frame-benchmarking = {default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 hex-literal = { version = "0.3.2", optional = true }
 test-utils = { path = "../test-utils", optional = true, default-features = false }
-timestamp = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", package = "pallet-timestamp" , branch = "polkadot-v0.9.26" }
+timestamp = { package = "pallet-timestamp", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 
 [dev-dependencies]
-externalities = { git = "https://github.com/paritytech/substrate.git", package = "sp-externalities" , branch = "polkadot-v0.9.26" }
+externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 hex-literal = "0.3.2"
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 test-utils = { path = "../test-utils" }
-timestamp = { git = "https://github.com/paritytech/substrate.git", package = "pallet-timestamp" , branch = "polkadot-v0.9.26" }
+timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26" }
 
 
 [features]
