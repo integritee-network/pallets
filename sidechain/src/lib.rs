@@ -188,7 +188,11 @@ impl<T: Config> Pallet<T> {
 				(shard_id, expected_block_number),
 				latest_header.hash(),
 			);
-			<SidechainHeaderQueue<T>>::remove_prefix((shard_id, expected_block_number), None);
+			let _ = <SidechainHeaderQueue<T>>::clear_prefix(
+				(shard_id, expected_block_number),
+				u32::MAX,
+				None,
+			);
 			// Confirm that the parent hash is the hash of the previous block.
 			// Block number 1 does not have a previous block, hence skip checking there.
 			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
