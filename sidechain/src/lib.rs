@@ -140,6 +140,60 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// The integritee worker calls this function for every imported sidechain_block.
+		#[pallet::weight((<T as Config>::WeightInfo::confirm_imported_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
+		pub fn confirm_imported_sidechain_block(
+			origin: OriginFor<T>,
+			shard_id: ShardIdentifier,
+			header: SidechainHeader,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Teerex::<T>::is_registered_enclave(&sender)?;
+			let sender_index = Teerex::<T>::enclave_index(&sender);
+			let sender_enclave = Teerex::<T>::enclave(sender_index)
+				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
+			ensure!(
+				sender_enclave.mr_enclave.encode() == shard_id.encode(),
+				pallet_teerex::Error::<T>::WrongMrenclaveForShard
+			);
+
+			let lenience = T::EarlyBlockProposalLenience::get();
+			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
+			let latest_block_number = latest_header.block_number;
+			let block_number = header.block_number;
+
+			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
+				// Block is far too early and hence refused.
+				return Err(<Error<T>>::BlockNumberTooHigh.into())
+			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
+				// Block is too early and stored in the queue for later import.
+				if !<SidechainHeaderQueue<T>>::contains_key(
+					(shard_id, block_number),
+					header.parent_hash,
+				) {
+					<SidechainHeaderQueue<T>>::insert(
+						(shard_id, block_number),
+						header.parent_hash,
+						header,
+					);
+				}
+			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
+				// Block number is correct to be imported.
+				// Confirm that the parent hash is the hash of the previous block.
+				// Block number 1 does not have a previous block, hence skip checking there.
+				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
+					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+					latest_header = header;
+				}
+				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+			} else {
+				// Block is too late and hence refused.
+				return Err(<Error<T>>::OutdatedBlockNumber.into())
+			}
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::error]
