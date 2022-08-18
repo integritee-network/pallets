@@ -34,6 +34,9 @@ pub type ShardBlockNumber = (ShardIdentifier, u64);
 
 pub use pallet::*;
 
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -44,6 +47,14 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
+
+	#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub struct SidechainBlockConfirmation {
+		pub block_number: u64,
+		/// Hash of the block header. TODO check
+		pub block_header_hash: H256,
+	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
@@ -84,6 +95,15 @@ pub mod pallet {
 		SidechainHeader,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn latest_sidechain_block_confirmation)]
+	pub(super) type LatestSidechainBlockConfirmation<T: Config> =
+		StorageValue<_, SidechainBlockConfirmation, ValueQuery>;
+
+	#[pallet::storage]
+	pub type SidechainBlockConfirmationQueue<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardBlockNumber, SidechainBlockConfirmation, ValueQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
