@@ -233,9 +233,7 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
 		register_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
 
-		let header1 = new_header(1, H256::default());
-
-		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, header1, false));
+		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, H256::default(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
 	})
 }
@@ -258,28 +256,28 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_cou
 
 fn confirm_block7(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	confirm_block(shard7, TEST7_SIGNER_PUB, header, check_for_event)
+	confirm_block(shard7, TEST7_SIGNER_PUB, header.block_number, header.hash(), check_for_event)
 }
 
 fn confirm_block(
 	shard7: H256,
 	signer_pub_key: &[u8; 32],
-	header: SidechainHeader,
+	block_number: u64,
+	block_header_hash: H256,
 	check_for_event: bool,
 ) -> DispatchResultWithPostInfo {
 	let signer7 = get_signer(signer_pub_key);
 
-	let header_clone = header.clone();
 	Sidechain::confirm_imported_sidechain_block(
 		Origin::signed(signer7.clone()),
 		shard7.clone(),
-		header_clone.block_number,
-		header_clone.hash(),
+		block_number,
+		block_header_hash,
 	)?;
 
 	if check_for_event {
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, header.hash()));
+			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, block_header_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
