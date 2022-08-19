@@ -236,6 +236,60 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	fn confirm_sidechain_block(
+		shard_id: ShardIdentifier,
+		header: SidechainHeader,
+		sender: &T::AccountId,
+		sender_index: u64,
+	) {
+		<LatestSidechainHeader<T>>::insert(shard_id, header);
+		<WorkerForShard<T>>::insert(shard_id, sender_index);
+		let block_hash = header.block_data_hash;
+		log::debug!(
+			"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
+			shard_id,
+			block_hash
+		);
+		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
+	}
+
+	fn finalize_blocks_from_queue(
+		shard_id: ShardIdentifier,
+		sender: &T::AccountId,
+		sender_index: u64,
+		mut latest_header: SidechainHeader,
+	) -> DispatchResultWithPostInfo {
+		let mut latest_block_number = latest_header.block_number;
+		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+		let lenience = T::EarlyBlockProposalLenience::get();
+		let mut i: u64 = 0;
+		while <SidechainHeaderQueue<T>>::contains_key(
+			(shard_id, expected_block_number),
+			latest_header.hash(),
+		) && i < lenience
+		{
+			let header = <SidechainHeaderQueue<T>>::take(
+				(shard_id, expected_block_number),
+				latest_header.hash(),
+			);
+			let _ = <SidechainHeaderQueue<T>>::clear_prefix(
+				(shard_id, expected_block_number),
+				u32::MAX,
+				None,
+			);
+			// Confirm that the parent hash is the hash of the previous block.
+			// Block number 1 does not have a previous block, hence skip checking there.
+			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
+				Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
+				latest_header = header;
+			}
+			latest_block_number = latest_header.block_number;
+			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+			i = Self::add_to_block_number(i, 1)?;
+		}
+		Ok(().into())
+	}
+
 	fn confirm_sidechain_block_old(
 		shard_id: ShardIdentifier,
 		header: SidechainHeader,
