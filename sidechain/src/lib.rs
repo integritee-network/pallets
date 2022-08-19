@@ -183,6 +183,15 @@ pub mod pallet {
 				pallet_teerex::Error::<T>::WrongMrenclaveForShard
 			);
 
+			// simple logic for now: only accept blocks from first registered enclave.
+			if sender_index != 1 {
+				log::debug!(
+					"Ignore block confirmation from registered enclave with index {:?}",
+					sender_index
+				);
+				return Ok(().into())
+			}
+
 			let lenience = T::EarlyBlockProposalLenience::get();
 			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
 			let latest_block_number = latest_header.block_number;

@@ -220,6 +220,24 @@ fn confirm_imported_sidechain_block_far_too_early() {
 	})
 }
 
+#[test]
+fn dont_process_confirmation_of_second_registered_enclave() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let block_hash = H256::default();
+		let signer7 = get_signer(TEST7_SIGNER_PUB);
+		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
+
+		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+		register_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
+
+		let header1 = new_header(1, H256::default());
+
+		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, header1, false));
+		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 0);
+	})
+}
+
 fn register_enclave7() {
 	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
 }
