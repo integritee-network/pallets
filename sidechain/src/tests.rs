@@ -221,10 +221,10 @@ fn confirm_imported_sidechain_block_far_too_early() {
 }
 
 fn register_enclave7() {
-	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
+	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
 }
 
-fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8]) {
+fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_count: u64) {
 	let signer7 = get_signer(signer_pub_key);
 
 	//Ensure that enclave is registered
@@ -233,7 +233,7 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8]) {
 		cert.to_vec(),
 		URL.to_vec(),
 	));
-	assert_eq!(Teerex::<Test>::enclave_count(), 1);
+	assert_eq!(Teerex::<Test>::enclave_count(), expected_enclave_count);
 }
 
 fn confirm_block7(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
