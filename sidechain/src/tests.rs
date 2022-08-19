@@ -33,7 +33,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header = SidechainHeader {
 			parent_hash: block_hash,
@@ -62,7 +62,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header = SidechainHeader {
 			parent_hash: block_hash,
@@ -88,7 +88,7 @@ fn confirm_imported_sidechain_block_correct_order() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, header1.hash());
@@ -96,15 +96,15 @@ fn confirm_imported_sidechain_block_correct_order() {
 		let header4 = new_header(4, header3.hash());
 		let header5 = new_header(5, header4.hash());
 
-		assert_ok!(confirm_block(header1, true));
+		assert_ok!(confirm_block7(header1, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
+		assert_ok!(confirm_block7(header2, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, true));
+		assert_ok!(confirm_block7(header3, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4, true));
+		assert_ok!(confirm_block7(header4, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5, true));
+		assert_ok!(confirm_block7(header5, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
 	})
 }
@@ -115,7 +115,7 @@ fn confirm_imported_sidechain_first_imported_block() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, header1.hash());
@@ -124,13 +124,13 @@ fn confirm_imported_sidechain_first_imported_block() {
 		let mut header3b = new_header(3, header2.hash());
 		header3b.block_data_hash = [3; 32].into();
 
-		assert_ok!(confirm_block(header1, true));
+		assert_ok!(confirm_block7(header1, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3a, false));
+		assert_ok!(confirm_block7(header3a, false));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3b, false));
+		assert_ok!(confirm_block7(header3b, false));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
+		assert_ok!(confirm_block7(header2, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
 		assert_eq!(
 			Sidechain::latest_sidechain_header(shard7).block_data_hash,
@@ -145,7 +145,7 @@ fn confirm_imported_sidechain_block_wrong_order() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, header1.hash());
@@ -153,15 +153,15 @@ fn confirm_imported_sidechain_block_wrong_order() {
 		let header4 = new_header(4, header3.hash());
 		let header5 = new_header(5, header4.hash());
 
-		assert_ok!(confirm_block(header1, true));
+		assert_ok!(confirm_block7(header1, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header4, false));
+		assert_ok!(confirm_block7(header4, false));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3, false));
+		assert_ok!(confirm_block7(header3, false));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
+		assert_ok!(confirm_block7(header2, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5, true));
+		assert_ok!(confirm_block7(header5, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
 	})
 }
@@ -172,7 +172,7 @@ fn confirm_imported_sidechain_block_too_late() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, header1.hash());
@@ -181,17 +181,17 @@ fn confirm_imported_sidechain_block_too_late() {
 		let header2b = new_header(2, header4.hash());
 		let header3b = new_header(3, header2.hash());
 
-		assert_ok!(confirm_block(header1, true));
+		assert_ok!(confirm_block7(header1, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
+		assert_ok!(confirm_block7(header2, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, true));
+		assert_ok!(confirm_block7(header3, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4, true));
+		assert_ok!(confirm_block7(header4, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header2b, true), Error::<Test>::OutdatedBlockNumber);
+		assert_err!(confirm_block7(header2b, true), Error::<Test>::OutdatedBlockNumber);
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header3b, true), Error::<Test>::OutdatedBlockNumber);
+		assert_err!(confirm_block7(header3b, true), Error::<Test>::OutdatedBlockNumber);
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
 	})
 }
@@ -202,25 +202,25 @@ fn confirm_imported_sidechain_block_far_too_early() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
 		let header1 = new_header(1, H256::default());
 		let header2 = new_header(2, header1.hash());
 		let header3 = new_header(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, header2.hash());
 		let header4 = new_header(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, header3.hash());
 
-		assert_ok!(confirm_block(header1, true));
+		assert_ok!(confirm_block7(header1, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
+		assert_ok!(confirm_block7(header2, true));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, false));
+		assert_ok!(confirm_block7(header3, false));
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_err!(confirm_block(header4, false), Error::<Test>::BlockNumberTooHigh);
+		assert_err!(confirm_block7(header4, false), Error::<Test>::BlockNumberTooHigh);
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
 	})
 }
 
-fn register_enclave() {
+fn register_enclave7() {
 	let signer7 = get_signer(TEST7_SIGNER_PUB);
 
 	//Ensure that enclave is registered
@@ -232,7 +232,7 @@ fn register_enclave() {
 	assert_eq!(Teerex::<Test>::enclave_count(), 1);
 }
 
-fn confirm_block(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
+fn confirm_block7(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 	let signer7 = get_signer(TEST7_SIGNER_PUB);
 
