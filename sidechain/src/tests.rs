@@ -221,12 +221,19 @@ fn confirm_imported_sidechain_block_far_too_early() {
 }
 
 fn register_enclave7() {
-	let signer7 = get_signer(TEST7_SIGNER_PUB);
+	let signer_pub_key = TEST7_SIGNER_PUB;
+	let cert = TEST7_CERT;
+
+	register_enclave(signer_pub_key, cert);
+}
+
+fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8]) {
+	let signer7 = get_signer(signer_pub_key);
 
 	//Ensure that enclave is registered
 	assert_ok!(Teerex::<Test>::register_enclave(
 		Origin::signed(signer7.clone()),
-		TEST7_CERT.to_vec(),
+		cert.to_vec(),
 		URL.to_vec(),
 	));
 	assert_eq!(Teerex::<Test>::enclave_count(), 1);
@@ -234,7 +241,18 @@ fn register_enclave7() {
 
 fn confirm_block7(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	let signer7 = get_signer(TEST7_SIGNER_PUB);
+	let signer_pub_key = TEST7_SIGNER_PUB;
+
+	confirm_block(shard7, signer_pub_key, header, check_for_event)
+}
+
+fn confirm_block(
+	shard7: H256,
+	signer_pub_key: &[u8; 32],
+	header: SidechainHeader,
+	check_for_event: bool,
+) -> DispatchResultWithPostInfo {
+	let signer7 = get_signer(signer_pub_key);
 
 	Sidechain::confirm_imported_sidechain_block(
 		Origin::signed(signer7.clone()),
