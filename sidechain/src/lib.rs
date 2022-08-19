@@ -282,7 +282,7 @@ impl<T: Config> Pallet<T> {
 			shard_id,
 			block_hash
 		);
-		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), block_hash));
+		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), header.hash()));
 	}
 
 	fn finalize_blocks_from_queue(

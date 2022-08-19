@@ -49,7 +49,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		));
 
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, block_hash));
+			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, header.hash()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -274,10 +274,8 @@ fn confirm_block(
 	)?;
 
 	if check_for_event {
-		let expected_event = Event::Sidechain(SidechainEvent::ImportedSidechainBlock(
-			signer7,
-			header.block_data_hash,
-		));
+		let expected_event =
+			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, header.hash()));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
