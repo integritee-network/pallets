@@ -60,7 +60,7 @@ benchmarks! {
 			block_data_hash: block_hash,
 		};
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, header)
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, header.hash())
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}

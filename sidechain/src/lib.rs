@@ -172,12 +172,10 @@ pub mod pallet {
 		pub fn confirm_imported_sidechain_block(
 			origin: OriginFor<T>,
 			shard_id: ShardIdentifier,
-			header: SidechainHeader,
+			block_number: u64,
+			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
-			let confirmation = SidechainBlockConfirmation {
-				block_number: header.block_number,
-				block_header_hash: header.hash(),
-			};
+			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
 
 			let sender = ensure_signed(origin)?;
 			Teerex::<T>::is_registered_enclave(&sender)?;

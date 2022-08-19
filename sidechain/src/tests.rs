@@ -45,7 +45,8 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
-			header.clone(),
+			1,
+			header.hash()
 		));
 
 		let expected_event =
@@ -75,7 +76,8 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 			Sidechain::confirm_imported_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
-				header,
+				1,
+				header.hash()
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
 		);
@@ -267,10 +269,12 @@ fn confirm_block(
 ) -> DispatchResultWithPostInfo {
 	let signer7 = get_signer(signer_pub_key);
 
+	let header_clone = header.clone();
 	Sidechain::confirm_imported_sidechain_block(
 		Origin::signed(signer7.clone()),
 		shard7.clone(),
-		header.clone(),
+		header_clone.block_number,
+		header_clone.hash(),
 	)?;
 
 	if check_for_event {
