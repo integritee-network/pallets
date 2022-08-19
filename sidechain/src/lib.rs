@@ -215,9 +215,9 @@ pub mod pallet {
 					<SidechainBlockConfirmationQueue<T>>::insert(
 						(shard_id, block_number),
 						SidechainBlockConfirmation {
-							block_number: block_number,
-							block_header_hash: header.hash()
-						}
+							block_number,
+							block_header_hash: header.hash(),
+						},
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
@@ -251,7 +251,13 @@ impl<T: Config> Pallet<T> {
 		sender_index: u64,
 	) {
 		<LatestSidechainHeader<T>>::insert(shard_id, header);
-		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, SidechainBlockConfirmation { block_number: header.block_number, block_header_hash: header.hash() });
+		<LatestSidechainBlockConfirmation<T>>::insert(
+			shard_id,
+			SidechainBlockConfirmation {
+				block_number: header.block_number,
+				block_header_hash: header.hash(),
+			},
+		);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_hash = header.block_data_hash;
 		log::debug!(
@@ -286,9 +292,8 @@ impl<T: Config> Pallet<T> {
 				u32::MAX,
 				None,
 			);
-			let confirmation = <SidechainBlockConfirmationQueue<T>>::take(
-				(shard_id, expected_block_number)
-			);
+			let confirmation =
+				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
 			Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
 			latest_header = header;
