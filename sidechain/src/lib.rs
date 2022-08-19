@@ -72,6 +72,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposedSidechainBlock(T::AccountId, H256),
+		ImportedSidechainBlock(T::AccountId, H256),
 	}
 
 	// Enclave index of the worker that recently committed an update.
@@ -265,7 +266,7 @@ impl<T: Config> Pallet<T> {
 			shard_id,
 			block_hash
 		);
-		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
+		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), block_hash));
 	}
 
 	fn finalize_blocks_from_queue(
