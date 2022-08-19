@@ -199,7 +199,6 @@ pub mod pallet {
 			}
 
 			let lenience = T::EarlyBlockProposalLenience::get();
-			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
 			let mut latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
 			let latest_block_number = latest_confirmation.block_number;
 			let block_number = confirmation.block_number;
@@ -210,32 +209,19 @@ pub mod pallet {
 			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
 				// Block is too early and stored in the queue for later import.
 				if !<SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number)) {
-					<SidechainHeaderQueue<T>>::insert(
-						(shard_id, block_number),
-						header.parent_hash,
-						header,
-					);
 					<SidechainBlockConfirmationQueue<T>>::insert(
 						(shard_id, block_number),
 						confirmation,
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				Self::confirm_sidechain_block(
-					shard_id,
-					header,
-					confirmation,
-					&sender,
-					sender_index,
-				);
-				latest_header = header;
+				Self::confirm_sidechain_block(shard_id, confirmation, &sender, sender_index);
 				latest_confirmation = confirmation;
 
 				Self::finalize_blocks_from_queue(
 					shard_id,
 					&sender,
 					sender_index,
-					latest_header,
 					latest_confirmation,
 				)?;
 			} else {
@@ -259,7 +245,6 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	fn confirm_sidechain_block(
 		shard_id: ShardIdentifier,
-		header: SidechainHeader,
 		confirmation: SidechainBlockConfirmation,
 		sender: &T::AccountId,
 		sender_index: u64,
@@ -279,7 +264,6 @@ impl<T: Config> Pallet<T> {
 		shard_id: ShardIdentifier,
 		sender: &T::AccountId,
 		sender_index: u64,
-		mut latest_header: SidechainHeader,
 		mut latest_confirmation: SidechainBlockConfirmation,
 	) -> DispatchResultWithPostInfo {
 		let mut latest_block_number = latest_confirmation.block_number;
@@ -289,19 +273,10 @@ impl<T: Config> Pallet<T> {
 		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
 			i < lenience
 		{
-			let header = <SidechainHeaderQueue<T>>::take(
-				(shard_id, expected_block_number),
-				latest_confirmation.block_header_hash,
-			);
-			let _ = <SidechainHeaderQueue<T>>::clear_prefix(
-				(shard_id, expected_block_number),
-				u32::MAX,
-				None,
-			);
 			let confirmation =
 				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
-			Self::confirm_sidechain_block(shard_id, header, confirmation, &sender, sender_index);
+			Self::confirm_sidechain_block(shard_id, confirmation, &sender, sender_index);
 			latest_confirmation = confirmation;
 
 			latest_block_number = latest_confirmation.block_number;
