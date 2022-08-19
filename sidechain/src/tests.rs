@@ -97,15 +97,15 @@ fn confirm_imported_sidechain_block_correct_order() {
 		let header5 = new_header(5, header4.hash());
 
 		assert_ok!(confirm_block7(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_ok!(confirm_block7(header3, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
 		assert_ok!(confirm_block7(header4, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_ok!(confirm_block7(header5, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 	})
 }
 
@@ -125,16 +125,16 @@ fn confirm_imported_sidechain_first_imported_block() {
 		header3b.block_data_hash = [3; 32].into();
 
 		assert_ok!(confirm_block7(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header3a, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header3b, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
 		assert_eq!(
-			Sidechain::latest_sidechain_header(shard7).block_data_hash,
-			header3a.block_data_hash
+			Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash,
+			header3a.hash()
 		);
 	})
 }
@@ -154,15 +154,15 @@ fn confirm_imported_sidechain_block_wrong_order() {
 		let header5 = new_header(5, header4.hash());
 
 		assert_ok!(confirm_block7(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header4, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header3, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_ok!(confirm_block7(header5, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 	})
 }
 
@@ -182,17 +182,17 @@ fn confirm_imported_sidechain_block_too_late() {
 		let header3b = new_header(3, header2.hash());
 
 		assert_ok!(confirm_block7(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_ok!(confirm_block7(header3, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
 		assert_ok!(confirm_block7(header4, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_err!(confirm_block7(header2b, true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_err!(confirm_block7(header3b, true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 	})
 }
 
@@ -210,13 +210,13 @@ fn confirm_imported_sidechain_block_far_too_early() {
 		let header4 = new_header(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, header3.hash());
 
 		assert_ok!(confirm_block7(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_ok!(confirm_block7(header3, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_err!(confirm_block7(header4, false), Error::<Test>::BlockNumberTooHigh);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 	})
 }
 
@@ -234,7 +234,7 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		let header1 = new_header(1, H256::default());
 
 		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, header1, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 0);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
 	})
 }
 
