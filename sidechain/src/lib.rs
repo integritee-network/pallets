@@ -204,10 +204,7 @@ pub mod pallet {
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
 			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
 				// Block is too early and stored in the queue for later import.
-				if !<SidechainHeaderQueue<T>>::contains_key(
-					(shard_id, block_number),
-					header.parent_hash,
-				) {
+				if !<SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number)) {
 					<SidechainHeaderQueue<T>>::insert(
 						(shard_id, block_number),
 						header.parent_hash,
@@ -279,10 +276,8 @@ impl<T: Config> Pallet<T> {
 		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
 		let lenience = T::EarlyBlockProposalLenience::get();
 		let mut i: u64 = 0;
-		while <SidechainHeaderQueue<T>>::contains_key(
-			(shard_id, expected_block_number),
-			latest_header.hash(),
-		) && i < lenience
+		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
+			i < lenience
 		{
 			let header = <SidechainHeaderQueue<T>>::take(
 				(shard_id, expected_block_number),
