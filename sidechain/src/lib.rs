@@ -149,10 +149,15 @@ pub mod pallet {
 				// Confirm that the parent hash is the hash of the previous block.
 				// Block number 1 does not have a previous block, hence skip checking there.
 				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+					Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
 					latest_header = header;
 				}
-				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+				Self::finalize_blocks_from_queue_old(
+					shard_id,
+					&sender,
+					sender_index,
+					latest_header,
+				)?;
 			} else {
 				// Block is too late and hence refused.
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
@@ -203,10 +208,15 @@ pub mod pallet {
 				// Confirm that the parent hash is the hash of the previous block.
 				// Block number 1 does not have a previous block, hence skip checking there.
 				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+					Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
 					latest_header = header;
 				}
-				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+				Self::finalize_blocks_from_queue_old(
+					shard_id,
+					&sender,
+					sender_index,
+					latest_header,
+				)?;
 			} else {
 				// Block is too late and hence refused.
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
@@ -226,7 +236,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	fn confirm_sidechain_block(
+	fn confirm_sidechain_block_old(
 		shard_id: ShardIdentifier,
 		header: SidechainHeader,
 		sender: &T::AccountId,
@@ -243,7 +253,7 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
 	}
 
-	fn finalize_blocks_from_queue(
+	fn finalize_blocks_from_queue_old(
 		shard_id: ShardIdentifier,
 		sender: &T::AccountId,
 		sender_index: u64,
@@ -270,7 +280,7 @@ impl<T: Config> Pallet<T> {
 			// Confirm that the parent hash is the hash of the previous block.
 			// Block number 1 does not have a previous block, hence skip checking there.
 			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
 				latest_header = header;
 			}
 			latest_block_number = latest_header.block_number;
