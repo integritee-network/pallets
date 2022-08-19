@@ -174,6 +174,11 @@ pub mod pallet {
 			shard_id: ShardIdentifier,
 			header: SidechainHeader,
 		) -> DispatchResultWithPostInfo {
+			let confirmation = SidechainBlockConfirmation {
+				block_number: header.block_number,
+				block_header_hash: header.hash(),
+			};
+
 			let sender = ensure_signed(origin)?;
 			Teerex::<T>::is_registered_enclave(&sender)?;
 			let sender_index = Teerex::<T>::enclave_index(&sender);
@@ -219,10 +224,23 @@ pub mod pallet {
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				Self::confirm_sidechain_block(
+					shard_id,
+					header,
+					confirmation,
+					&sender,
+					sender_index,
+				);
 				latest_header = header;
+				latest_confirmation = confirmation;
 
-				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+				Self::finalize_blocks_from_queue(
+					shard_id,
+					&sender,
+					sender_index,
+					latest_header,
+					latest_confirmation,
+				)?;
 			} else {
 				// Block is too late and hence refused.
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
@@ -245,6 +263,7 @@ impl<T: Config> Pallet<T> {
 	fn confirm_sidechain_block(
 		shard_id: ShardIdentifier,
 		header: SidechainHeader,
+		confirmation: SidechainBlockConfirmation,
 		sender: &T::AccountId,
 		sender_index: u64,
 	) {
@@ -271,6 +290,7 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		sender_index: u64,
 		mut latest_header: SidechainHeader,
+		mut latest_confirmation: SidechainBlockConfirmation,
 	) -> DispatchResultWithPostInfo {
 		let mut latest_block_number = latest_header.block_number;
 		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
@@ -291,7 +311,7 @@ impl<T: Config> Pallet<T> {
 			let confirmation =
 				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
-			Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+			Self::confirm_sidechain_block(shard_id, header, confirmation, &sender, sender_index);
 			latest_header = header;
 
 			latest_block_number = latest_header.block_number;
