@@ -221,10 +221,7 @@ fn confirm_imported_sidechain_block_far_too_early() {
 }
 
 fn register_enclave7() {
-	let signer_pub_key = TEST7_SIGNER_PUB;
-	let cert = TEST7_CERT;
-
-	register_enclave(signer_pub_key, cert);
+	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
 }
 
 fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8]) {
@@ -241,9 +238,7 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8]) {
 
 fn confirm_block7(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	let signer_pub_key = TEST7_SIGNER_PUB;
-
-	confirm_block(shard7, signer_pub_key, header, check_for_event)
+	confirm_block(shard7, TEST7_SIGNER_PUB, header, check_for_event)
 }
 
 fn confirm_block(
