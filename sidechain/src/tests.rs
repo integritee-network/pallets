@@ -219,23 +219,6 @@ fn confirm_imported_sidechain_block_far_too_early() {
 		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
 	})
 }
-#[test]
-fn confirm_imported_sidechain_block_wrong_parent_hash() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_enclave();
-
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, H256::default());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-	})
-}
 
 fn register_enclave() {
 	let signer7 = get_signer(TEST7_SIGNER_PUB);

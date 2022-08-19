@@ -204,13 +204,9 @@ pub mod pallet {
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				// Block number is correct to be imported.
-				// Confirm that the parent hash is the hash of the previous block.
-				// Block number 1 does not have a previous block, hence skip checking there.
-				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
-					latest_header = header;
-				}
+				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				latest_header = header;
+
 				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
 			} else {
 				// Block is too late and hence refused.
@@ -272,12 +268,10 @@ impl<T: Config> Pallet<T> {
 				u32::MAX,
 				None,
 			);
-			// Confirm that the parent hash is the hash of the previous block.
-			// Block number 1 does not have a previous block, hence skip checking there.
-			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
-				latest_header = header;
-			}
+
+			Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+			latest_header = header;
+
 			latest_block_number = latest_header.block_number;
 			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
 			i = Self::add_to_block_number(i, 1)?;
