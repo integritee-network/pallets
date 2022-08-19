@@ -98,8 +98,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_confirmation)]
-	pub(super) type LatestSidechainBlockConfirmation<T: Config> =
-		StorageValue<_, SidechainBlockConfirmation, ValueQuery>;
+	pub type LatestSidechainBlockConfirmation<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, ValueQuery>;
 
 	#[pallet::storage]
 	pub type SidechainBlockConfirmationQueue<T: Config> =
