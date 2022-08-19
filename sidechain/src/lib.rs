@@ -264,7 +264,6 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		sender_index: u64,
 	) {
-		<LatestSidechainHeader<T>>::insert(shard_id, header);
 		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, confirmation);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_header_hash = confirmation.block_header_hash;
@@ -283,7 +282,7 @@ impl<T: Config> Pallet<T> {
 		mut latest_header: SidechainHeader,
 		mut latest_confirmation: SidechainBlockConfirmation,
 	) -> DispatchResultWithPostInfo {
-		let mut latest_block_number = latest_header.block_number;
+		let mut latest_block_number = latest_confirmation.block_number;
 		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
 		let lenience = T::EarlyBlockProposalLenience::get();
 		let mut i: u64 = 0;
@@ -292,7 +291,7 @@ impl<T: Config> Pallet<T> {
 		{
 			let header = <SidechainHeaderQueue<T>>::take(
 				(shard_id, expected_block_number),
-				latest_header.hash(),
+				latest_confirmation.block_header_hash,
 			);
 			let _ = <SidechainHeaderQueue<T>>::clear_prefix(
 				(shard_id, expected_block_number),
@@ -303,9 +302,9 @@ impl<T: Config> Pallet<T> {
 				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
 			Self::confirm_sidechain_block(shard_id, header, confirmation, &sender, sender_index);
-			latest_header = header;
+			latest_confirmation = confirmation;
 
-			latest_block_number = latest_header.block_number;
+			latest_block_number = latest_confirmation.block_number;
 			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
 			i = Self::add_to_block_number(i, 1)?;
 		}
