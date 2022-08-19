@@ -201,8 +201,8 @@ pub mod pallet {
 			let lenience = T::EarlyBlockProposalLenience::get();
 			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
 			let mut latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
-			let latest_block_number = latest_header.block_number;
-			let block_number = header.block_number;
+			let latest_block_number = latest_confirmation.block_number;
+			let block_number = confirmation.block_number;
 
 			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
 				// Block is far too early and hence refused.
@@ -217,10 +217,7 @@ pub mod pallet {
 					);
 					<SidechainBlockConfirmationQueue<T>>::insert(
 						(shard_id, block_number),
-						SidechainBlockConfirmation {
-							block_number,
-							block_header_hash: header.hash(),
-						},
+						confirmation,
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
@@ -268,21 +265,15 @@ impl<T: Config> Pallet<T> {
 		sender_index: u64,
 	) {
 		<LatestSidechainHeader<T>>::insert(shard_id, header);
-		<LatestSidechainBlockConfirmation<T>>::insert(
-			shard_id,
-			SidechainBlockConfirmation {
-				block_number: header.block_number,
-				block_header_hash: header.hash(),
-			},
-		);
+		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, confirmation);
 		<WorkerForShard<T>>::insert(shard_id, sender_index);
-		let block_hash = header.block_data_hash;
+		let block_header_hash = confirmation.block_header_hash;
 		log::debug!(
-			"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
+			"Imported sidechain block confirmed with shard {:?}, block header hash {:?}",
 			shard_id,
-			block_hash
+			block_header_hash
 		);
-		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), header.hash()));
+		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), block_header_hash));
 	}
 
 	fn finalize_blocks_from_queue(
