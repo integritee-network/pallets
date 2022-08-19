@@ -45,9 +45,9 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 }
 
 benchmarks! {
-	// Benchmark `confirm_proposed_sidechain_block` with the worst possible conditions:
+	// Benchmark `confirm_imported_sidechain_block` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_proposed_sidechain_block {
+	confirm_imported_sidechain_block {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 

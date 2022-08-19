@@ -26,7 +26,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_works_for_correct_shard() {
+fn confirm_imported_sidechain_block_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -42,7 +42,7 @@ fn confirm_proposed_sidechain_block_works_for_correct_shard() {
 			block_data_hash: block_hash,
 		};
 
-		assert_ok!(Sidechain::confirm_proposed_sidechain_block(
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
 			header.clone(),
@@ -55,7 +55,7 @@ fn confirm_proposed_sidechain_block_works_for_correct_shard() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
+fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
@@ -72,7 +72,7 @@ fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
 		};
 
 		assert_err!(
-			Sidechain::confirm_proposed_sidechain_block(
+			Sidechain::confirm_imported_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
 				header,
@@ -83,7 +83,7 @@ fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_correct_order() {
+fn confirm_imported_sidechain_block_correct_order() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -110,7 +110,7 @@ fn confirm_proposed_sidechain_block_correct_order() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_first_proposed_block() {
+fn confirm_imported_sidechain_first_imported_block() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -140,7 +140,7 @@ fn confirm_proposed_sidechain_first_proposed_block() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_wrong_order() {
+fn confirm_imported_sidechain_block_wrong_order() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -167,7 +167,7 @@ fn confirm_proposed_sidechain_block_wrong_order() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_too_late() {
+fn confirm_imported_sidechain_block_too_late() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -197,7 +197,7 @@ fn confirm_proposed_sidechain_block_too_late() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_far_too_early() {
+fn confirm_imported_sidechain_block_far_too_early() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -220,7 +220,7 @@ fn confirm_proposed_sidechain_block_far_too_early() {
 	})
 }
 #[test]
-fn confirm_proposed_sidechain_block_wrong_parent_hash() {
+fn confirm_imported_sidechain_block_wrong_parent_hash() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
@@ -253,7 +253,7 @@ fn confirm_block(header: SidechainHeader, check_for_event: bool) -> DispatchResu
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 	let signer7 = get_signer(TEST7_SIGNER_PUB);
 
-	Sidechain::confirm_proposed_sidechain_block(
+	Sidechain::confirm_imported_sidechain_block(
 		Origin::signed(signer7.clone()),
 		shard7.clone(),
 		header.clone(),
