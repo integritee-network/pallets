@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-use crate::{mock::*, Error, Event as SidechainEvent, SidechainHeader, Teerex};
+use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
 use test_utils::ias::consts::*;
@@ -29,28 +29,21 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn confirm_imported_sidechain_block_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
+		let hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_enclave7();
 
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard7,
-			block_data_hash: block_hash,
-		};
-
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
 			1,
-			header.hash()
+			hash
 		));
 
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, header.hash()));
+			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -59,25 +52,18 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
+		let hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
 
 		register_enclave7();
-
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard4,
-			block_data_hash: block_hash,
-		};
 
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
 				1,
-				header.hash()
+				hash
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
 		);

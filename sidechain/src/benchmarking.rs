@@ -52,15 +52,9 @@ benchmarks! {
 		add_enclaves_to_registry::<T>(&accounts);
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
-		let block_hash: H256 = [2; 32].into();
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard,
-			block_data_hash: block_hash,
-		};
+		let hash: H256 = [2; 32].into();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, header.hash())
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, hash)
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
