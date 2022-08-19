@@ -123,10 +123,7 @@ fn confirm_imported_sidechain_first_imported_block() {
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash,
-			hash
-		);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash, hash);
 	})
 }
 
@@ -158,7 +155,7 @@ fn confirm_imported_sidechain_block_too_late() {
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_enclave7();
-		
+
 		assert_ok!(confirm_block7(1, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(2, H256::random(), true));
@@ -188,7 +185,10 @@ fn confirm_imported_sidechain_block_far_too_early() {
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_ok!(confirm_block7(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_err!(confirm_block7(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false), Error::<Test>::BlockNumberTooHigh);
+		assert_err!(
+			confirm_block7(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false),
+			Error::<Test>::BlockNumberTooHigh
+		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 	})
 }
@@ -225,7 +225,11 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_cou
 	assert_eq!(Teerex::<Test>::enclave_count(), expected_enclave_count);
 }
 
-fn confirm_block7(block_number: u64, block_header_hash: H256, check_for_event: bool) -> DispatchResultWithPostInfo {
+fn confirm_block7(
+	block_number: u64,
+	block_header_hash: H256,
+	check_for_event: bool,
+) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 	confirm_block(shard7, TEST7_SIGNER_PUB, block_number, block_header_hash, check_for_event)
 }
@@ -252,18 +256,4 @@ fn confirm_block(
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
-}
-
-fn new_header(block_number: u64, parent_hash: H256) -> SidechainHeader {
-	let block_hash = [(block_number % 8) as u8; 32].into();
-	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-	let header = SidechainHeader {
-		parent_hash,
-		block_number,
-		shard_id: shard7,
-		block_data_hash: block_hash,
-	};
-
-	header
 }
