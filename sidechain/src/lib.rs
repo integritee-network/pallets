@@ -61,7 +61,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposedSidechainBlock(T::AccountId, H256),
-		ImportedSidechainBlock(T::AccountId, H256),
+		FinalizedSidechainBlock(T::AccountId, H256),
 	}
 
 	// Enclave index of the worker that recently committed an update.
@@ -176,7 +176,7 @@ pub mod pallet {
 				pallet_teerex::Error::<T>::WrongMrenclaveForShard
 			);
 
-			// simple logic for now: only accept blocks from first registered enclave.
+			// Simple logic for now: only accept blocks from first registered enclave.
 			if sender_index != 1 {
 				log::debug!(
 					"Ignore block confirmation from registered enclave with index {:?}",
@@ -202,7 +202,7 @@ pub mod pallet {
 					);
 				}
 			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				Self::confirm_sidechain_block(shard_id, confirmation, &sender, sender_index);
+				Self::finalize_block(shard_id, confirmation, &sender, sender_index);
 				latest_confirmation = confirmation;
 
 				Self::finalize_blocks_from_queue(
@@ -230,7 +230,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	fn confirm_sidechain_block(
+	fn finalize_block(
 		shard_id: ShardIdentifier,
 		confirmation: SidechainBlockConfirmation,
 		sender: &T::AccountId,
@@ -244,7 +244,7 @@ impl<T: Config> Pallet<T> {
 			shard_id,
 			block_header_hash
 		);
-		Self::deposit_event(Event::ImportedSidechainBlock(sender.clone(), block_header_hash));
+		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));
 	}
 
 	fn finalize_blocks_from_queue(
@@ -263,7 +263,7 @@ impl<T: Config> Pallet<T> {
 			let confirmation =
 				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
-			Self::confirm_sidechain_block(shard_id, confirmation, &sender, sender_index);
+			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
 			latest_confirmation = confirmation;
 
 			latest_block_number = latest_confirmation.block_number;

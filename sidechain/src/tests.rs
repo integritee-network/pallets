@@ -43,7 +43,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		));
 
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, hash));
+			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -99,17 +99,23 @@ fn confirm_imported_sidechain_first_imported_block() {
 
 		register_enclave7();
 
-		let hash = H256::random();
+		let hash_block_3 = H256::random();
 
 		assert_ok!(confirm_block7(1, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(3, hash, false));
+		// Queue block number 3. Should not be imported right now, because confirmation of block number 2 is missing
+		assert_ok!(confirm_block7(3, hash_block_3, false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		// Queue another block with number 3. Should not be imported at all, because it was not the first one
 		assert_ok!(confirm_block7(3, H256::random(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		// Queue block number 2. Block number 3 should now be confirmed as well.
 		assert_ok!(confirm_block7(2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash, hash);
+		assert_eq!(
+			Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash,
+			hash_block_3
+		);
 	})
 }
 
@@ -238,7 +244,7 @@ fn confirm_block(
 
 	if check_for_event {
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ImportedSidechainBlock(signer7, block_header_hash));
+			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, block_header_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
