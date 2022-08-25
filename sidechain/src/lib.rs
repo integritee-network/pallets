@@ -21,7 +21,7 @@ use codec::Encode;
 use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
-use sidechain_primitives::types::header::SidechainHeader;
+use sidechain_primitives::{types::header::SidechainHeader, SidechainBlockConfirmation};
 use sp_core::H256;
 use sp_std::{prelude::*, str};
 use teerex_primitives::ShardIdentifier;
@@ -34,9 +34,6 @@ pub type ShardBlockNumber = (ShardIdentifier, u64);
 
 pub use pallet::*;
 
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -47,14 +44,6 @@ pub mod pallet {
 	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
-
-	#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
-	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-	pub struct SidechainBlockConfirmation {
-		pub block_number: u64,
-		/// Hash of the block header. TODO check
-		pub block_header_hash: H256,
-	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}

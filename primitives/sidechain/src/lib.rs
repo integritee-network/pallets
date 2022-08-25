@@ -19,3 +19,17 @@
 
 pub mod traits;
 pub mod types;
+
+use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+use sp_core::H256;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct SidechainBlockConfirmation {
+	pub block_number: u64,
+	pub block_header_hash: H256,
+}
