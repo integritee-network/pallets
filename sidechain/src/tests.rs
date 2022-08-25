@@ -189,8 +189,6 @@ fn confirm_imported_sidechain_block_far_too_early() {
 fn dont_process_confirmation_of_second_registered_enclave() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
-		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
