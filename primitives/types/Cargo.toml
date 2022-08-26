@@ -2,7 +2,10 @@
 name = "itp-types"
 version = "0.8.0"
 authors = ["Integritee AG <hello@integritee.network>"]
-edition = "2018"
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }

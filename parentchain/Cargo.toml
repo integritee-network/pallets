@@ -2,9 +2,9 @@
 name = "pallet-parentchain"
 description = "The remote attestation registry and verification pallet for integritee blockchains and parachains"
 version = "0.9.0"
-authors = ["Integritee AG"]
+authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
-repository = "https://github.com/integritee-network/pallet-teerex/"
+repository = "https://github.com/integritee-network/pallets/"
 license = "Apache-2.0"
 edition = "2021"
 
