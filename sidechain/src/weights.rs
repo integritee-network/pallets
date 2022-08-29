@@ -24,6 +24,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_sidechain.
 pub trait WeightInfo {
 	fn confirm_proposed_sidechain_block() -> Weight;
+	fn confirm_imported_sidechain_block() -> Weight;
 }
 
 /// Weights for pallet_sidechain using the Integritee parachain node and recommended hardware.
@@ -34,11 +35,23 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
+
+	fn confirm_imported_sidechain_block() -> Weight {
+		(46_200_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
 }
 
 // For tests
 impl WeightInfo for () {
 	fn confirm_proposed_sidechain_block() -> Weight {
+		(46_200_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+
+	fn confirm_imported_sidechain_block() -> Weight {
 		(46_200_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(2 as Weight))

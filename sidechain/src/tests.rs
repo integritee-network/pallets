@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-use crate::{mock::*, Error, Event as SidechainEvent, SidechainHeader, Teerex};
+use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
 use test_utils::ias::consts::*;
@@ -26,56 +26,44 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_works_for_correct_shard() {
+fn confirm_imported_sidechain_block_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
+		let hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard7,
-			block_data_hash: block_hash,
-		};
-
-		assert_ok!(Sidechain::confirm_proposed_sidechain_block(
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7.clone(),
-			header.clone(),
+			1,
+			hash
 		));
 
 		let expected_event =
-			Event::Sidechain(SidechainEvent::ProposedSidechainBlock(signer7, block_hash));
+			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
+fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let block_hash = H256::default();
+		let hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
 
-		register_enclave();
-
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard4,
-			block_data_hash: block_hash,
-		};
+		register_enclave7();
 
 		assert_err!(
-			Sidechain::confirm_proposed_sidechain_block(
+			Sidechain::confirm_imported_sidechain_block(
 				Origin::signed(signer7.clone()),
 				shard4.clone(),
-				header,
+				1,
+				hash
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
 		);
@@ -83,202 +71,179 @@ fn confirm_proposed_sidechain_block_from_shard_neq_mrenclave_errs() {
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_correct_order() {
+fn confirm_imported_sidechain_block_correct_order() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, header1.hash());
-		let header3 = new_header(3, header2.hash());
-		let header4 = new_header(4, header3.hash());
-		let header5 = new_header(5, header4.hash());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
+		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_ok!(confirm_block7(3, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
+		assert_ok!(confirm_block7(4, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_ok!(confirm_block7(5, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 	})
 }
 
 #[test]
-fn confirm_proposed_sidechain_first_proposed_block() {
+fn confirm_imported_sidechain_first_imported_block() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, header1.hash());
-		let mut header3a = new_header(3, header2.hash());
-		header3a.block_data_hash = [2; 32].into();
-		let mut header3b = new_header(3, header2.hash());
-		header3b.block_data_hash = [3; 32].into();
+		let hash_block_3 = H256::random();
 
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3a, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3b, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
+		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		// Queue block number 3. Should not be imported right now, because confirmation of block number 2 is missing
+		assert_ok!(confirm_block7(3, hash_block_3, false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		// Queue another block with number 3. Should not be imported at all, because it was not the first one
+		assert_ok!(confirm_block7(3, H256::random(), false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		// Queue block number 2. Block number 3 should now be confirmed as well.
+		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
 		assert_eq!(
-			Sidechain::latest_sidechain_header(shard7).block_data_hash,
-			header3a.block_data_hash
+			Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash,
+			hash_block_3
 		);
 	})
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_wrong_order() {
+fn confirm_imported_sidechain_block_wrong_order() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, header1.hash());
-		let header3 = new_header(3, header2.hash());
-		let header4 = new_header(4, header3.hash());
-		let header5 = new_header(5, header4.hash());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header4, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header3, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_ok!(confirm_block(header5, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 5);
+		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(4, H256::random(), false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(3, H256::random(), false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_ok!(confirm_block7(5, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 	})
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_too_late() {
+fn confirm_imported_sidechain_block_too_late() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, header1.hash());
-		let header3 = new_header(3, header2.hash());
-		let header4 = new_header(4, header3.hash());
-		let header2b = new_header(2, header4.hash());
-		let header3b = new_header(3, header2.hash());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 3);
-		assert_ok!(confirm_block(header4, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header2b, true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
-		assert_err!(confirm_block(header3b, true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 4);
+		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_ok!(confirm_block7(3, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
+		assert_ok!(confirm_block7(4, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_err!(confirm_block7(2, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_err!(confirm_block7(3, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 	})
 }
 
 #[test]
-fn confirm_proposed_sidechain_block_far_too_early() {
+fn confirm_imported_sidechain_block_far_too_early() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave7();
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, header1.hash());
-		let header3 = new_header(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, header2.hash());
-		let header4 = new_header(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, header3.hash());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_ok!(confirm_block(header3, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
-		assert_err!(confirm_block(header4, false), Error::<Test>::BlockNumberTooHigh);
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 2);
+		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_ok!(confirm_block7(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_err!(
+			confirm_block7(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false),
+			Error::<Test>::BlockNumberTooHigh
+		);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 	})
 }
+
 #[test]
-fn confirm_proposed_sidechain_block_wrong_parent_hash() {
+fn dont_process_confirmation_of_second_registered_enclave() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave();
+		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+		register_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
 
-		let header1 = new_header(1, H256::default());
-		let header2 = new_header(2, H256::default());
-
-		assert_ok!(confirm_block(header1, true));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
-		assert_ok!(confirm_block(header2, false));
-		assert_eq!(Sidechain::latest_sidechain_header(shard7).block_number, 1);
+		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, H256::default(), false));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
 	})
 }
 
-fn register_enclave() {
-	let signer7 = get_signer(TEST7_SIGNER_PUB);
+fn register_enclave7() {
+	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+}
+
+fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_count: u64) {
+	let signer7 = get_signer(signer_pub_key);
 
 	//Ensure that enclave is registered
 	assert_ok!(Teerex::<Test>::register_enclave(
 		Origin::signed(signer7.clone()),
-		TEST7_CERT.to_vec(),
+		cert.to_vec(),
 		URL.to_vec(),
 	));
-	assert_eq!(Teerex::<Test>::enclave_count(), 1);
+	assert_eq!(Teerex::<Test>::enclave_count(), expected_enclave_count);
 }
 
-fn confirm_block(header: SidechainHeader, check_for_event: bool) -> DispatchResultWithPostInfo {
+fn confirm_block7(
+	block_number: u64,
+	block_header_hash: H256,
+	check_for_event: bool,
+) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	let signer7 = get_signer(TEST7_SIGNER_PUB);
+	confirm_block(shard7, TEST7_SIGNER_PUB, block_number, block_header_hash, check_for_event)
+}
 
-	Sidechain::confirm_proposed_sidechain_block(
+fn confirm_block(
+	shard7: H256,
+	signer_pub_key: &[u8; 32],
+	block_number: u64,
+	block_header_hash: H256,
+	check_for_event: bool,
+) -> DispatchResultWithPostInfo {
+	let signer7 = get_signer(signer_pub_key);
+
+	Sidechain::confirm_imported_sidechain_block(
 		Origin::signed(signer7.clone()),
 		shard7.clone(),
-		header.clone(),
+		block_number,
+		block_header_hash,
 	)?;
 
 	if check_for_event {
-		let expected_event = Event::Sidechain(SidechainEvent::ProposedSidechainBlock(
-			signer7,
-			header.block_data_hash,
-		));
+		let expected_event =
+			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, block_header_hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
-}
-
-fn new_header(block_number: u64, parent_hash: H256) -> SidechainHeader {
-	let block_hash = [(block_number % 8) as u8; 32].into();
-	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-	let header = SidechainHeader {
-		parent_hash,
-		block_number,
-		shard_id: shard7,
-		block_data_hash: block_hash,
-	};
-
-	header
 }

@@ -45,22 +45,16 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 }
 
 benchmarks! {
-	// Benchmark `confirm_proposed_sidechain_block` with the worst possible conditions:
+	// Benchmark `confirm_imported_sidechain_block` with the worst possible conditions:
 	// * sender enclave is registered
-	confirm_proposed_sidechain_block {
+	confirm_imported_sidechain_block {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
 		add_enclaves_to_registry::<T>(&accounts);
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
-		let block_hash: H256 = [2; 32].into();
-		let header = SidechainHeader {
-			parent_hash: block_hash,
-			block_number: 1,
-			shard_id: shard,
-			block_data_hash: block_hash,
-		};
+		let hash: H256 = [2; 32].into();
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, header)
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, hash)
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}

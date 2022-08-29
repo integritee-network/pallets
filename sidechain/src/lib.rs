@@ -21,7 +21,7 @@ use codec::Encode;
 use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
-use sidechain_primitives::types::header::SidechainHeader;
+use sidechain_primitives::{types::header::SidechainHeader, SidechainBlockConfirmation};
 use sp_core::H256;
 use sp_std::{prelude::*, str};
 use teerex_primitives::ShardIdentifier;
@@ -61,6 +61,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		ProposedSidechainBlock(T::AccountId, H256),
+		FinalizedSidechainBlock(T::AccountId, H256),
 	}
 
 	// Enclave index of the worker that recently committed an update.
@@ -84,6 +85,15 @@ pub mod pallet {
 		SidechainHeader,
 		ValueQuery,
 	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn latest_sidechain_block_confirmation)]
+	pub type LatestSidechainBlockConfirmation<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, ValueQuery>;
+
+	#[pallet::storage]
+	pub type SidechainBlockConfirmationQueue<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardBlockNumber, SidechainBlockConfirmation, ValueQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -129,10 +139,78 @@ pub mod pallet {
 				// Confirm that the parent hash is the hash of the previous block.
 				// Block number 1 does not have a previous block, hence skip checking there.
 				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-					Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+					Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
 					latest_header = header;
 				}
-				Self::finalize_blocks_from_queue(shard_id, &sender, sender_index, latest_header)?;
+				Self::finalize_blocks_from_queue_old(
+					shard_id,
+					&sender,
+					sender_index,
+					latest_header,
+				)?;
+			} else {
+				// Block is too late and hence refused.
+				return Err(<Error<T>>::OutdatedBlockNumber.into())
+			}
+
+			Ok(().into())
+		}
+
+		/// The integritee worker calls this function for every imported sidechain_block.
+		#[pallet::weight((<T as Config>::WeightInfo::confirm_imported_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
+		pub fn confirm_imported_sidechain_block(
+			origin: OriginFor<T>,
+			shard_id: ShardIdentifier,
+			block_number: u64,
+			block_header_hash: H256,
+		) -> DispatchResultWithPostInfo {
+			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
+
+			let sender = ensure_signed(origin)?;
+			Teerex::<T>::is_registered_enclave(&sender)?;
+			let sender_index = Teerex::<T>::enclave_index(&sender);
+			let sender_enclave = Teerex::<T>::enclave(sender_index)
+				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
+			ensure!(
+				sender_enclave.mr_enclave.encode() == shard_id.encode(),
+				pallet_teerex::Error::<T>::WrongMrenclaveForShard
+			);
+
+			// Simple logic for now: only accept blocks from first registered enclave.
+			if sender_index != 1 {
+				log::debug!(
+					"Ignore block confirmation from registered enclave with index {:?}",
+					sender_index
+				);
+				return Ok(().into())
+			}
+
+			let lenience = T::EarlyBlockProposalLenience::get();
+			let mut latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
+			let latest_block_number = latest_confirmation.block_number;
+			let block_number = confirmation.block_number;
+
+			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
+				// Block is far too early and hence refused.
+				return Err(<Error<T>>::BlockNumberTooHigh.into())
+			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
+				// Block is too early and stored in the queue for later import.
+				if !<SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number)) {
+					<SidechainBlockConfirmationQueue<T>>::insert(
+						(shard_id, block_number),
+						confirmation,
+					);
+				}
+			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
+				Self::finalize_block(shard_id, confirmation, &sender, sender_index);
+				latest_confirmation = confirmation;
+
+				Self::finalize_blocks_from_queue(
+					shard_id,
+					&sender,
+					sender_index,
+					latest_confirmation,
+				)?;
 			} else {
 				// Block is too late and hence refused.
 				return Err(<Error<T>>::OutdatedBlockNumber.into())
@@ -152,7 +230,50 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	fn confirm_sidechain_block(
+	fn finalize_block(
+		shard_id: ShardIdentifier,
+		confirmation: SidechainBlockConfirmation,
+		sender: &T::AccountId,
+		sender_index: u64,
+	) {
+		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, confirmation);
+		<WorkerForShard<T>>::insert(shard_id, sender_index);
+		let block_header_hash = confirmation.block_header_hash;
+		log::debug!(
+			"Imported sidechain block confirmed with shard {:?}, block header hash {:?}",
+			shard_id,
+			block_header_hash
+		);
+		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));
+	}
+
+	fn finalize_blocks_from_queue(
+		shard_id: ShardIdentifier,
+		sender: &T::AccountId,
+		sender_index: u64,
+		mut latest_confirmation: SidechainBlockConfirmation,
+	) -> DispatchResultWithPostInfo {
+		let mut latest_block_number = latest_confirmation.block_number;
+		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+		let lenience = T::EarlyBlockProposalLenience::get();
+		let mut i: u64 = 0;
+		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
+			i < lenience
+		{
+			let confirmation =
+				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
+
+			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
+			latest_confirmation = confirmation;
+
+			latest_block_number = latest_confirmation.block_number;
+			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
+			i = Self::add_to_block_number(i, 1)?;
+		}
+		Ok(().into())
+	}
+
+	fn confirm_sidechain_block_old(
 		shard_id: ShardIdentifier,
 		header: SidechainHeader,
 		sender: &T::AccountId,
@@ -169,7 +290,7 @@ impl<T: Config> Pallet<T> {
 		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
 	}
 
-	fn finalize_blocks_from_queue(
+	fn finalize_blocks_from_queue_old(
 		shard_id: ShardIdentifier,
 		sender: &T::AccountId,
 		sender_index: u64,
@@ -196,7 +317,7 @@ impl<T: Config> Pallet<T> {
 			// Confirm that the parent hash is the hash of the previous block.
 			// Block number 1 does not have a previous block, hence skip checking there.
 			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-				Self::confirm_sidechain_block(shard_id, header, &sender, sender_index);
+				Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
 				latest_header = header;
 			}
 			latest_block_number = latest_header.block_number;
