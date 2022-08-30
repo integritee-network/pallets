@@ -98,6 +98,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// The integritee worker calls this function for every proposed sidechain_block.
+		#[deprecated = "Make sure to use the new sidechain-version, using the new call confirm_imported_sidechain_block"]
 		#[pallet::weight((<T as Config>::WeightInfo::confirm_proposed_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
 		pub fn confirm_proposed_sidechain_block(
 			origin: OriginFor<T>,
