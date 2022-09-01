@@ -175,10 +175,10 @@ fn confirm_imported_sidechain_block_far_too_early() {
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_ok!(confirm_block7(2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_ok!(confirm_block7(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false));
+		assert_ok!(confirm_block7(2 + EARLY_BLOCK_CONFIRMATION_LENIENCE, H256::random(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_err!(
-			confirm_block7(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false),
+			confirm_block7(3 + EARLY_BLOCK_CONFIRMATION_LENIENCE, H256::random(), false),
 			Error::<Test>::BlockNumberTooHigh
 		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);

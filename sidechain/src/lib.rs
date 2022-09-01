@@ -54,7 +54,7 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		// If a block arrives far too early, an error should be returned
 		#[pallet::constant]
-		type EarlyBlockProposalLenience: Get<u64>;
+		type EarlyBlockConfirmationLenience: Get<u64>;
 	}
 
 	#[pallet::event]
@@ -115,7 +115,7 @@ pub mod pallet {
 				pallet_teerex::Error::<T>::WrongMrenclaveForShard
 			);
 
-			let lenience = T::EarlyBlockProposalLenience::get();
+			let lenience = T::EarlyBlockConfirmationLenience::get();
 			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
 			let latest_block_number = latest_header.block_number;
 			let block_number = header.block_number;
@@ -186,7 +186,7 @@ pub mod pallet {
 				return Ok(().into())
 			}
 
-			let lenience = T::EarlyBlockProposalLenience::get();
+			let lenience = T::EarlyBlockConfirmationLenience::get();
 			let mut latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
 			let latest_block_number = latest_confirmation.block_number;
 			let block_number = confirmation.block_number;
@@ -256,7 +256,7 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResultWithPostInfo {
 		let mut latest_block_number = latest_confirmation.block_number;
 		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-		let lenience = T::EarlyBlockProposalLenience::get();
+		let lenience = T::EarlyBlockConfirmationLenience::get();
 		let mut i: u64 = 0;
 		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
 			i < lenience
@@ -299,7 +299,7 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResultWithPostInfo {
 		let mut latest_block_number = latest_header.block_number;
 		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-		let lenience = T::EarlyBlockProposalLenience::get();
+		let lenience = T::EarlyBlockConfirmationLenience::get();
 		let mut i: u64 = 0;
 		while <SidechainHeaderQueue<T>>::contains_key(
 			(shard_id, expected_block_number),
