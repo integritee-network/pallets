@@ -21,7 +21,7 @@ use codec::Encode;
 use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
-use sidechain_primitives::{types::header::SidechainHeader, SidechainBlockConfirmation};
+use sidechain_primitives::SidechainBlockConfirmation;
 use sp_core::H256;
 use sp_std::{prelude::*, str};
 use teerex_primitives::ShardIdentifier;
@@ -60,7 +60,6 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ProposedSidechainBlock(T::AccountId, H256),
 		FinalizedSidechainBlock(T::AccountId, H256),
 	}
 
@@ -69,22 +68,6 @@ pub mod pallet {
 	#[pallet::getter(fn worker_for_shard)]
 	pub type WorkerForShard<T: Config> =
 		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn latest_sidechain_header)]
-	pub type LatestSidechainHeader<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainHeader, ValueQuery>;
-
-	#[pallet::storage]
-	pub type SidechainHeaderQueue<T: Config> = StorageDoubleMap<
-		_,
-		Blake2_128Concat,
-		ShardBlockNumber,
-		Blake2_128Concat,
-		H256,
-		SidechainHeader,
-		ValueQuery,
-	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_confirmation)]
@@ -97,66 +80,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// The integritee worker calls this function for every proposed sidechain_block.
-		#[deprecated = "Make sure to use the new sidechain-version, using the new call confirm_imported_sidechain_block"]
-		#[pallet::weight((<T as Config>::WeightInfo::confirm_proposed_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
-		pub fn confirm_proposed_sidechain_block(
-			origin: OriginFor<T>,
-			shard_id: ShardIdentifier,
-			header: SidechainHeader,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			Teerex::<T>::is_registered_enclave(&sender)?;
-			let sender_index = Teerex::<T>::enclave_index(&sender);
-			let sender_enclave = Teerex::<T>::enclave(sender_index)
-				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
-			ensure!(
-				sender_enclave.mr_enclave.encode() == shard_id.encode(),
-				pallet_teerex::Error::<T>::WrongMrenclaveForShard
-			);
-
-			let lenience = T::EarlyBlockConfirmationLenience::get();
-			let mut latest_header = <LatestSidechainHeader<T>>::get(shard_id);
-			let latest_block_number = latest_header.block_number;
-			let block_number = header.block_number;
-
-			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
-				// Block is far too early and hence refused.
-				return Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
-				// Block is too early and stored in the queue for later import.
-				if !<SidechainHeaderQueue<T>>::contains_key(
-					(shard_id, block_number),
-					header.parent_hash,
-				) {
-					<SidechainHeaderQueue<T>>::insert(
-						(shard_id, block_number),
-						header.parent_hash,
-						header,
-					);
-				}
-			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				// Block number is correct to be imported.
-				// Confirm that the parent hash is the hash of the previous block.
-				// Block number 1 does not have a previous block, hence skip checking there.
-				if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-					Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
-					latest_header = header;
-				}
-				Self::finalize_blocks_from_queue_old(
-					shard_id,
-					&sender,
-					sender_index,
-					latest_header,
-				)?;
-			} else {
-				// Block is too late and hence refused.
-				return Err(<Error<T>>::OutdatedBlockNumber.into())
-			}
-
-			Ok(().into())
-		}
-
 		/// The integritee worker calls this function for every imported sidechain_block.
 		#[pallet::weight((<T as Config>::WeightInfo::confirm_imported_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
 		pub fn confirm_imported_sidechain_block(
@@ -223,9 +146,9 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// A proposed block is too early.
+		/// A confirmed block is too early.
 		BlockNumberTooHigh,
-		/// A propsed block is too late and already outdated.
+		/// A confirmed block is too late and already outdated.
 		OutdatedBlockNumber,
 	}
 }
@@ -268,60 +191,6 @@ impl<T: Config> Pallet<T> {
 			latest_confirmation = confirmation;
 
 			latest_block_number = latest_confirmation.block_number;
-			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-			i = Self::add_to_block_number(i, 1)?;
-		}
-		Ok(().into())
-	}
-
-	fn confirm_sidechain_block_old(
-		shard_id: ShardIdentifier,
-		header: SidechainHeader,
-		sender: &T::AccountId,
-		sender_index: u64,
-	) {
-		<LatestSidechainHeader<T>>::insert(shard_id, header);
-		<WorkerForShard<T>>::insert(shard_id, sender_index);
-		let block_hash = header.block_data_hash;
-		log::debug!(
-			"Proposed sidechain block confirmed with shard {:?}, block hash {:?}",
-			shard_id,
-			block_hash
-		);
-		Self::deposit_event(Event::ProposedSidechainBlock(sender.clone(), block_hash));
-	}
-
-	fn finalize_blocks_from_queue_old(
-		shard_id: ShardIdentifier,
-		sender: &T::AccountId,
-		sender_index: u64,
-		mut latest_header: SidechainHeader,
-	) -> DispatchResultWithPostInfo {
-		let mut latest_block_number = latest_header.block_number;
-		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-		let lenience = T::EarlyBlockConfirmationLenience::get();
-		let mut i: u64 = 0;
-		while <SidechainHeaderQueue<T>>::contains_key(
-			(shard_id, expected_block_number),
-			latest_header.hash(),
-		) && i < lenience
-		{
-			let header = <SidechainHeaderQueue<T>>::take(
-				(shard_id, expected_block_number),
-				latest_header.hash(),
-			);
-			let _ = <SidechainHeaderQueue<T>>::clear_prefix(
-				(shard_id, expected_block_number),
-				u32::MAX,
-				None,
-			);
-			// Confirm that the parent hash is the hash of the previous block.
-			// Block number 1 does not have a previous block, hence skip checking there.
-			if latest_header.hash() == header.parent_hash || header.block_number == 1 {
-				Self::confirm_sidechain_block_old(shard_id, header, &sender, sender_index);
-				latest_header = header;
-			}
-			latest_block_number = latest_header.block_number;
 			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
 			i = Self::add_to_block_number(i, 1)?;
 		}
