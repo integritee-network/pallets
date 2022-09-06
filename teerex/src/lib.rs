@@ -172,9 +172,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		// TODO: we can't expect a dead enclave to unregister itself
-		// alternative: allow anyone to unregister an enclave that hasn't recently supplied a RA
-		// such a call should be feeless if successful
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
