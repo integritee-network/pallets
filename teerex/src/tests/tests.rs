@@ -241,6 +241,7 @@ fn update_ipfs_hash_works() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let block_hash = H256::default();
 		let merkle_root = H256::default();
+		let block_number = 3;
 		let signer = get_signer(TEST4_SIGNER_PUB);
 
 		assert_ok!(Teerex::register_enclave(
@@ -252,11 +253,16 @@ fn update_ipfs_hash_works() {
 		assert_ok!(Teerex::confirm_processed_parentchain_block(
 			Origin::signed(signer.clone()),
 			block_hash.clone(),
+			block_number,
 			merkle_root.clone(),
 		));
 
-		let expected_event =
-			Event::Teerex(TeerexEvent::ProcessedParentchainBlock(signer, block_hash, merkle_root));
+		let expected_event = Event::Teerex(TeerexEvent::ProcessedParentchainBlock(
+			signer,
+			block_hash,
+			merkle_root,
+			block_number,
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -269,6 +275,7 @@ fn ipfs_update_from_unregistered_enclave_fails() {
 			Teerex::confirm_processed_parentchain_block(
 				Origin::signed(signer),
 				H256::default(),
+				3,
 				H256::default(),
 			),
 			Error::<Test>::EnclaveIsNotRegistered
@@ -624,6 +631,7 @@ fn confirm_processed_parentchain_block_works() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let block_hash = H256::default();
 		let merkle_root = H256::default();
+		let block_number = 3;
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 
 		//Ensure that enclave is registered
@@ -637,11 +645,16 @@ fn confirm_processed_parentchain_block_works() {
 		assert_ok!(Teerex::confirm_processed_parentchain_block(
 			Origin::signed(signer7.clone()),
 			block_hash.clone(),
+			block_number,
 			merkle_root.clone(),
 		));
 
-		let expected_event =
-			Event::Teerex(TeerexEvent::ProcessedParentchainBlock(signer7, block_hash, merkle_root));
+		let expected_event = Event::Teerex(TeerexEvent::ProcessedParentchainBlock(
+			signer7,
+			block_hash,
+			merkle_root,
+			block_number,
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
