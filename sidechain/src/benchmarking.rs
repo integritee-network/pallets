@@ -53,8 +53,9 @@ benchmarks! {
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
 		let hash: H256 = [2; 32].into();
+		let block_number_diff = 1;
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, hash)
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, 1, block_number_diff, hash)
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
