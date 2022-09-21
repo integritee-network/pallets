@@ -76,7 +76,7 @@ pub mod pallet {
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(T::AccountId),
-		ProcessedParentchainBlock(T::AccountId, H256, H256),
+		ProcessedParentchainBlock(T::AccountId, H256, H256, T::BlockNumber),
 	}
 
 	// Watch out: we start indexing with 1 instead of zero in order to
@@ -194,6 +194,7 @@ pub mod pallet {
 		pub fn confirm_processed_parentchain_block(
 			origin: OriginFor<T>,
 			block_hash: H256,
+			block_number: T::BlockNumber,
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -207,6 +208,7 @@ pub mod pallet {
 				sender,
 				block_hash,
 				trusted_calls_merkle_root,
+				block_number,
 			));
 			Ok(().into())
 		}
