@@ -66,7 +66,7 @@ runtime-benchmarks = [
     "hex-literal",
     "pallet-balances",
     "test-utils",
-    "timestamp/runtime-benchmarks"
+    "timestamp/runtime-benchmarks",
 ]
 # allow workers to register without remote attestation for dev purposes
 skip-ias-check = []
