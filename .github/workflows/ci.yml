@@ -66,3 +66,15 @@ jobs:
         with:
           name: license
           path: license.html
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install taplo
+        run: cargo install taplo-cli --locked
+      - name: Cargo.toml fmt
+        run: taplo fmt --check
+      - name: Fail-fast; cancel other jobs
+        if: failure()
+        uses: andymckay/cancel-action@0.2
+
