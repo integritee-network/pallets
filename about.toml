@@ -3,11 +3,14 @@ accepted = [
     "MIT",
     "BSD-2-Clause",
     "CC0-1.0",
+    "BSD-3-Clause",
     "MPL-2.0",
     "ISC",
     "OpenSSL",
     "Unicode-DFS-2016"
 ]
+ignore-dev-dependencies = true
+ignore-build-dependencies = true
 workarounds = [
     "ring",
 ]
