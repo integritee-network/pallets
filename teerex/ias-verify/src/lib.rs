@@ -98,7 +98,7 @@ pub struct SgxQuote {
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxBuildMode {
 	Debug,
 	Production,
@@ -109,7 +109,7 @@ impl Default for SgxBuildMode {
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxStatus {
 	Invalid,
 	Ok,
@@ -123,7 +123,7 @@ impl Default for SgxStatus {
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct SgxReport {
 	pub mr_enclave: [u8; 32],
 	pub pubkey: [u8; 32],

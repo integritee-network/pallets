@@ -77,7 +77,7 @@ const CERT_TOO_SHORT2: &[u8] = b"0\x82\x0c\x8c0";
 
 #[test]
 fn verify_ias_report_should_work() {
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	let report = verify_ias_report(TEST4_CERT);
 	let report = report.unwrap();
 	assert_eq!(report.mr_enclave, TEST4_MRENCLAVE);
@@ -91,34 +91,34 @@ fn verify_ias_report_should_work() {
 #[test]
 fn verify_zero_length_cert_returns_err() {
 	// CERT empty, argument 2 and 3 are wrong too!
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(&Vec::new()[..]).is_err())
 }
 
 #[test]
 fn verify_wrong_cert_is_err() {
 	// CERT wrong, argument 2 and 3 are wrong too!
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_WRONG_PLATFORM_BLOB).is_err())
 }
 
 #[test]
 fn verify_wrong_fake_enclave_quote_is_err() {
 	// quote wrong, argument 2 and 3 are wrong too!
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_FAKE_QUOTE_STATUS).is_err())
 }
 
 #[test]
 fn verify_wrong_sig_is_err() {
 	// sig wrong, argument 2 and 3 are wrong too!
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_WRONG_SIG).is_err())
 }
 
 #[test]
 fn verify_short_cert_is_err() {
-	let signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
+	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_TOO_SHORT1).is_err());
 	assert!(verify_ias_report(CERT_TOO_SHORT2).is_err());
 }
