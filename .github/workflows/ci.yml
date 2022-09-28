@@ -60,3 +60,9 @@ jobs:
 
       - name: Run license check
         run: cargo about generate about.hbs > license.html
+
+      - name: Archive license file
+        uses: actions/upload-artifact@v3
+        with:
+          name: license
+          path: license.html
