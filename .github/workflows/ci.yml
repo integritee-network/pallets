@@ -57,3 +57,6 @@ jobs:
         with:
           crate: cargo-about
           version: "0.5"
+
+      - name: Run license check
+        run: cargo about generate about.hbs > license.html
