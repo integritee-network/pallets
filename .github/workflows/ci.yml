@@ -51,3 +51,18 @@ jobs:
 
       - name: ${{ matrix.check }}
         run: ${{ matrix.check }}
+
+      - name: Install cargo-about
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-about
+          version: "0.5"
+
+      - name: Run license check
+        run: cargo about generate about.hbs > license.html
+
+      - name: Archive license file
+        uses: actions/upload-artifact@v3
+        with:
+          name: license
+          path: license.html
