@@ -39,11 +39,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_enclave(
-		Origin::signed(signer.clone()),
-		TEST4_CERT.to_vec(),
-		URL.to_vec()
-	));
+	assert_ok!(Teerex::register_enclave(Origin::signed(signer), TEST4_CERT.to_vec(), URL.to_vec()));
 	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
 	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
 }
