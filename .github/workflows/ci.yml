@@ -51,3 +51,9 @@ jobs:
 
       - name: ${{ matrix.check }}
         run: ${{ matrix.check }}
+
+      - name: Install cargo-about
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-about
+          version: "0.5"
