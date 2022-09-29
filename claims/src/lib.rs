@@ -409,9 +409,9 @@ pub mod pallet {
 				_ => return Err(InvalidTransaction::Call.into()),
 			};
 
-			let signer = maybe_signer.ok_or(InvalidTransaction::Custom(
-				ValidityError::InvalidEthereumSignature.into(),
-			))?;
+			let signer = maybe_signer.ok_or_else(|| {
+				InvalidTransaction::Custom(ValidityError::InvalidEthereumSignature.into())
+			})?;
 
 			let e = InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into());
 			ensure!(<Claims<T>>::contains_key(&signer), e);
@@ -582,8 +582,9 @@ where
 	) -> TransactionValidity {
 		if let Some(local_call) = call.is_sub_type() {
 			if let Call::attest { statement: attested_statement } = local_call {
-				let signer = Preclaims::<T>::get(who)
-					.ok_or(InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()))?;
+				let signer = Preclaims::<T>::get(who).ok_or_else(|| {
+					InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into())
+				})?;
 				if let Some(s) = Signing::<T>::get(signer) {
 					let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
 					ensure!(&attested_statement[..] == s.to_text(), e);
