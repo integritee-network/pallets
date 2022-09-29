@@ -447,7 +447,7 @@ impl<T: Config> Pallet<T> {
 		}
 		let mut v = b"\x19Ethereum Signed Message:\n".to_vec();
 		v.extend(rev.into_iter().rev());
-		v.extend_from_slice(&prefix[..]);
+		v.extend_from_slice(prefix);
 		v.extend_from_slice(what);
 		v.extend_from_slice(extra);
 		v
