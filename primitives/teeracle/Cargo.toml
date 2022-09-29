@@ -9,7 +9,7 @@ edition = "2021"
 
 [dependencies]
 # local
-common-primitives = {path = "../common", default-features = false }
+common-primitives = { path = "../common", default-features = false }
 
 # encointer
 substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }

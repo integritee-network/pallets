@@ -29,7 +29,7 @@ sp-runtime = { default-features = false, git = "https://github.com/paritytech/su
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
 
 # benchmarking
-frame-benchmarking = {default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
 hex-literal = { version = "0.3.2", optional = true }
 test-utils = { path = "../test-utils", optional = true, default-features = false }
 timestamp = { package = "pallet-timestamp", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
@@ -67,5 +67,5 @@ runtime-benchmarks = [
     "frame-benchmarking",
     "hex-literal",
     "test-utils",
-    "timestamp/runtime-benchmarks"
+    "timestamp/runtime-benchmarks",
 ]
