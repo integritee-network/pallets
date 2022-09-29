@@ -528,6 +528,14 @@ where
 		Self(sp_std::marker::PhantomData)
 	}
 }
+impl<T: Config + Send + Sync> Default for PrevalidateAttests<T>
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+{
+	fn default() -> Self {
+		Self::new()
+	}
+}
 
 impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
 where
