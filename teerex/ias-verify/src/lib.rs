@@ -26,7 +26,6 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
-use x509_parser::prelude::*;
 
 mod ephemeral_key;
 mod netscape_comment;
@@ -36,17 +35,20 @@ mod utils;
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxReportData {
 	d: [u8; SGX_REPORT_DATA_SIZE],
 }
 
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SGXAttributes {
 	flags: u64,
 	xfrm: u64,
 }
 
 #[derive(Decode, Clone, TypeInfo)]
+#[repr(C)]
 pub struct DcapQuote {
 	header: DcapQuoteHeader,
 	body: SgxReportBody,
@@ -55,6 +57,7 @@ pub struct DcapQuote {
 }
 
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct DcapQuoteHeader {
 	version: u16,
 	attestation_key_type: u16,
@@ -66,6 +69,7 @@ pub struct DcapQuoteHeader {
 }
 
 #[derive(Decode, Clone, TypeInfo)]
+#[repr(C)]
 pub struct EcdsaQuoteSignature {
 	isv_enclave_report_signature: [u8; 64],
 	ecdsa_attestation_key: [u8; 64],
@@ -76,6 +80,7 @@ pub struct EcdsaQuoteSignature {
 }
 
 #[derive(Clone, TypeInfo)]
+#[repr(C)]
 pub struct QeAuthenticationData {
 	size: u16,
 	certification_data: Vec<u8>,
@@ -95,6 +100,7 @@ impl Decode for QeAuthenticationData {
 }
 
 #[derive(Clone, TypeInfo)]
+#[repr(C)]
 pub struct QeCertificationData {
 	certification_data_type: u16,
 	size: u32,
@@ -126,6 +132,7 @@ const SGX_REPORT_BODY_RESERVED4_BYTES: usize = 42;
 const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxReportBody {
 	cpu_svn: [u8; 16],    /* (  0) Security Version of the CPU */
 	misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
@@ -158,6 +165,7 @@ impl SgxReportBody {
 }
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_quote.h
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxQuote {
 	version: u16,       /* 0   */
 	sign_type: u16,     /* 2   */
@@ -275,8 +283,7 @@ pub fn verify_dcap_report(dcap_quote: &[u8]) -> Result<SgxReport, &'static str> 
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
 	let ra_status = SgxStatus::Ok;
-	let ra_timestamp: u64 = dcap_quote_clone.len() as u64; // q.signature_data_len.into(); // Just some random value for now
-	let certificate_chain = dcap_quote_clone;
+	let ra_timestamp: u64 = 0;
 	assert_eq!(dcap_quote_clone.len(), 0);
 	let report = SgxReport {
 		mr_enclave: q.body.mr_enclave,
