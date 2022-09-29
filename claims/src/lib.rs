@@ -358,16 +358,25 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			T::MoveClaimOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
-			Claims::<T>::take(&old).map(|c| Claims::<T>::insert(&new, c));
-			Vesting::<T>::take(&old).map(|c| Vesting::<T>::insert(&new, c));
-			Signing::<T>::take(&old).map(|c| Signing::<T>::insert(&new, c));
-			maybe_preclaim.map(|preclaim| {
+			if let Some(c) = Claims::<T>::take(&old) {
+				Claims::<T>::insert(&new, c);
+			}
+
+			if let Some(c) = Vesting::<T>::take(&old) {
+				Vesting::<T>::insert(&new, c)
+			}
+
+			if let Some(c) = Signing::<T>::take(&old) {
+				Signing::<T>::insert(&new, c)
+			}
+
+			if let Some(preclaim) = maybe_preclaim {
 				Preclaims::<T>::mutate(&preclaim, |maybe_o| {
 					if maybe_o.as_ref().map_or(false, |o| o == &old) {
-						*maybe_o = Some(new)
+						*maybe_o = Some(new);
 					}
 				})
-			});
+			}
 			Ok(Pays::No.into())
 		}
 	}
