@@ -12,6 +12,8 @@ const TEST6_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST6.der");
 const TEST7_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST7.der");
 const TEST8_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST8_PRODUCTION.der");
 
+const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test/ra_dcap_dump_quote.ra");
+
 const TEST1_SIGNER_ATTN: &[u8] =
 	include_bytes!("../test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
 const TEST2_SIGNER_ATTN: &[u8] =
@@ -86,6 +88,47 @@ fn verify_ias_report_should_work() {
 	//assert_eq!(report.status, SgxStatus::GroupOutOfDate);
 	assert_eq!(report.status, SgxStatus::ConfigurationNeeded);
 	assert_eq!(report.build_mode, SgxBuildMode::Debug);
+}
+
+#[test]
+fn parse_qe_authentication_data() {
+	let mut encoded: [u8; 1] = [0];
+	assert!(QeAuthenticationData::decode(&mut &encoded[..]).is_err());
+
+	let mut encoded: [u8; 1] = [4];
+	assert!(QeAuthenticationData::decode(&mut &encoded[..]).is_err());
+
+	let mut encoded: [u8; 6] = [4, 0, 0, 0, 0, 0];
+	let a: QeAuthenticationData = Decode::decode(&mut &encoded[..]).unwrap();
+	assert_eq!(a.size, 4);
+	assert_eq!(a.certification_data.len(), 4);
+}
+
+#[test]
+fn parse_qe_certification_data() {
+	let mut encoded: [u8; 6] = [0, 0, 0, 0, 0, 0];
+	let a: QeCertificationData = Decode::decode(&mut &encoded[..]).unwrap();
+	assert_eq!(a.certification_data_type, 0);
+	assert_eq!(a.size, 0);
+	assert_eq!(a.certification_data.len(), 0);
+}
+
+#[test]
+fn verify_dcap_report_should_work() {
+	let report = verify_dcap_report(TEST1_DCAP_QUOTE).unwrap();
+	assert_eq!(report.build_mode, SgxBuildMode::Debug);
+	assert_eq!(report.status, SgxStatus::Ok);
+	assert_eq!(report.timestamp, 0);
+	let mr_enclave: [u8; 32] = [
+		111, 144, 18, 11, 92, 31, 3, 97, 145, 18, 234, 200, 85, 226, 157, 110, 11, 228, 243, 91,
+		41, 2, 170, 22, 154, 255, 255, 119, 25, 39, 126, 188,
+	];
+	assert_eq!(report.mr_enclave, mr_enclave);
+	let pubkey: [u8; 32] = [
+		65, 89, 193, 118, 86, 172, 17, 149, 206, 160, 174, 75, 219, 151, 51, 235, 110, 135, 20, 55,
+		147, 162, 106, 110, 143, 207, 57, 64, 67, 63, 203, 95,
+	];
+	assert_eq!(report.pubkey, pubkey);
 }
 
 #[test]

@@ -19,13 +19,14 @@
 
 use crate::netscape_comment::NetscapeComment;
 use chrono::prelude::*;
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Input};
 use scale_info::TypeInfo;
 use serde_json::Value;
 use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
+use x509_parser::prelude::*;
 
 mod ephemeral_key;
 mod netscape_comment;
@@ -43,6 +44,78 @@ pub struct SgxReportData {
 pub struct SGXAttributes {
 	flags: u64,
 	xfrm: u64,
+}
+
+#[derive(Decode, Clone, TypeInfo)]
+pub struct DcapQuote {
+	header: DcapQuoteHeader,
+	body: SgxReportBody,
+	signature_data_len: u32,
+	quote_signature_data: EcdsaQuoteSignature,
+}
+
+#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+pub struct DcapQuoteHeader {
+	version: u16,
+	attestation_key_type: u16,
+	reserved: u32,
+	qe_svn: u16,
+	pce_svn: u16,
+	qe_vendor_id: [u8; 16],
+	user_data: [u8; 20],
+}
+
+#[derive(Decode, Clone, TypeInfo)]
+pub struct EcdsaQuoteSignature {
+	isv_enclave_report_signature: [u8; 64],
+	ecdsa_attestation_key: [u8; 64],
+	qe_report: SgxReportBody,
+	qe_report_signature: [u8; 64],
+	qe_authentication_data: QeAuthenticationData,
+	qe_certification_data: QeCertificationData,
+}
+
+#[derive(Clone, TypeInfo)]
+pub struct QeAuthenticationData {
+	size: u16,
+	certification_data: Vec<u8>,
+}
+
+impl Decode for QeAuthenticationData {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		let mut size_buf: [u8; 2] = [0; 2];
+		input.read(&mut size_buf)?;
+		let size = u16::from_le_bytes(size_buf);
+
+		let mut certification_data = vec![0; size.into()];
+		input.read(&mut certification_data)?;
+
+		Ok(Self { size, certification_data })
+	}
+}
+
+#[derive(Clone, TypeInfo)]
+pub struct QeCertificationData {
+	certification_data_type: u16,
+	size: u32,
+	certification_data: Vec<u8>,
+}
+
+impl Decode for QeCertificationData {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		let mut certification_data_type_buf: [u8; 2] = [0; 2];
+		input.read(&mut certification_data_type_buf)?;
+		let certification_data_type = u16::from_le_bytes(certification_data_type_buf);
+
+		let mut size_buf: [u8; 4] = [0; 4];
+		input.read(&mut size_buf)?;
+		let size = u32::from_le_bytes(size_buf);
+
+		let mut certification_data = vec![0; size.try_into().unwrap()];
+		input.read(&mut certification_data)?;
+
+		Ok(Self { certification_data_type, size, certification_data })
+	}
 }
 
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_report.h
@@ -192,6 +265,28 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 ///
 /// Wrapper to implemented parsing and verification traits on it.
 pub struct CertDer<'a>(&'a [u8]);
+
+pub fn verify_dcap_report(dcap_quote: &[u8]) -> Result<SgxReport, &'static str> {
+	let mut dcap_quote_clone = dcap_quote; //.clone();
+	let q: DcapQuote =
+		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
+	assert_eq!(q.header.version, 3);
+	assert_eq!(q.header.attestation_key_type, 2);
+	let mut xt_signer_array = [0u8; 32];
+	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
+	let ra_status = SgxStatus::Ok;
+	let ra_timestamp: u64 = dcap_quote_clone.len() as u64; // q.signature_data_len.into(); // Just some random value for now
+	let certificate_chain = dcap_quote_clone;
+	assert_eq!(dcap_quote_clone.len(), 0);
+	let report = SgxReport {
+		mr_enclave: q.body.mr_enclave,
+		status: ra_status,
+		pubkey: xt_signer_array,
+		timestamp: ra_timestamp,
+		build_mode: q.body.sgx_build_mode(),
+	};
+	Ok(report)
+}
 
 // make sure this function doesn't panic!
 pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
