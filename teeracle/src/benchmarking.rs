@@ -30,7 +30,7 @@ use sp_std::borrow::ToOwned;
 use teeracle_primitives::{MarketDataSourceString, TradingPairString};
 use test_utils::{
 	get_signer,
-	ias::{consts::*, ias::*},
+	ias::{consts::*, setups::*},
 };
 
 fn ensure_not_skipping_ra_check() {

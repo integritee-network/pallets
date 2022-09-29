@@ -52,7 +52,7 @@ impl<AccountId, Url: Default> TestEnclave<AccountId, Url> for Enclave<AccountId,
 	}
 }
 
-pub mod ias {
+pub mod setups {
 	use super::consts::*;
 
 	#[derive(Copy, Clone)]
