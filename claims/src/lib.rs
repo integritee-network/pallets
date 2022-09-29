@@ -385,7 +385,7 @@ pub mod pallet {
 				// </weight>
 				Call::claim { dest: account, ethereum_signature } => {
 					let data = account.using_encoded(to_ascii_hex);
-					(Self::eth_recover(&ethereum_signature, &data, &[][..]), None)
+					(Self::eth_recover(ethereum_signature, &data, &[][..]), None)
 				},
 				// <weight>
 				// The weight of this logic is included in the `claim_attest` dispatchable.
@@ -393,7 +393,7 @@ pub mod pallet {
 				Call::claim_attest { dest: account, ethereum_signature, statement } => {
 					let data = account.using_encoded(to_ascii_hex);
 					(
-						Self::eth_recover(&ethereum_signature, &data, &statement),
+						Self::eth_recover(ethereum_signature, &data, statement),
 						Some(statement.as_slice()),
 					)
 				},
