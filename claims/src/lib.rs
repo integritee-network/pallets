@@ -580,15 +580,13 @@ where
 		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,
 	) -> TransactionValidity {
-		if let Some(local_call) = call.is_sub_type() {
-			if let Call::attest { statement: attested_statement } = local_call {
-				let signer = Preclaims::<T>::get(who).ok_or_else(|| {
-					InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into())
-				})?;
-				if let Some(s) = Signing::<T>::get(signer) {
-					let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
-					ensure!(&attested_statement[..] == s.to_text(), e);
-				}
+		if let Some(Call::attest { statement: attested_statement }) = call.is_sub_type() {
+			let signer = Preclaims::<T>::get(who).ok_or_else(|| {
+				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into())
+			})?;
+			if let Some(s) = Signing::<T>::get(signer) {
+				let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
+				ensure!(&attested_statement[..] == s.to_text(), e);
 			}
 		}
 		Ok(ValidTransaction::default())
