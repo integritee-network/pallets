@@ -104,15 +104,9 @@ pub mod pallet {
 	pub type AllowSGXDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::genesis_config]
+	#[cfg_attr(feature = "std", derive(Default))]
 	pub struct GenesisConfig {
 		pub allow_sgx_debug_mode: bool,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			Self { allow_sgx_debug_mode: Default::default() }
-		}
 	}
 
 	#[pallet::genesis_build]
