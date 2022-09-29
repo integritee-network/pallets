@@ -38,7 +38,7 @@ jobs:
 #                 cargo clippy -- -D warnings Todo: Fix #10
         ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # With rustup's nice new toml format, we just need to run rustup show to install the toolchain
       # https://github.com/actions-rs/toolchain/issues/126#issuecomment-782989659
@@ -51,6 +51,11 @@ jobs:
 
       - name: ${{ matrix.check }}
         run: ${{ matrix.check }}
+
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
       - name: Install cargo-about
         uses: baptiste0928/cargo-install@v1
@@ -66,13 +71,13 @@ jobs:
         with:
           name: license
           path: license.html
-  fmt:
+
+  cargo-toml-fmt:
     runs-on: ubuntu-latest
+    container: "tamasfe/taplo:0.7.0-alpine"
     steps:
-      - uses: actions/checkout@v2
-      - name: Install taplo
-        run: cargo install taplo-cli --locked
-      - name: Cargo.toml fmt
+      - uses: actions/checkout@v3
+      - name: Run Taplo fmt
         run: taplo fmt --check
       - name: Fail-fast; cancel other jobs
         if: failure()
