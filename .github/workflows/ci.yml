@@ -35,7 +35,7 @@ jobs:
                  cargo test --all --features runtime-benchmarks,
                  cargo test --all --features skip-ias-check,
                  cargo fmt --all -- --check,
-#                 cargo clippy -- -D warnings Todo: Fix #10
+                 cargo clippy -- -D warnings
         ]
     steps:
       - uses: actions/checkout@v3
