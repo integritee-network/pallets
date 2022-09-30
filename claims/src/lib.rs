@@ -142,6 +142,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type Preclaims<T: Config> = StorageMap<_, Identity, T::AccountId, EthereumAddress>;
 
+	#[allow(clippy::type_complexity)]
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub claims:
@@ -160,12 +161,9 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
 			// build `Claims`
-			self.claims
-				.iter()
-				.map(|(a, b, _, _)| (a.clone(), b.clone()))
-				.for_each(|(a, b)| {
-					Claims::<T>::insert(a, b);
-				});
+			self.claims.iter().map(|(a, b, _, _)| (a, b)).for_each(|(a, b)| {
+				Claims::<T>::insert(a, b);
+			});
 			// build `Total`
 			Total::<T>::put(
 				self.claims
@@ -179,17 +177,16 @@ pub mod pallet {
 			// build `Signing`
 			self.claims
 				.iter()
-				.filter_map(|(a, _, _, s)| Some((a.clone(), s.clone()?)))
+				.filter_map(|(a, _, _, s)| Some((*a, (*s)?)))
 				.for_each(|(a, s)| {
 					Signing::<T>::insert(a, s);
 				});
 			// build `Preclaims`
-			self.claims
-				.iter()
-				.filter_map(|(a, _, i, _)| Some((i.clone()?, a.clone())))
-				.for_each(|(i, a)| {
+			self.claims.iter().filter_map(|(a, _, i, _)| Some((i.clone()?, *a))).for_each(
+				|(i, a)| {
 					Preclaims::<T>::insert(i, a);
-				});
+				},
+			);
 		}
 	}
 
@@ -362,16 +359,25 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			T::MoveClaimOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
-			Claims::<T>::take(&old).map(|c| Claims::<T>::insert(&new, c));
-			Vesting::<T>::take(&old).map(|c| Vesting::<T>::insert(&new, c));
-			Signing::<T>::take(&old).map(|c| Signing::<T>::insert(&new, c));
-			maybe_preclaim.map(|preclaim| {
+			if let Some(c) = Claims::<T>::take(&old) {
+				Claims::<T>::insert(&new, c);
+			}
+
+			if let Some(c) = Vesting::<T>::take(&old) {
+				Vesting::<T>::insert(&new, c)
+			}
+
+			if let Some(c) = Signing::<T>::take(&old) {
+				Signing::<T>::insert(&new, c)
+			}
+
+			if let Some(preclaim) = maybe_preclaim {
 				Preclaims::<T>::mutate(&preclaim, |maybe_o| {
 					if maybe_o.as_ref().map_or(false, |o| o == &old) {
-						*maybe_o = Some(new)
+						*maybe_o = Some(new);
 					}
 				})
-			});
+			}
 			Ok(Pays::No.into())
 		}
 	}
@@ -389,7 +395,7 @@ pub mod pallet {
 				// </weight>
 				Call::claim { dest: account, ethereum_signature } => {
 					let data = account.using_encoded(to_ascii_hex);
-					(Self::eth_recover(&ethereum_signature, &data, &[][..]), None)
+					(Self::eth_recover(ethereum_signature, &data, &[][..]), None)
 				},
 				// <weight>
 				// The weight of this logic is included in the `claim_attest` dispatchable.
@@ -397,16 +403,16 @@ pub mod pallet {
 				Call::claim_attest { dest: account, ethereum_signature, statement } => {
 					let data = account.using_encoded(to_ascii_hex);
 					(
-						Self::eth_recover(&ethereum_signature, &data, &statement),
+						Self::eth_recover(ethereum_signature, &data, statement),
 						Some(statement.as_slice()),
 					)
 				},
 				_ => return Err(InvalidTransaction::Call.into()),
 			};
 
-			let signer = maybe_signer.ok_or(InvalidTransaction::Custom(
-				ValidityError::InvalidEthereumSignature.into(),
-			))?;
+			let signer = maybe_signer.ok_or_else(|| {
+				InvalidTransaction::Custom(ValidityError::InvalidEthereumSignature.into())
+			})?;
 
 			let e = InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into());
 			ensure!(<Claims<T>>::contains_key(&signer), e);
@@ -451,7 +457,7 @@ impl<T: Config> Pallet<T> {
 		}
 		let mut v = b"\x19Ethereum Signed Message:\n".to_vec();
 		v.extend(rev.into_iter().rev());
-		v.extend_from_slice(&prefix[..]);
+		v.extend_from_slice(prefix);
 		v.extend_from_slice(what);
 		v.extend_from_slice(extra);
 		v
@@ -502,6 +508,10 @@ impl<T: Config> Pallet<T> {
 
 /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 /// otherwise free to place on chain.
+
+#[allow(clippy::derive_partial_eq_without_eq)]
+// derive_partial_eq_without_eq false positive in struct using traits
+// For details: https://github.com/rust-lang/rust-clippy/issues/9413
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
@@ -532,6 +542,14 @@ where
 		Self(sp_std::marker::PhantomData)
 	}
 }
+impl<T: Config + Send + Sync> Default for PrevalidateAttests<T>
+where
+	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+{
+	fn default() -> Self {
+		Self::new()
+	}
+}
 
 impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
 where
@@ -554,7 +572,7 @@ where
 		info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> Result<Self::Pre, TransactionValidityError> {
-		Ok(self.validate(who, call, info, len).map(|_| ())?)
+		self.validate(who, call, info, len).map(|_| ())
 	}
 
 	// <weight>
@@ -567,14 +585,13 @@ where
 		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,
 	) -> TransactionValidity {
-		if let Some(local_call) = call.is_sub_type() {
-			if let Call::attest { statement: attested_statement } = local_call {
-				let signer = Preclaims::<T>::get(who)
-					.ok_or(InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()))?;
-				if let Some(s) = Signing::<T>::get(signer) {
-					let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
-					ensure!(&attested_statement[..] == s.to_text(), e);
-				}
+		if let Some(Call::attest { statement: attested_statement }) = call.is_sub_type() {
+			let signer = Preclaims::<T>::get(who).ok_or_else(|| {
+				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into())
+			})?;
+			if let Some(s) = Signing::<T>::get(signer) {
+				let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
+				ensure!(&attested_statement[..] == s.to_text(), e);
 			}
 		}
 		Ok(ValidTransaction::default())
@@ -628,7 +645,7 @@ mod tests {
 		traits::{ExistenceRequirement, GenesisBuild},
 		weights::{GetDispatchInfo, Pays},
 	};
-	use pallet_balances;
+
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, Identity, IdentityLookup},
@@ -994,7 +1011,7 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Balances::free_balance(42), 0);
 			let s = sig::<Test>(&dave(), &42u64.encode(), &[]);
-			let r = Claims::claim(Origin::none(), 42, s.clone());
+			let r = Claims::claim(Origin::none(), 42, s);
 			assert_noop!(r, Error::<Test>::InvalidStatement);
 		});
 	}
@@ -1102,7 +1119,7 @@ mod tests {
 			assert_ok!(Claims::claim_attest(
 				Origin::none(),
 				69,
-				signature.clone(),
+				signature,
 				StatementKind::Regular.to_text().to_vec()
 			));
 			assert_eq!(Balances::free_balance(&69), 200);

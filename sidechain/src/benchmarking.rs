@@ -24,7 +24,7 @@ use super::*;
 use crate::Pallet as Sidechain;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-use test_utils::ias::ias::*;
+use test_utils::ias::setups::*;
 
 fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
 	assert_eq!(Sidechain::<T>::worker_for_shard(shard), Teerex::<T>::enclave_index(sender));

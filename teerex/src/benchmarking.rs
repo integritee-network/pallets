@@ -28,7 +28,7 @@ use sp_runtime::traits::CheckedConversion;
 use sp_std::vec;
 use test_utils::{
 	get_signer,
-	ias::{consts::*, ias::*},
+	ias::{consts::*, setups::*},
 };
 
 fn ensure_not_skipping_ra_check() {
