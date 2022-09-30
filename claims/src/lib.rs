@@ -142,6 +142,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type Preclaims<T: Config> = StorageMap<_, Identity, T::AccountId, EthereumAddress>;
 
+	#[allow(clippy::type_complexity)]
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub claims:
