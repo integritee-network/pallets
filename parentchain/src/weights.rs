@@ -8,6 +8,6 @@ pub trait WeightInfo {
 /// Weights for pallet_parentchain using the Integritee parachain node and recommended hardware.
 impl WeightInfo for () {
 	fn set_block() -> Weight {
-		10_000 as Weight
+		Weight::from_ref_time(10_000)
 	}
 }
