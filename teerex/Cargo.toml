@@ -70,3 +70,5 @@ runtime-benchmarks = [
 ]
 # allow workers to register without remote attestation for dev purposes
 skip-ias-check = []
+
+try-runtime = ["frame-support/try-runtime"]
