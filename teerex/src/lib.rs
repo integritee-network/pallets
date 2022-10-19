@@ -34,7 +34,7 @@ use teerex_primitives::*;
 use ias_verify::{verify_ias_report, SgxReport};
 
 pub use crate::weights::WeightInfo;
-use ias_verify::{verify_dcap_report, SgxBuildMode};
+use ias_verify::{verify_dcap_quote, SgxBuildMode};
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
@@ -447,7 +447,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 
-		let report = verify_dcap_report(&dcap_quote, verification_time.saturated_into())
+		let report = verify_dcap_quote(&dcap_quote, verification_time.saturated_into())
 			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
 		log::info!("RA Report: {:?}", report);
 

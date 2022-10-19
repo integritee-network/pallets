@@ -293,13 +293,13 @@ pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
 	asn1
 }
 
-pub fn verify_dcap_report(
-	dcap_report: &[u8],
+pub fn verify_dcap_quote(
+	dcap_quote: &[u8],
 	verification_time: u64,
 ) -> Result<SgxReport, &'static str> {
-	let mut dcap_report_clone = dcap_report;
-	let q: DcapQuote = Decode::decode(&mut dcap_report_clone)
-		.map_err(|_| "Failed to decode attestation report")?;
+	let mut dcap_quote_clone = dcap_quote;
+	let q: DcapQuote =
+		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
 	ensure!(q.header.version == 3, "Only support for version 3");
 	ensure!(q.header.attestation_key_type == 2, "Only support for ECDSA-256");
 	ensure!(
@@ -336,7 +336,7 @@ pub fn verify_dcap_report(
 		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_slices, time)
 		.unwrap();
 	println!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
-	let isv_report_slice = &dcap_report[0..(48 + 384)];
+	let isv_report_slice = &dcap_quote[0..(48 + 384)];
 
 	println!("Report slice len: {}", isv_report_slice.len());
 	println!(
@@ -352,7 +352,7 @@ pub fn verify_dcap_report(
 		std::mem::size_of::<u32>() +
 		REPORT_SIGNATURE_SIZE;
 	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
-		&dcap_report[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
+		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
 	);
 	let authentication_data_offset = attestation_key_offset +
 		ATTESTATION_KEY_SIZE +
@@ -360,7 +360,7 @@ pub fn verify_dcap_report(
 		REPORT_SIGNATURE_SIZE +
 		std::mem::size_of::<u16>();
 	hash_data[ATTESTATION_KEY_SIZE..].copy_from_slice(
-		&dcap_report
+		&dcap_quote
 			[authentication_data_offset..(authentication_data_offset + AUTHENTICATION_DATA_SIZE)],
 	);
 	let hash = ring::digest::digest(&ring::digest::SHA256, &hash_data);
@@ -377,7 +377,7 @@ pub fn verify_dcap_report(
 	);
 
 	let qe_report_offset = attestation_key_offset + ATTESTATION_KEY_SIZE;
-	let qe_report_slice = &dcap_report[qe_report_offset..(qe_report_offset + REPORT_SIZE)];
+	let qe_report_slice = &dcap_quote[qe_report_offset..(qe_report_offset + REPORT_SIZE)];
 	let mut pub_key = [0x04u8; 65]; //Prepend 0x04 to specify uncompressed format
 	pub_key[1..].copy_from_slice(&q.quote_signature_data.ecdsa_attestation_key);
 
@@ -393,7 +393,7 @@ pub fn verify_dcap_report(
 	verify_signature(&first_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
 		.unwrap();
 
-	ensure!(dcap_report_clone.len() == 0, "There should be no bytes left over after decoding");
+	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
 	let report = SgxReport {
 		mr_enclave: q.body.mr_enclave,
 		status: ra_status,
