@@ -35,6 +35,28 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 }
 
 #[test]
+fn add_and_remove_dcap_enclave_works() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(1665489662000);
+		let pubkey: [u8; 32] = [
+			65, 89, 193, 118, 86, 172, 17, 149, 206, 160, 174, 75, 219, 151, 51, 235, 110, 135, 20,
+			55, 147, 162, 106, 110, 143, 207, 57, 64, 67, 63, 203, 95,
+		];
+		let signer = get_signer(&pubkey);
+		assert_ok!(Teerex::register_dcap_enclave(
+			Origin::signed(signer.clone()),
+			TEST1_DCAP_QUOTE.to_vec(),
+			URL.to_vec()
+		));
+		assert_eq!(Teerex::enclave_count(), 1);
+		assert_eq!(Teerex::enclave(1).unwrap().timestamp, 1665489662000);
+		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer)));
+		assert_eq!(Teerex::enclave_count(), 0);
+		assert_eq!(list_enclaves(), vec![])
+	})
+}
+
+#[test]
 fn add_enclave_works() {
 	new_test_ext().execute_with(|| {
 		// set the now in the runtime such that the remote attestation reports are within accepted range (24h)

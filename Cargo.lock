@@ -1008,6 +1008,7 @@ dependencies = [
  "frame-support",
  "hex-literal",
  "parity-scale-codec",
+ "ring 0.16.9",
  "scale-info",
  "serde_json",
  "sp-core",

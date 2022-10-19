@@ -19,13 +19,16 @@
 
 use crate::netscape_comment::NetscapeComment;
 use chrono::prelude::*;
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Input};
+use frame_support::ensure;
+use ring::signature::{self};
 use scale_info::TypeInfo;
 use serde_json::Value;
 use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
+use webpki::SignatureAlgorithm;
 
 mod ephemeral_key;
 mod netscape_comment;
@@ -35,14 +38,96 @@ mod utils;
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxReportData {
 	d: [u8; SGX_REPORT_DATA_SIZE],
 }
 
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SGXAttributes {
 	flags: u64,
 	xfrm: u64,
+}
+
+#[derive(Decode, Clone, TypeInfo)]
+#[repr(C)]
+pub struct DcapQuote {
+	header: DcapQuoteHeader,
+	body: SgxReportBody,
+	signature_data_len: u32,
+	quote_signature_data: EcdsaQuoteSignature,
+}
+
+#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
+pub struct DcapQuoteHeader {
+	version: u16,
+	attestation_key_type: u16,
+	reserved: u32,
+	qe_svn: u16,
+	pce_svn: u16,
+	qe_vendor_id: [u8; 16],
+	user_data: [u8; 20],
+}
+
+const ATTESTATION_KEY_SIZE: usize = 64;
+const REPORT_SIGNATURE_SIZE: usize = 64;
+
+#[derive(Decode, Clone, TypeInfo)]
+#[repr(C)]
+pub struct EcdsaQuoteSignature {
+	isv_enclave_report_signature: [u8; REPORT_SIGNATURE_SIZE],
+	ecdsa_attestation_key: [u8; ATTESTATION_KEY_SIZE],
+	qe_report: SgxReportBody,
+	qe_report_signature: [u8; REPORT_SIGNATURE_SIZE],
+	qe_authentication_data: QeAuthenticationData,
+	qe_certification_data: QeCertificationData,
+}
+
+#[derive(Clone, TypeInfo)]
+#[repr(C)]
+pub struct QeAuthenticationData {
+	size: u16,
+	certification_data: Vec<u8>,
+}
+
+impl Decode for QeAuthenticationData {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		let mut size_buf: [u8; 2] = [0; 2];
+		input.read(&mut size_buf)?;
+		let size = u16::from_le_bytes(size_buf);
+
+		let mut certification_data = vec![0; size.into()];
+		input.read(&mut certification_data)?;
+
+		Ok(Self { size, certification_data })
+	}
+}
+
+#[derive(Clone, TypeInfo)]
+#[repr(C)]
+pub struct QeCertificationData {
+	certification_data_type: u16,
+	size: u32,
+	certification_data: Vec<u8>,
+}
+
+impl Decode for QeCertificationData {
+	fn decode<I: Input>(input: &mut I) -> Result<Self, codec::Error> {
+		let mut certification_data_type_buf: [u8; 2] = [0; 2];
+		input.read(&mut certification_data_type_buf)?;
+		let certification_data_type = u16::from_le_bytes(certification_data_type_buf);
+
+		let mut size_buf: [u8; 4] = [0; 4];
+		input.read(&mut size_buf)?;
+		let size = u32::from_le_bytes(size_buf);
+
+		let mut certification_data = vec![0; size.try_into().unwrap()];
+		input.read(&mut certification_data)?;
+
+		Ok(Self { certification_data_type, size, certification_data })
+	}
 }
 
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_report.h
@@ -53,6 +138,7 @@ const SGX_REPORT_BODY_RESERVED4_BYTES: usize = 42;
 const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxReportBody {
 	cpu_svn: [u8; 16],    /* (  0) Security Version of the CPU */
 	misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
@@ -75,7 +161,7 @@ pub struct SgxReportBody {
 impl SgxReportBody {
 	pub fn sgx_build_mode(&self) -> SgxBuildMode {
 		#[cfg(test)]
-		println!("attributes flag : {:x}", self.attributes.flags);
+		println!("attributes flag : {}", format!("{:x}", self.attributes.flags));
 		if self.attributes.flags & SGX_FLAGS_DEBUG == SGX_FLAGS_DEBUG {
 			SgxBuildMode::Debug
 		} else {
@@ -85,6 +171,7 @@ impl SgxReportBody {
 }
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_quote.h
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[repr(C)]
 pub struct SgxQuote {
 	version: u16,       /* 0   */
 	sign_type: u16,     /* 2   */
@@ -109,7 +196,7 @@ impl Default for SgxBuildMode {
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxStatus {
 	Invalid,
 	Ok,
@@ -123,7 +210,7 @@ impl Default for SgxStatus {
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct SgxReport {
 	pub mr_enclave: [u8; 32],
 	pub pubkey: [u8; 32],
@@ -185,13 +272,137 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 		spki: b"0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x82\x01\x8f\x000\x82\x01\x8a\x02\x82\x01\x81\x00\x9f<d~\xb5w<\xbbQ-\'2\xc0\xd7A^\xbbU\xa0\xfa\x9e\xde.d\x91\x99\xe6\x82\x1d\xb9\x10\xd51w7\twFjj^G\x86\xcc\xd2\xdd\xeb\xd4\x14\x9dj/c%R\x9d\xd1\x0c\xc9\x877\xb0w\x9c\x1a\x07\xe2\x9cG\xa1\xae\x00IHGlH\x9fE\xa5\xa1]z\xc8\xec\xc6\xac\xc6E\xad\xb4=\x87g\x9d\xf5\x9c\t;\xc5\xa2\xe9ilTxT\x1b\x97\x9euKW9\x14\xbeU\xd3/\xf4\xc0\x9d\xdf\'!\x994\xcd\x99\x05\'\xb3\xf9.\xd7\x8f\xbf)$j\xbe\xcbq$\x0e\xf3\x9c-q\x07\xb4GTZ\x7f\xfb\x10\xeb\x06\nh\xa9\x85\x80!\x9e6\x91\tRh8\x92\xd6\xa5\xe2\xa8\x08\x03\x19>@u1@N6\xb3\x15b7\x99\xaa\x82Pt@\x97T\xa2\xdf\xe8\xf5\xaf\xd5\xfec\x1e\x1f\xc2\xaf8\x08\x90o(\xa7\x90\xd9\xdd\x9f\xe0`\x93\x9b\x12W\x90\xc5\x80]\x03}\xf5j\x99S\x1b\x96\xdei\xde3\xed\"l\xc1 }\x10B\xb5\xc9\xab\x7f@O\xc7\x11\xc0\xfeGi\xfb\x95x\xb1\xdc\x0e\xc4i\xea\x1a%\xe0\xff\x99\x14\x88n\xf2i\x9b#[\xb4\x84}\xd6\xff@\xb6\x06\xe6\x17\x07\x93\xc2\xfb\x98\xb3\x14X\x7f\x9c\xfd%sb\xdf\xea\xb1\x0b;\xd2\xd9vs\xa1\xa4\xbdD\xc4S\xaa\xf4\x7f\xc1\xf2\xd3\xd0\xf3\x84\xf7J\x06\xf8\x9c\x08\x9f\r\xa6\xcd\xb7\xfc\xee\xe8\xc9\x82\x1a\x8eT\xf2\\\x04\x16\xd1\x8cF\x83\x9a_\x80\x12\xfb\xdd=\xc7M%by\xad\xc2\xc0\xd5Z\xffo\x06\"B]\x1b\x02\x03\x01\x00\x01",
 		name_constraints: None
 	},
-
+	webpki::TrustAnchor {
+		subject: &[49, 26, 48, 24, 06, 03, 85, 04, 03, 12, 17, 73, 110, 116, 101, 108, 32, 83, 71, 88, 32, 82, 111, 111, 116, 32, 67, 65, 49, 26, 48, 24, 06, 03, 85, 04, 10, 12, 17, 73, 110, 116, 101, 108, 32, 67, 111, 114, 112, 111, 114, 97, 116, 105, 111, 110, 49, 20, 48, 18, 06, 03, 85, 04, 07, 12, 11, 83, 97, 110, 116, 97, 32, 67, 108, 97, 114, 97, 49, 11, 48, 09, 06, 03, 85, 04, 08, 12, 02, 67, 65, 49, 11, 48, 09, 06, 03, 85, 04, 06, 19, 02, 85, 83],
+		spki: &[48, 19, 06, 07, 42, 134, 72, 206, 61, 02, 01, 06, 08, 42, 134, 72, 206, 61, 03, 01, 07, 03, 66, 00, 04, 11, 169, 196, 192, 192, 200, 97, 147, 163, 254, 35, 214, 176, 44, 218, 16, 168, 187, 212, 232, 142, 72, 180, 69, 133, 97, 163, 110, 112, 85, 37, 245, 103, 145, 142, 46, 220, 136, 228, 13, 134, 11, 208, 204, 78, 226, 106, 172, 201, 136, 229, 05, 169, 83, 85, 140, 69, 63, 107, 09, 04, 174, 115, 148,],
+		name_constraints: None
+	},
 ]);
 
 /// Contains an unvalidated ias remote attestation certificate.
 ///
 /// Wrapper to implemented parsing and verification traits on it.
 pub struct CertDer<'a>(&'a [u8]);
+
+pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
+	let mut asn1 = vec![48u8, 70];
+	asn1.extend(&[02u8, 33, 00]);
+	asn1.extend(&data[0..32]);
+	asn1.extend(&[02u8, 33, 00]);
+	asn1.extend(&data[32..]);
+	asn1
+}
+
+pub fn verify_dcap_report(
+	dcap_report: &[u8],
+	verification_time: u64,
+) -> Result<SgxReport, &'static str> {
+	let mut dcap_report_clone = dcap_report;
+	let q: DcapQuote = Decode::decode(&mut dcap_report_clone)
+		.map_err(|_| "Failed to decode attestation report")?;
+	ensure!(q.header.version == 3, "Only support for version 3");
+	ensure!(q.header.attestation_key_type == 2, "Only support for ECDSA-256");
+	ensure!(
+		q.quote_signature_data.qe_certification_data.certification_data_type == 5,
+		"Only support for PEM formatted PCK Cert Chain"
+	);
+	let mut xt_signer_array = [0u8; 32];
+	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
+	let ra_status = SgxStatus::Ok;
+	let ra_timestamp: u64 = verification_time;
+	let cert_data = q.quote_signature_data.qe_certification_data.certification_data;
+	let certs_concat = String::from_utf8_lossy(&cert_data);
+	let certs_concat = certs_concat.replace('\n', "");
+	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
+	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
+	let first_cert = parts.next().unwrap();
+	let first_cert = base64::decode(&first_cert).unwrap();
+	let first_cert: webpki::EndEntityCert =
+		webpki::EndEntityCert::from(first_cert.as_slice()).unwrap();
+
+	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
+	let intermediate_certs: Vec<Vec<u8>> = parts
+		.filter(|p| p.len() > 0)
+		.map(|p| {
+			println!("{:X?}", p.len());
+			base64::decode(&p).unwrap()
+		})
+		.collect();
+	let intermediate_slices: Vec<&[u8]> = intermediate_certs.iter().map(Vec::as_slice).collect();
+
+	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
+	println!("Intermediate: {}", intermediate_slices[1..2].len());
+	first_cert
+		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_slices, time)
+		.unwrap();
+	println!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
+	let isv_report_slice = &dcap_report[0..(48 + 384)];
+
+	println!("Report slice len: {}", isv_report_slice.len());
+	println!(
+		"isv_enclave_report_signature: {:X?}",
+		q.quote_signature_data.isv_enclave_report_signature
+	);
+	println!("Authentication data: {}", q.quote_signature_data.qe_authentication_data.size);
+	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
+	const REPORT_SIZE: usize = std::mem::size_of::<SgxReportBody>();
+	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
+	let attestation_key_offset = std::mem::size_of::<DcapQuoteHeader>() +
+		REPORT_SIZE +
+		std::mem::size_of::<u32>() +
+		REPORT_SIGNATURE_SIZE;
+	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
+		&dcap_report[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
+	);
+	let authentication_data_offset = attestation_key_offset +
+		ATTESTATION_KEY_SIZE +
+		REPORT_SIZE +
+		REPORT_SIGNATURE_SIZE +
+		std::mem::size_of::<u16>();
+	hash_data[ATTESTATION_KEY_SIZE..].copy_from_slice(
+		&dcap_report
+			[authentication_data_offset..(authentication_data_offset + AUTHENTICATION_DATA_SIZE)],
+	);
+	let hash = ring::digest::digest(&ring::digest::SHA256, &hash_data);
+	ensure!(
+		hash.as_ref() == &q.quote_signature_data.qe_report.report_data.d[0..32],
+		"Hashes must match"
+	);
+	println!("{:X?}", hash_data);
+	println!("{:X?}", hash);
+	println!("{:X?}", q.quote_signature_data.qe_report.report_data.d);
+	println!(
+		"Certification data type: {:X?}",
+		q.quote_signature_data.qe_certification_data.certification_data_type
+	);
+
+	let qe_report_offset = attestation_key_offset + ATTESTATION_KEY_SIZE;
+	let qe_report_slice = &dcap_report[qe_report_offset..(qe_report_offset + REPORT_SIZE)];
+	let mut pub_key = [0x04u8; 65]; //Prepend 0x04 to specify uncompressed format
+	pub_key[1..].copy_from_slice(&q.quote_signature_data.ecdsa_attestation_key);
+
+	let peer_public_key =
+		signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, pub_key);
+	peer_public_key
+		.verify(&isv_report_slice, &q.quote_signature_data.isv_enclave_report_signature)
+		.unwrap();
+
+	let asn1_signature = as_asn1(&q.quote_signature_data.qe_report_signature);
+	println!("Signature encoded len: {:?}", asn1_signature.len());
+	println!("Signature encoded: {:X?}", asn1_signature);
+	verify_signature(&first_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
+		.unwrap();
+
+	ensure!(dcap_report_clone.len() == 0, "There should be no bytes left over after decoding");
+	let report = SgxReport {
+		mr_enclave: q.body.mr_enclave,
+		status: ra_status,
+		pubkey: xt_signer_array,
+		timestamp: ra_timestamp,
+		build_mode: q.body.sgx_build_mode(),
+	};
+	Ok(report)
+}
 
 // make sure this function doesn't panic!
 pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
@@ -205,7 +416,12 @@ pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
 	let netscape = NetscapeComment::try_from(cert)?;
 	let sig_cert = webpki::EndEntityCert::from(&netscape.sig_cert).map_err(|_| "Bad der")?;
 
-	verify_signature(&sig_cert, netscape.attestation_raw, &netscape.sig)?;
+	verify_signature(
+		&sig_cert,
+		netscape.attestation_raw,
+		&netscape.sig,
+		&webpki::RSA_PKCS1_2048_8192_SHA256,
+	)?;
 
 	// FIXME: now hardcoded. but certificate renewal would have to be done manually anyway...
 	// chain wasm update or by some sudo call
@@ -297,12 +513,9 @@ pub fn verify_signature(
 	entity_cert: &webpki::EndEntityCert,
 	attestation_raw: &[u8],
 	signature: &[u8],
+	signature_algorithm: &SignatureAlgorithm,
 ) -> Result<(), &'static str> {
-	match entity_cert.verify_signature(
-		&webpki::RSA_PKCS1_2048_8192_SHA256,
-		attestation_raw,
-		signature,
-	) {
+	match entity_cert.verify_signature(signature_algorithm, attestation_raw, &signature) {
 		Ok(()) => {
 			#[cfg(test)]
 			println!("IAS signature is valid");

@@ -34,7 +34,7 @@ use teerex_primitives::*;
 use ias_verify::{verify_ias_report, SgxReport};
 
 pub use crate::weights::WeightInfo;
-use ias_verify::SgxBuildMode;
+use ias_verify::{verify_dcap_report, SgxBuildMode};
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
@@ -43,6 +43,7 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Bal
 pub use pallet::*;
 
 const MAX_RA_REPORT_LEN: usize = 4096;
+const MAX_DCAP_QUOTE_LEN: usize = 4599;
 const MAX_URL_LEN: usize = 256;
 
 #[frame_support::pallet]
@@ -133,6 +134,53 @@ pub mod pallet {
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
+				Enclave::new(
+					sender.clone(),
+					report.mr_enclave,
+					report.timestamp,
+					worker_url.clone(),
+					report.build_mode,
+				)
+			})?;
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			if !<AllowSGXDebugMode<T>>::get() && enclave.sgx_mode == SgxBuildMode::Debug {
+				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
+				return Err(<Error<T>>::SgxModeNotAllowed.into())
+			}
+
+			#[cfg(feature = "skip-ias-check")]
+			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
+
+			#[cfg(feature = "skip-ias-check")]
+			let enclave = Enclave::new(
+				sender.clone(),
+				// insert mrenclave if the ra_report represents one, otherwise insert default
+				<[u8; 32]>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
+				<timestamp::Pallet<T>>::get().saturated_into(),
+				worker_url.clone(),
+				SgxBuildMode::default(),
+			);
+
+			Self::add_enclave(&sender, &enclave)?;
+			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Ok(().into())
+		}
+
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_dcap_enclave(
+			origin: OriginFor<T>,
+			dcap_quote: Vec<u8>,
+			worker_url: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_enclave()");
+			let sender = ensure_signed(origin)?;
+			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
+			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+			log::info!("teerex: parameter length ok");
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
 				Enclave::new(
 					sender.clone(),
 					report.mr_enclave,
@@ -389,6 +437,29 @@ impl<T: Config> Pallet<T> {
 		// log::info!("teerex: status is acceptable");
 
 		Self::ensure_timestamp_within_24_hours(report.timestamp)?;
+		Ok(report)
+	}
+
+	#[cfg(not(feature = "skip-ias-check"))]
+	fn verify_dcap_quote(
+		sender: &T::AccountId,
+		dcap_quote: Vec<u8>,
+	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
+		let verification_time = <timestamp::Pallet<T>>::get();
+
+		let report = verify_dcap_report(&dcap_quote, verification_time.saturated_into())
+			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
+		log::info!("RA Report: {:?}", report);
+
+		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
+			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
+		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
+
+		// TODO: activate state checks as soon as we've fixed our setup
+		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+		//     "RA status is insufficient");
+		// log::info!("teerex: status is acceptable");
+
 		Ok(report)
 	}
 

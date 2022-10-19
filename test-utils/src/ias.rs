@@ -107,6 +107,8 @@ pub mod consts {
 	pub const TEST7_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST7.der");
 	pub const TEST8_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST8_PRODUCTION.der");
 
+	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("./ias-data/ra_dcap_dump_quote.ra");
+
 	// reproduce with integritee-service signing-key
 	pub const TEST4_SIGNER_PUB: &[u8; 32] =
 		include_bytes!("./ias-data/enclave-signing-pubkey-TEST4.bin");
