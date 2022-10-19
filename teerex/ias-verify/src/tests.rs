@@ -151,3 +151,24 @@ fn verify_sgx_build_mode_works() {
 	let report = report.unwrap();
 	assert_eq!(report.build_mode, SgxBuildMode::Production);
 }
+
+#[test]
+fn decode_qe_authentication_data() {
+	assert!(QeAuthenticationData::decode(&mut &[0u8][..]).is_err());
+	assert!(QeAuthenticationData::decode(&mut &[1u8][..]).is_err());
+	assert_eq!(0, QeAuthenticationData::decode(&mut &[0u8, 0][..]).unwrap().size);
+	let d = QeAuthenticationData::decode(&mut &[1u8, 0, 5][..]).unwrap();
+	assert_eq!(1, d.size);
+	assert_eq!(5, d.certification_data[0]);
+}
+
+#[test]
+fn decode_qe_certification_data() {
+	assert!(QeCertificationData::decode(&mut &[0u8][..]).is_err());
+	assert!(QeCertificationData::decode(&mut &[1u8, 0, 0, 0, 0][..]).is_err());
+	assert_eq!(0, QeCertificationData::decode(&mut &[0u8, 0, 0, 0, 0, 0][..]).unwrap().size);
+	let d = QeCertificationData::decode(&mut &[0u8, 0, 1, 0, 0, 0, 5][..]).unwrap();
+	assert_eq!(1, d.size);
+	assert_eq!(5, d.certification_data[0]);
+	assert!(QeCertificationData::decode(&mut &[0u8, 0, 2, 0, 0, 0, 5][..]).is_err());
+}
