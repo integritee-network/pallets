@@ -349,11 +349,11 @@ pub fn verify_dcap_quote(
 	);
 	println!("Authentication data: {}", q.quote_signature_data.qe_authentication_data.size);
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
-	const REPORT_SIZE: usize = std::mem::size_of::<SgxReportBody>();
+	const REPORT_SIZE: usize = core::mem::size_of::<SgxReportBody>();
 	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
-	let attestation_key_offset = std::mem::size_of::<DcapQuoteHeader>() +
+	let attestation_key_offset = core::mem::size_of::<DcapQuoteHeader>() +
 		REPORT_SIZE +
-		std::mem::size_of::<u32>() +
+		core::mem::size_of::<u32>() +
 		REPORT_SIGNATURE_SIZE;
 	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
 		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
@@ -362,7 +362,7 @@ pub fn verify_dcap_quote(
 		ATTESTATION_KEY_SIZE +
 		REPORT_SIZE +
 		REPORT_SIGNATURE_SIZE +
-		std::mem::size_of::<u16>();
+		core::mem::size_of::<u16>();
 	hash_data[ATTESTATION_KEY_SIZE..].copy_from_slice(
 		&dcap_quote
 			[authentication_data_offset..(authentication_data_offset + AUTHENTICATION_DATA_SIZE)],
