@@ -284,6 +284,8 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 /// Wrapper to implemented parsing and verification traits on it.
 pub struct CertDer<'a>(&'a [u8]);
 
+/// Encode two 32-byte values in ASN.1 format
+/// This is meant for 256 bit ECC signatures or public keys
 pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
 	sequence.add(der::asn1::UIntRef::new(&data[0..32]).unwrap());
