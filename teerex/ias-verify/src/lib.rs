@@ -17,12 +17,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub extern crate alloc;
 use crate::netscape_comment::NetscapeComment;
+use alloc::string::String;
 use chrono::prelude::*;
 use codec::{Decode, Encode, Input};
 use frame_support::ensure;
 use ring::signature::{self};
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sp_std::{
 	convert::{TryFrom, TryInto},
@@ -35,6 +38,35 @@ mod netscape_comment;
 #[cfg(test)]
 mod tests;
 mod utils;
+
+#[derive(Serialize, Deserialize)]
+struct Tcb {
+	isvsvn: u16,
+}
+
+#[derive(Serialize, Deserialize)]
+struct TcbLevel {
+	tcb: Tcb,
+	tcbDate: String,
+	tcbStatus: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EnclaveIdentity {
+	id: String,
+	version: u16,
+	issue_date: String,
+	next_update: String,
+	tcb_evaluation_data_number: u16,
+	miscselect: String,
+	miscselect_mask: String,
+	attributes: String,
+	attributes_mask: String,
+	mrsigner: String,
+	isvprodid: u16,
+	tcb_levels: Vec<TcbLevel>,
+}
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
