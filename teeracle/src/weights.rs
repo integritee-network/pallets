@@ -27,24 +27,24 @@ pub trait WeightInfo {
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn add_to_whitelist() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 	fn remove_from_whitelist() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 	fn update_exchange_rate() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 }
 // For tests
 impl WeightInfo for () {
 	fn add_to_whitelist() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 	fn remove_from_whitelist() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 	fn update_exchange_rate() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 }
