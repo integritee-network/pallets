@@ -438,6 +438,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "der"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13dd2ae565c0a381dde7fade45fce95984c568bdcb4700a4fdbe3175e0380b2f"
+
+[[package]]
 name = "derive_more"
 version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -516,7 +522,7 @@ version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d69ae62e0ce582d56380743515fefaf1a8c70cec685d9677636d7e30ae9dc9"
 dependencies = [
- "der",
+ "der 0.5.1",
  "elliptic-curve",
  "rfc6979",
  "signature",
@@ -550,7 +556,7 @@ checksum = "25b477563c2bfed38a3b7a60964c49e058b2510ad3f12ba3483fd8f62c2306d6"
 dependencies = [
  "base16ct",
  "crypto-bigint",
- "der",
+ "der 0.5.1",
  "ff",
  "generic-array 0.14.6",
  "group",
@@ -1005,6 +1011,7 @@ version = "0.1.4"
 dependencies = [
  "base64",
  "chrono",
+ "der 0.6.0",
  "frame-support",
  "hex-literal",
  "parity-scale-codec",
@@ -2037,7 +2044,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08da66b8b0965a5555b6bd6639e68ccba85e1e2506f5fbb089e93f8a04e1a2d1"
 dependencies = [
- "der",
+ "der 0.5.1",
  "generic-array 0.14.6",
  "subtle",
  "zeroize",

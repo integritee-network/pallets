@@ -285,12 +285,14 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 pub struct CertDer<'a>(&'a [u8]);
 
 pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
-	let mut asn1 = vec![48u8, 70];
-	asn1.extend(&[02u8, 33, 00]);
-	asn1.extend(&data[0..32]);
-	asn1.extend(&[02u8, 33, 00]);
-	asn1.extend(&data[32..]);
-	asn1
+	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
+	sequence.add(der::asn1::UIntRef::new(&data[0..32]).unwrap());
+	sequence.add(der::asn1::UIntRef::new(&data[32..]).unwrap());
+	// 72 should be enough in all cases. 2x32 + 2x3 + 2
+	let mut asn1 = vec![0u8; 72];
+	let mut writer = der::SliceWriter::new(&mut asn1);
+	writer.encode(&sequence).expect("Should not fail");
+	writer.finish().unwrap().to_vec()
 }
 
 pub fn verify_dcap_quote(
@@ -511,11 +513,11 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
 
 pub fn verify_signature(
 	entity_cert: &webpki::EndEntityCert,
-	attestation_raw: &[u8],
+	data: &[u8],
 	signature: &[u8],
 	signature_algorithm: &SignatureAlgorithm,
 ) -> Result<(), &'static str> {
-	match entity_cert.verify_signature(signature_algorithm, attestation_raw, &signature) {
+	match entity_cert.verify_signature(signature_algorithm, data, &signature) {
 		Ok(()) => {
 			#[cfg(test)]
 			println!("IAS signature is valid");
