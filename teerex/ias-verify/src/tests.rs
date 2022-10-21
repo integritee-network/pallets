@@ -176,15 +176,16 @@ fn decode_qe_certification_data() {
 
 #[test]
 fn verify_qe_identity_signature() {
+	let certs = extract_certs(include_bytes!("../test/dcap/qe_identity_issuer_chain.pem"));
+	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
 	let json: EnclaveIdentitySigned =
 		serde_json::from_slice(include_bytes!("../test/dcap/qe_identity.json")).unwrap();
-	let cert = QE_IDENTITY_CERT.replace('\n', "");
-	let decoded_cert = base64::decode(&cert).unwrap();
-	let cert = webpki::EndEntityCert::from(decoded_cert.as_slice()).unwrap();
-	let json_data = serde_json::to_string(&json.enclave_identity).unwrap(); //.["enclaveIdentity"].to_string();
-	let signature = hex::decode(json.signature).unwrap(); //hex!("c0835a6106479254f42e4dd20aeec63d224c4e48eef758cbc75eea48150edf1c796e4ae364514e952fe5e6d39738d10de69d9116d42d09f6873ed4b177e06acf");
+	let json_data = serde_json::to_string(&json.enclave_identity).unwrap();
+	let signature = hex::decode(json.signature).unwrap();
 
-	let e = deserialize_enclave_identity(&json_data, &signature, &cert).unwrap();
+	let e = deserialize_enclave_identity(&json_data, &signature, &leaf_cert).unwrap();
 	assert_eq!(1, e.isvprodid);
 	assert_eq!(5, e.tcb_levels.len());
 }
