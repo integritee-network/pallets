@@ -177,13 +177,13 @@ fn decode_qe_certification_data() {
 #[test]
 fn verify_qe_identity_signature() {
 	let cert = QE_IDENTITY_CERT.replace('\n', "");
-	let first_cert = base64::decode(&cert).unwrap();
-	let cert = webpki::EndEntityCert::from(first_cert.as_slice()).unwrap();
+	let decoded_cert = base64::decode(&cert).unwrap();
+	let cert = webpki::EndEntityCert::from(decoded_cert.as_slice()).unwrap();
 	let data = r#"{"id":"QE","version":2,"issueDate":"2022-10-18T21:55:07Z","nextUpdate":"2022-11-17T21:55:07Z","tcbEvaluationDataNumber":12,"miscselect":"00000000","miscselectMask":"FFFFFFFF","attributes":"11000000000000000000000000000000","attributesMask":"FBFFFFFFFFFFFFFF0000000000000000","mrsigner":"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF","isvprodid":1,"tcbLevels":[{"tcb":{"isvsvn":6},"tcbDate":"2021-11-10T00:00:00Z","tcbStatus":"UpToDate"},{"tcb":{"isvsvn":5},"tcbDate":"2020-11-11T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":4},"tcbDate":"2019-11-13T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":2},"tcbDate":"2019-05-15T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":1},"tcbDate":"2018-08-15T00:00:00Z","tcbStatus":"OutOfDate"}]}"#;
 	let signature = hex!("c0835a6106479254f42e4dd20aeec63d224c4e48eef758cbc75eea48150edf1c796e4ae364514e952fe5e6d39738d10de69d9116d42d09f6873ed4b177e06acf");
-	let signature = as_asn1(&signature);
-	let data_bytes = data.as_bytes();
-	verify_signature(&cert, data_bytes, &signature, &webpki::ECDSA_P256_SHA256).unwrap();
+	let e = deserialize_enclave_identity(data, &signature, &cert).unwrap();
+	assert_eq!(1, e.isvprodid);
+	assert_eq!(5, e.tcb_levels.len());
 }
 
 #[test]
@@ -196,12 +196,4 @@ fn verify_tcb_info_signature() {
 	let signature = as_asn1(&signature);
 	let data_bytes = data.as_bytes();
 	verify_signature(&cert, data_bytes, &signature, &webpki::ECDSA_P256_SHA256).unwrap();
-}
-
-#[test]
-fn parse_enclave_identity() {
-	let data = r#"{"id":"QE","version":2,"issueDate":"2022-10-17T21:52:50Z","nextUpdate":"2022-11-16T21:52:50Z","tcbEvaluationDataNumber":12,"miscselect":"00000000","miscselectMask":"FFFFFFFF","attributes":"11000000000000000000000000000000","attributesMask":"FBFFFFFFFFFFFFFF0000000000000000","mrsigner":"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF","isvprodid":1,"tcbLevels":[{"tcb":{"isvsvn":6},"tcbDate":"2021-11-10T00:00:00Z","tcbStatus":"UpToDate"},{"tcb":{"isvsvn":5},"tcbDate":"2020-11-11T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":4},"tcbDate":"2019-11-13T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":2},"tcbDate":"2019-05-15T00:00:00Z","tcbStatus":"OutOfDate"},{"tcb":{"isvsvn":1},"tcbDate":"2018-08-15T00:00:00Z","tcbStatus":"OutOfDate"}]}"#;
-	let p: EnclaveIdentity = serde_json::from_str(data).unwrap();
-	assert_eq!(1, p.isvprodid);
-	assert_eq!(5, p.tcb_levels.len());
 }

@@ -40,12 +40,12 @@ mod tests;
 mod utils;
 
 #[derive(Serialize, Deserialize)]
-struct Tcb {
+pub struct Tcb {
 	isvsvn: u16,
 }
 
 #[derive(Serialize, Deserialize)]
-struct TcbLevel {
+pub struct TcbLevel {
 	tcb: Tcb,
 	tcbDate: String,
 	tcbStatus: String,
@@ -53,7 +53,7 @@ struct TcbLevel {
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct EnclaveIdentity {
+pub struct EnclaveIdentity {
 	id: String,
 	version: u16,
 	issue_date: String,
@@ -329,6 +329,45 @@ pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
 	writer.finish().unwrap().to_vec()
 }
 
+pub fn deserialize_enclave_identity(
+	data: &str,
+	signature: &[u8; 64],
+	certificate: &webpki::EndEntityCert,
+) -> Result<EnclaveIdentity, &'static str> {
+	let signature = as_asn1(signature);
+	verify_signature(&certificate, data.as_bytes(), &signature, &webpki::ECDSA_P256_SHA256)?;
+	serde_json::from_str(data).map_err(|_| "Deserialization failed")
+}
+
+pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
+	let certs_concat = String::from_utf8_lossy(&cert_chain);
+	let certs_concat = certs_concat.replace('\n', "");
+	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
+	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
+	let parts = parts
+		.filter(|p| p.len() > 0)
+		.map(|p| {
+			println!("{:X?}", p.len());
+			base64::decode(&p).unwrap()
+		})
+		.collect();
+	parts
+}
+
+pub fn verify_certificate_chain<'a>(
+	first_cert: &'a [u8],
+	intermediate_certs: &[&[u8]],
+	verification_time: u64,
+) -> Result<webpki::EndEntityCert<'a>, &'static str> {
+	let first_cert: webpki::EndEntityCert = webpki::EndEntityCert::from(first_cert).unwrap();
+	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
+	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
+	first_cert
+		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_certs, time)
+		.unwrap();
+	Ok(first_cert)
+}
+
 pub fn verify_dcap_quote(
 	dcap_quote: &[u8],
 	verification_time: u64,
@@ -345,32 +384,13 @@ pub fn verify_dcap_quote(
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
 	let ra_status = SgxStatus::Ok;
-	let ra_timestamp: u64 = verification_time;
-	let cert_data = q.quote_signature_data.qe_certification_data.certification_data;
-	let certs_concat = String::from_utf8_lossy(&cert_data);
-	let certs_concat = certs_concat.replace('\n', "");
-	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
-	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
-	let first_cert = parts.next().unwrap();
-	let first_cert = base64::decode(&first_cert).unwrap();
-	let first_cert: webpki::EndEntityCert =
-		webpki::EndEntityCert::from(first_cert.as_slice()).unwrap();
+	let certs = extract_certs(&q.quote_signature_data.qe_certification_data.certification_data);
+	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
 
-	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
-	let intermediate_certs: Vec<Vec<u8>> = parts
-		.filter(|p| p.len() > 0)
-		.map(|p| {
-			println!("{:X?}", p.len());
-			base64::decode(&p).unwrap()
-		})
-		.collect();
-	let intermediate_slices: Vec<&[u8]> = intermediate_certs.iter().map(Vec::as_slice).collect();
-
-	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
+	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, verification_time).unwrap();
 	println!("Intermediate: {}", intermediate_slices[1..2].len());
-	first_cert
-		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_slices, time)
-		.unwrap();
 	println!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
 	let isv_report_slice = &dcap_quote[0..(48 + 384)];
 
@@ -426,7 +446,7 @@ pub fn verify_dcap_quote(
 	let asn1_signature = as_asn1(&q.quote_signature_data.qe_report_signature);
 	println!("Signature encoded len: {:?}", asn1_signature.len());
 	println!("Signature encoded: {:X?}", asn1_signature);
-	verify_signature(&first_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
+	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
 		.unwrap();
 
 	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
@@ -434,7 +454,7 @@ pub fn verify_dcap_quote(
 		mr_enclave: q.body.mr_enclave,
 		status: ra_status,
 		pubkey: xt_signer_array,
-		timestamp: ra_timestamp,
+		timestamp: verification_time,
 		build_mode: q.body.sgx_build_mode(),
 	};
 	Ok(report)
