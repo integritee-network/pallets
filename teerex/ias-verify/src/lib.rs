@@ -68,6 +68,13 @@ pub struct EnclaveIdentity {
 	tcb_levels: Vec<TcbLevel>,
 }
 
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnclaveIdentitySigned {
+	enclave_identity: EnclaveIdentity,
+	signature: String,
+}
+
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
@@ -318,7 +325,10 @@ pub struct CertDer<'a>(&'a [u8]);
 
 /// Encode two 32-byte values in ASN.1 format
 /// This is meant for 256 bit ECC signatures or public keys
-pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
+pub fn as_asn1(data: &[u8]) -> Vec<u8> {
+	if data.len() != 64 {
+		return vec![]
+	}
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
 	sequence.add(der::asn1::UIntRef::new(&data[0..32]).unwrap());
 	sequence.add(der::asn1::UIntRef::new(&data[32..]).unwrap());
@@ -331,7 +341,7 @@ pub fn as_asn1(data: &[u8; 64]) -> Vec<u8> {
 
 pub fn deserialize_enclave_identity(
 	data: &str,
-	signature: &[u8; 64],
+	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
 ) -> Result<EnclaveIdentity, &'static str> {
 	let signature = as_asn1(signature);
