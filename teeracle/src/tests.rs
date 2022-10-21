@@ -39,11 +39,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_enclave(
-		Origin::signed(signer.clone()),
-		TEST4_CERT.to_vec(),
-		URL.to_vec()
-	));
+	assert_ok!(Teerex::register_enclave(Origin::signed(signer), TEST4_CERT.to_vec(), URL.to_vec()));
 	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
 	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
 }
@@ -101,13 +97,10 @@ fn get_existing_exchange_rate_works() {
 #[test]
 fn get_inexisting_exchange_rate_is_zero() {
 	new_test_ext().execute_with(|| {
-		assert_eq!(
-			ExchangeRates::<Test>::contains_key(
-				DOT_USD_TRADING_PAIR.to_owned(),
-				COINGECKO_SRC.to_owned()
-			),
-			false
-		);
+		assert!(!ExchangeRates::<Test>::contains_key(
+			DOT_USD_TRADING_PAIR.to_owned(),
+			COINGECKO_SRC.to_owned()
+		));
 		assert_eq!(
 			Exchange::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
 			U32F32::from_num(0)
@@ -129,13 +122,10 @@ fn update_exchange_rate_to_none_delete_exchange_rate() {
 			DOT_USD_TRADING_PAIR.to_owned(),
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(
-			ExchangeRates::<Test>::contains_key(
-				DOT_USD_TRADING_PAIR.to_owned(),
-				COINGECKO_SRC.to_owned()
-			),
-			false
-		);
+		assert!(!ExchangeRates::<Test>::contains_key(
+			DOT_USD_TRADING_PAIR.to_owned(),
+			COINGECKO_SRC.to_owned()
+		));
 	})
 }
 
@@ -154,13 +144,10 @@ fn update_exchange_rate_to_zero_delete_exchange_rate() {
 		));
 
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(
-			ExchangeRates::<Test>::contains_key(
-				DOT_USD_TRADING_PAIR.to_owned(),
-				COINGECKO_SRC.to_owned()
-			),
-			false
-		);
+		assert!(!ExchangeRates::<Test>::contains_key(
+			DOT_USD_TRADING_PAIR.to_owned(),
+			COINGECKO_SRC.to_owned()
+		));
 	})
 }
 

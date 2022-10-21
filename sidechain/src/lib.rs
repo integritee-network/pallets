@@ -188,7 +188,7 @@ impl<T: Config> Pallet<T> {
 			let confirmation =
 				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
-			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
+			Self::finalize_block(shard_id, confirmation, sender, sender_index);
 			latest_confirmation = confirmation;
 
 			latest_block_number = latest_confirmation.block_number;

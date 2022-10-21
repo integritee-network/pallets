@@ -9,8 +9,8 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
+hex-literal = { version = "0.3.2" }
 log = { version = "0.4.14", default-features = false }
-hex-literal = { version = "0.3.2"}
 
 [dependencies.teerex-primitives]
 default-features = false

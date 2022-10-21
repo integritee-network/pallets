@@ -30,7 +30,7 @@ use sp_std::borrow::ToOwned;
 use teeracle_primitives::{MarketDataSourceString, TradingPairString};
 use test_utils::{
 	get_signer,
-	ias::{consts::*, ias::*},
+	ias::{consts::*, setups::*},
 };
 
 fn ensure_not_skipping_ra_check() {
@@ -45,9 +45,9 @@ benchmarks! {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
-		let trading_pair: TradingPairString =  "DOT/USD".to_owned().into();
+		let trading_pair: TradingPairString =  "DOT/USD".into();
 		let rate = U32F32::from_num(43.65);
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned().into();
+		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -65,7 +65,7 @@ benchmarks! {
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned().into();
+		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
@@ -74,7 +74,7 @@ benchmarks! {
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned().into();
+		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
 
 		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 

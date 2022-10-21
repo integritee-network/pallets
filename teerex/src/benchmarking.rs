@@ -28,7 +28,7 @@ use sp_runtime::traits::CheckedConversion;
 use sp_std::vec;
 use test_utils::{
 	get_signer,
-	ias::{consts::*, ias::*},
+	ias::{consts::*, setups::*},
 };
 
 fn ensure_not_skipping_ra_check() {
@@ -110,8 +110,9 @@ benchmarks! {
 
 		let block_hash: H256 = [2; 32].into();
 		let merkle_root: H256 = [4; 32].into();
+		let block_number: u32 = 0;
 
-	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, merkle_root)
+	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, block_number.into(), merkle_root)
 }
 
 #[cfg(test)]

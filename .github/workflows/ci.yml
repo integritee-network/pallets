@@ -35,10 +35,10 @@ jobs:
                  cargo test --all --features runtime-benchmarks,
                  cargo test --all --features skip-ias-check,
                  cargo fmt --all -- --check,
-#                 cargo clippy -- -D warnings Todo: Fix #10
+                 cargo clippy -- -D warnings
         ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # With rustup's nice new toml format, we just need to run rustup show to install the toolchain
       # https://github.com/actions-rs/toolchain/issues/126#issuecomment-782989659
@@ -51,3 +51,37 @@ jobs:
 
       - name: ${{ matrix.check }}
         run: ${{ matrix.check }}
+
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install cargo-about
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-about
+          version: "0.5"
+
+      - name: Run license check
+        run: cargo about generate about.hbs > license.html
+
+      - name: Archive license file
+        uses: actions/upload-artifact@v3
+        with:
+          name: license
+          path: license.html
+
+  cargo-toml-fmt:
+    runs-on: ubuntu-latest
+    container: "tamasfe/taplo:0.7.0-alpine"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Taplo fmt
+        run: taplo fmt --check
+
+      - name: Fail-fast; cancel other jobs
+        if: failure()
+        uses: andymckay/cancel-action@0.2
+
