@@ -47,11 +47,7 @@ benchmarks! {
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".into();
 		let rate = U32F32::from_num(43.65);
-<<<<<<< HEAD
 		let data_source: DataSource = "https://api.coingecko.com".to_owned();
-=======
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
->>>>>>> master
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -91,11 +87,7 @@ benchmarks! {
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-<<<<<<< HEAD
 		let data_source: DataSource = "https://api.coingecko.com".to_owned();
-=======
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
->>>>>>> master
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
@@ -104,11 +96,7 @@ benchmarks! {
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-<<<<<<< HEAD
 		let data_source: DataSource = "https://api.coingecko.com".to_owned();
-=======
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".into();
->>>>>>> master
 
 		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
