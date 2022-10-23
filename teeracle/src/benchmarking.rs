@@ -21,13 +21,13 @@
 
 use super::*;
 
-use crate::Pallet as Exchange;
+use crate::Pallet as Teeracle;
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::borrow::ToOwned;
-use teeracle_primitives::{MarketDataSourceString, TradingPairString};
+use teeracle_primitives::{DataSource, TradingPairString, OracleDataName};
 use test_utils::{
 	get_signer,
 	ias::{consts::*, setups::*},
@@ -47,7 +47,7 @@ benchmarks! {
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".to_owned();
 		let rate = U32F32::from_num(43.65);
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".to_owned();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -56,31 +56,53 @@ benchmarks! {
 			URL.to_vec()
 		).unwrap();
 		let mrenclave = Teerex::<T>::enclave(1).unwrap().mr_enclave;
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
 	}: _(RawOrigin::Signed(signer), data_source.clone(), trading_pair.clone(), Some(rate))
 	verify {
-		assert_eq!(Exchange::<T>::exchange_rate(trading_pair, data_source), U32F32::from_num(43.65));
+		assert_eq!(Teeracle::<T>::exchange_rate(trading_pair, data_source), U32F32::from_num(43.65));
+	}
+
+	update_oracle {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
+		let oracle_name = OracleDataName::from("Test_Oracle_Name");
+		let data_source = DataSource::from("Test_Source_Name");
+		let oracle_blob: crate::OracleDataBlob<T> =
+			vec![1].try_into().expect("Can Convert to OracleDataBlob<T>; QED");
+		// simply register the enclave before to make sure it already
+		// exists when running the benchmark
+		Teerex::<T>::register_enclave(
+			RawOrigin::Signed(signer.clone()).into(),
+			TEST4_SETUP.cert.to_vec(),
+			URL.to_vec()
+		).unwrap();
+		let mrenclave = Teerex::<T>::enclave(1).unwrap().mr_enclave;
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+	}: _(RawOrigin::Signed(signer), oracle_name.clone(), data_source.clone(), oracle_blob.clone())
+	verify {
+		assert_eq!(Teeracle::<T>::oracle_data(oracle_name, data_source), oracle_blob);
 	}
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".to_owned();
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist(data_source).len(), 1, "mrenclave not added to whitelist")
+		assert_eq!(Teeracle::<T>::whitelist(data_source).len(), 1, "mrenclave not added to whitelist")
 	}
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: MarketDataSourceString = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".to_owned();
 
-		Exchange::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
-		assert_eq!(Exchange::<T>::whitelist(data_source).len(), 0, "mrenclave not removed from whitelist")
+		assert_eq!(Teeracle::<T>::whitelist(data_source).len(), 0, "mrenclave not removed from whitelist")
 	}
 }
 
