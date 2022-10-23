@@ -33,10 +33,7 @@
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
 pub use substrate_fixed::types::U32F32;
-use teeracle_primitives::{
-	DataSource,
-	MAX_ORACLE_DATA_NAME_LEN
-};
+use teeracle_primitives::{DataSource, MAX_ORACLE_DATA_NAME_LEN};
 
 const MAX_TRADING_PAIR_LEN: usize = 11;
 const MAX_SOURCE_LEN: usize = 40;
@@ -44,7 +41,7 @@ const MAX_SOURCE_LEN: usize = 40;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::{pallet_prelude::*, WeakBoundedVec, BoundedVec};
+	use frame_support::{pallet_prelude::*, BoundedVec, WeakBoundedVec};
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
 	use teeracle_primitives::*;
@@ -195,10 +192,7 @@ pub mod pallet {
 				oracle_name.len() <= MAX_ORACLE_DATA_NAME_LEN,
 				Error::<T>::OracleDataNameStringTooLong
 			);
-			ensure!(
-				data_source.len() <= MAX_SOURCE_LEN,
-				Error::<T>::DataSourceStringTooLong
-			);
+			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
 			ensure!(
 				new_blob.len() as u32 <= T::MaxOracleBlobLen::get(),
 				Error::<T>::OracleBlobTooBig

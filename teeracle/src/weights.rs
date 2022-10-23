@@ -37,7 +37,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 		Weight::from_ref_time(46_200_000)
 	}
 	fn update_oracle() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 }
 // For tests
@@ -52,6 +52,6 @@ impl WeightInfo for () {
 		Weight::from_ref_time(46_200_000)
 	}
 	fn update_oracle() -> Weight {
-		46_200_000 as Weight
+		Weight::from_ref_time(46_200_000)
 	}
 }

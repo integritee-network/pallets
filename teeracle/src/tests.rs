@@ -15,12 +15,12 @@
 
 */
 use crate::{mock::*, ExchangeRates};
-use frame_support::{assert_err, assert_ok, assert_noop};
-use teeracle_primitives::*;
+use frame_support::{assert_err, assert_noop, assert_ok};
 use hex_literal::hex;
 use pallet_teerex::Error;
 use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
+use teeracle_primitives::*;
 use test_utils::ias::consts::{
 	TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST5_MRENCLAVE,
 	TEST5_SIGNER_PUB, TEST8_MRENCLAVE, URL,
@@ -86,29 +86,26 @@ fn update_exchange_rate_works() {
 fn update_oracle_works() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		register_enclave_and_add_oracle_to_whitelist_ok(
-			&DataSource::from("Test_Source_Name")
-		);
+		register_enclave_and_add_oracle_to_whitelist_ok(&DataSource::from("Test_Source_Name"));
 		let oracle_blob: crate::OracleDataBlob<Test> =
 			vec![1].try_into().expect("Can Convert to BoundedVec; QED");
-		assert_ok!(
-			Teeracle::update_oracle(
-				Origin::signed(signer),
-				OracleDataName::from("Test_Oracle_Name"),
-				DataSource::from("Test_Source_Name"),
-				oracle_blob.clone()
-			),
-		);
+		assert_ok!(Teeracle::update_oracle(
+			Origin::signed(signer),
+			OracleDataName::from("Test_Oracle_Name"),
+			DataSource::from("Test_Source_Name"),
+			oracle_blob.clone()
+		),);
 		let expected_event = Event::Teeracle(crate::Event::OracleUpdated(
 			OracleDataName::from("Test_Oracle_Name"),
-			DataSource::from("Test_Source_Name")
+			DataSource::from("Test_Source_Name"),
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert_eq!(
 			Teeracle::oracle_data(
 				OracleDataName::from("Test_Oracle_Name"),
-				DataSource::from("Test_Source_Name")),
+				DataSource::from("Test_Source_Name")
+			),
 			oracle_blob
 		);
 	})
@@ -200,7 +197,6 @@ fn update_exchange_rate_from_not_registered_enclave_fails() {
 		);
 	})
 }
-
 
 #[test]
 fn update_oracle_from_not_registered_enclave_fails() {
