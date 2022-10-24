@@ -32,6 +32,7 @@ use sp_std::{
 	prelude::*,
 };
 use webpki::SignatureAlgorithm;
+use x509_cert::crl::CertificateList;
 
 mod ephemeral_key;
 mod netscape_comment;
@@ -347,6 +348,12 @@ pub fn deserialize_enclave_identity(
 	let signature = as_asn1(signature);
 	verify_signature(&certificate, data.as_bytes(), &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_str(data).map_err(|_| "Deserialization failed")
+}
+
+pub fn parse_crl(crl_data: &str) -> usize {
+	let cert = hex::decode(crl_data).unwrap();
+	let crl: CertificateList = der::Decode::from_der(&cert).unwrap();
+	crl.tbs_cert_list.revoked_certificates.unwrap().len()
 }
 
 pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {

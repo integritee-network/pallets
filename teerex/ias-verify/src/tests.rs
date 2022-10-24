@@ -2,6 +2,8 @@ use super::*;
 use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
+use x509_cert::crl::CertificateList;
+
 // reproduce with "integritee_service dump_ra"
 const TEST1_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER1_MRENCLAVE1.der");
 const TEST2_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER2_MRENCLAVE2.der");
@@ -32,6 +34,7 @@ const TEST5_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-T
 const TEST6_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST6.bin");
 const TEST7_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST7.bin");
 const QE_IDENTITY_CERT: &str = include_str!("../test/dcap/qe_identity_cert.pem");
+const PCK_CRL: &str = include_str!("../test/dcap/pck_crl.der");
 
 // reproduce with "make mrenclave" in worker repo root
 const TEST1_MRENCLAVE: &[u8] = &[
@@ -200,4 +203,18 @@ fn verify_tcb_info_signature() {
 	let signature = as_asn1(&signature);
 	let data_bytes = data.as_bytes();
 	verify_signature(&cert, data_bytes, &signature, &webpki::ECDSA_P256_SHA256).unwrap();
+}
+
+#[test]
+fn parse_pck_crl() {
+	let crl = parse_crl(&PCK_CRL);
+	assert_eq!(3, crl);
+	/*println!("Issuer: {:?}", &crl.tbs_cert_list.issuer.to_string());
+	println!("This Update: {:?}", &crl.tbs_cert_list.this_update.to_string());
+	println!("Next Update: {:?}", &crl.tbs_cert_list.next_update.unwrap().to_string());
+	let revoked_certs = crl.tbs_cert_list.revoked_certificates.unwrap();
+	assert_eq!(3, revoked_certs.len());
+	for c in &revoked_certs {
+		println!("Serial: {:?}", &c.serial_number);
+	}*/
 }
