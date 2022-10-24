@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
+use crate::{mock::*, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
 use test_utils::ias::consts::*;
@@ -39,7 +39,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 			Origin::signed(signer7.clone()),
 			shard7,
 			1,
-			2,
+			1,
 			hash
 		));
 
@@ -90,100 +90,6 @@ fn confirm_imported_sidechain_block_correct_order() {
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_ok!(confirm_block7(5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
-	})
-}
-
-#[test]
-fn confirm_imported_sidechain_first_imported_block() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_enclave7();
-
-		let hash_block_3 = H256::random();
-
-		assert_ok!(confirm_block7(1, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		// Queue block number 3. Should not be imported right now, because confirmation of block number 2 is missing
-		assert_ok!(confirm_block7(3, hash_block_3, false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		// Queue another block with number 3. Should not be imported at all, because it was not the first one
-		assert_ok!(confirm_block7(3, H256::random(), false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		// Queue block number 2. Block number 3 should now be confirmed as well.
-		assert_ok!(confirm_block7(2, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7).block_header_hash,
-			hash_block_3
-		);
-	})
-}
-
-#[test]
-fn confirm_imported_sidechain_block_wrong_order() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_enclave7();
-
-		assert_ok!(confirm_block7(1, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(4, H256::random(), false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(3, H256::random(), false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(2, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
-		assert_ok!(confirm_block7(5, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
-	})
-}
-
-#[test]
-fn confirm_imported_sidechain_block_too_late() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_enclave7();
-
-		assert_ok!(confirm_block7(1, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(2, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_ok!(confirm_block7(3, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
-		assert_ok!(confirm_block7(4, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
-		assert_err!(confirm_block7(2, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
-		assert_err!(confirm_block7(3, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
-	})
-}
-
-#[test]
-fn confirm_imported_sidechain_block_far_too_early() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_enclave7();
-
-		assert_ok!(confirm_block7(1, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(2, H256::random(), true));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_ok!(confirm_block7(2 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_err!(
-			confirm_block7(3 + EARLY_BLOCK_PROPOSAL_LENIENCE, H256::random(), false),
-			Error::<Test>::BlockNumberTooHigh
-		);
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 	})
 }
 
@@ -239,7 +145,7 @@ fn confirm_block(
 		Origin::signed(signer7.clone()),
 		shard7,
 		block_number,
-		block_number + 1,
+		block_number,
 		block_header_hash,
 	)?;
 
