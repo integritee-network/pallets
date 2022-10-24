@@ -217,7 +217,7 @@ impl<T: Config> Pallet<T> {
 				next_finalization_candidate_block_number,
 			));
 
-			if !vec.contains(&next_finalization_candidate_block_number) {
+			if !vec.contains(next_finalization_candidate_block_number) {
 				return Err(<Error<T>>::ReceivedUnexpectedSidechainBlock.into())
 			}
 			Self::finalize_block(shard_id, confirmation, sender, sender_index);
@@ -236,9 +236,7 @@ impl<T: Config> Pallet<T> {
 				vec.push(next_finalization_candidate_block_number);
 			},
 			Err(_) => {
-				let mut vec = Vec::new();
-				vec.push(next_finalization_candidate_block_number);
-
+				let vec = vec![next_finalization_candidate_block_number];
 				<SidechainBlockFinalizationCandidates<T>>::insert(shard_id, vec);
 			},
 		}
