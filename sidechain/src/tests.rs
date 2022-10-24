@@ -39,7 +39,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 			Origin::signed(signer7.clone()),
 			shard7,
 			1,
-			1,
+			2,
 			hash
 		));
 
@@ -64,7 +64,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 				Origin::signed(signer7),
 				shard4,
 				1,
-				1,
+				2,
 				hash
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
@@ -239,7 +239,7 @@ fn confirm_block(
 		Origin::signed(signer7.clone()),
 		shard7,
 		block_number,
-		1,
+		block_number + 1,
 		block_header_hash,
 	)?;
 

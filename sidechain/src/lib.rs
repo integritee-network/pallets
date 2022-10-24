@@ -79,6 +79,10 @@ pub mod pallet {
 	pub type SidechainBlockConfirmationQueue<T: Config> =
 		StorageMap<_, Blake2_128Concat, ShardBlockNumber, SidechainBlockConfirmation, ValueQuery>;
 
+	#[pallet::storage]
+	pub type SidechainBlockFinalizationCandidates<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, Vec<u64>, ValueQuery>;
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// The integritee worker calls this function for every imported sidechain_block.
@@ -87,7 +91,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			shard_id: ShardIdentifier,
 			block_number: u64,
-			block_number_diff: u64,
+			next_finalization_candidate_block_number: u64,
 			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
@@ -119,19 +123,16 @@ pub mod pallet {
 			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
 				// Block is far too early and hence refused.
 				return Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number >
-				Self::add_to_block_number(latest_block_number, block_number_diff)?
-			{
+			} else if block_number > next_finalization_candidate_block_number {
 				// Block is too early and stored in the queue for later import.
 				if !<SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number)) {
 					<SidechainBlockConfirmationQueue<T>>::insert(
 						(shard_id, block_number),
 						confirmation,
 					);
+					Self::insert_candidate(shard_id, next_finalization_candidate_block_number);
 				}
-			} else if block_number ==
-				Self::add_to_block_number(latest_block_number, block_number_diff)?
-			{
+			} else if block_number == next_finalization_candidate_block_number {
 				Self::finalize_block(shard_id, confirmation, &sender, sender_index);
 				latest_confirmation = confirmation;
 
@@ -140,7 +141,6 @@ pub mod pallet {
 					&sender,
 					sender_index,
 					latest_confirmation,
-					block_number_diff,
 				)?;
 			} else if block_number > latest_block_number {
 				// Block does not belong to the finalized ones.
@@ -188,41 +188,68 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		sender_index: u64,
 		mut latest_confirmation: SidechainBlockConfirmation,
-		block_number_diff: u64,
 	) -> DispatchResultWithPostInfo {
 		let mut latest_block_number = latest_confirmation.block_number;
-		let mut expected_block_number =
-			Self::add_to_block_number(latest_block_number, block_number_diff)?;
-		let lenience = T::EarlyBlockProposalLenience::get();
-		let mut i: u64 = 0;
-		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
-			i < lenience
-		{
+		loop {
+			let mut vec = <SidechainBlockFinalizationCandidates<T>>::get(shard_id);
+			let next_finalization_candidate_block_number = match vec.iter().min() {
+				Some(n) => n,
+				None => return Ok(().into()),
+			};
+			let lenience = T::EarlyBlockProposalLenience::get();
+			if next_finalization_candidate_block_number - latest_block_number > lenience {
+				return Err(<Error<T>>::BlockNumberTooHigh.into())
+			}
+			if !<SidechainBlockConfirmationQueue<T>>::contains_key((
+				shard_id,
+				next_finalization_candidate_block_number,
+			)) {
+				return Ok(().into())
+			}
 			Self::check_queue_is_empty_until_expected_block(
 				shard_id,
 				latest_block_number,
-				block_number_diff,
+				*next_finalization_candidate_block_number,
 			)?;
-			let confirmation =
-				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
 
+			let confirmation = <SidechainBlockConfirmationQueue<T>>::take((
+				shard_id,
+				next_finalization_candidate_block_number,
+			));
+
+			if !vec.contains(&next_finalization_candidate_block_number) {
+				return Err(<Error<T>>::ReceivedUnexpectedSidechainBlock.into())
+			}
 			Self::finalize_block(shard_id, confirmation, sender, sender_index);
+			let index =
+				vec.iter().position(|x| x == next_finalization_candidate_block_number).unwrap();
+			vec.remove(index);
 			latest_confirmation = confirmation;
 
 			latest_block_number = latest_confirmation.block_number;
-			expected_block_number =
-				Self::add_to_block_number(latest_block_number, block_number_diff)?;
-			i = Self::add_to_block_number(i, 1)?;
 		}
-		Ok(().into())
+	}
+
+	fn insert_candidate(shard_id: ShardIdentifier, next_finalization_candidate_block_number: u64) {
+		match <SidechainBlockFinalizationCandidates<T>>::try_get(shard_id) {
+			Ok(mut vec) => {
+				vec.push(next_finalization_candidate_block_number);
+			},
+			Err(_) => {
+				let mut vec = Vec::new();
+				vec.push(next_finalization_candidate_block_number);
+
+				<SidechainBlockFinalizationCandidates<T>>::insert(shard_id, vec);
+			},
+		}
 	}
 
 	fn check_queue_is_empty_until_expected_block(
 		shard_id: ShardIdentifier,
 		latest_block_number: u64,
-		block_number_diff: u64,
+		next_finalization_candidate_block_number: u64,
 	) -> DispatchResultWithPostInfo {
-		for i in 0..block_number_diff {
+		for i in latest_block_number..next_finalization_candidate_block_number {
 			let block_number_to_check = Self::add_to_block_number(latest_block_number, i)?;
 			if <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number_to_check))
 			{
