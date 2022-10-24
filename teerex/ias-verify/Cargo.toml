@@ -12,7 +12,7 @@ edition = "2021"
 base64 = { version = "0.13", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4", default-features = false }
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
-hex = "0.4.3"
+hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 serde = { default-features = false, version = "1.0.140" }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
