@@ -26,7 +26,6 @@ use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
-use sp_std::borrow::ToOwned;
 use teeracle_primitives::{MarketDataSourceString, TradingPairString};
 use test_utils::{
 	get_signer,

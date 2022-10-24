@@ -64,7 +64,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 				Origin::signed(signer7),
 				shard4,
 				1,
-				2,
+				1,
 				hash
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
