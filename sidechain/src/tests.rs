@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-use crate::{mock::*, Event as SidechainEvent, Teerex};
+use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
 use test_utils::ias::consts::*;
@@ -90,6 +90,47 @@ fn confirm_imported_sidechain_block_correct_order() {
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_ok!(confirm_block7(5, 6, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
+	})
+}
+
+#[test]
+fn confirm_imported_sidechain_block_wrong_next() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
+
+		register_enclave7();
+
+		assert_ok!(confirm_block7(1, 2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, 4, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_err!(
+			confirm_block7(3, 4, H256::random(), true),
+			Error::<Test>::ReceivedUnexpectedSidechainBlock
+		);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_ok!(confirm_block7(4, 5, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+	})
+}
+
+#[test]
+fn confirm_imported_sidechain_block_outdated() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
+
+		register_enclave7();
+
+		assert_ok!(confirm_block7(1, 2, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_ok!(confirm_block7(2, 4, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_err!(confirm_block7(2, 4, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_ok!(confirm_block7(4, 5, H256::random(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 	})
 }
 
