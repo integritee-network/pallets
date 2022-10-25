@@ -80,15 +80,15 @@ fn confirm_imported_sidechain_block_correct_order() {
 
 		register_enclave7();
 
-		assert_ok!(confirm_block7(1, H256::random(), true));
+		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
-		assert_ok!(confirm_block7(2, H256::random(), true));
+		assert_ok!(confirm_block7(2, 3, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_ok!(confirm_block7(3, H256::random(), true));
+		assert_ok!(confirm_block7(3, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
-		assert_ok!(confirm_block7(4, H256::random(), true));
+		assert_ok!(confirm_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
-		assert_ok!(confirm_block7(5, H256::random(), true));
+		assert_ok!(confirm_block7(5, 6, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 	})
 }
@@ -102,7 +102,7 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
 		register_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
 
-		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, H256::default(), false));
+		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
 	})
 }
@@ -125,17 +125,26 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_cou
 
 fn confirm_block7(
 	block_number: u64,
+	next_finalized_block_number: u64,
 	block_header_hash: H256,
 	check_for_event: bool,
 ) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	confirm_block(shard7, TEST7_SIGNER_PUB, block_number, block_header_hash, check_for_event)
+	confirm_block(
+		shard7,
+		TEST7_SIGNER_PUB,
+		block_number,
+		next_finalized_block_number,
+		block_header_hash,
+		check_for_event,
+	)
 }
 
 fn confirm_block(
 	shard7: H256,
 	signer_pub_key: &[u8; 32],
 	block_number: u64,
+	next_finalized_block_number: u64,
 	block_header_hash: H256,
 	check_for_event: bool,
 ) -> DispatchResultWithPostInfo {
@@ -145,7 +154,7 @@ fn confirm_block(
 		Origin::signed(signer7.clone()),
 		shard7,
 		block_number,
-		block_number,
+		next_finalized_block_number,
 		block_header_hash,
 	)?;
 
