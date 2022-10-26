@@ -113,14 +113,14 @@ pub mod pallet {
 			let finalization_candidate_block_number =
 				<SidechainBlockFinalizationCandidate<T>>::try_get(shard_id).unwrap_or(1);
 
-			<SidechainBlockFinalizationCandidate<T>>::insert(
-				shard_id,
-				next_finalization_candidate_block_number,
-			);
-
 			ensure!(
 				block_number == finalization_candidate_block_number,
 				<Error<T>>::ReceivedUnexpectedSidechainBlock
+			);
+
+			<SidechainBlockFinalizationCandidate<T>>::insert(
+				shard_id,
+				next_finalization_candidate_block_number,
 			);
 
 			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
