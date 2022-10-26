@@ -351,8 +351,11 @@ pub fn deserialize_enclave_identity(
 }
 
 pub fn parse_crl(crl_data: &str) -> usize {
-	let cert = hex::decode(crl_data).unwrap();
-	let crl: CertificateList = der::Decode::from_der(&cert).unwrap();
+	let crl_decoded = hex::decode(crl_data).unwrap();
+	let crl: CertificateList = der::Decode::from_der(&crl_decoded).unwrap();
+
+	log::warn!("{}", crl.signature.bit_len());
+	log::warn!("{}", crl.signature.unused_bits());
 	crl.tbs_cert_list.revoked_certificates.unwrap().len()
 }
 
@@ -361,13 +364,7 @@ pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	let certs_concat = certs_concat.replace('\n', "");
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
 	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
-	let parts = parts
-		.filter(|p| p.len() > 0)
-		.map(|p| {
-			println!("{:X?}", p.len());
-			base64::decode(&p).unwrap()
-		})
-		.collect();
+	let parts = parts.filter(|p| p.len() > 0).map(|p| base64::decode(&p).unwrap()).collect();
 	parts
 }
 
@@ -407,16 +404,16 @@ pub fn verify_dcap_quote(
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_slices, verification_time).unwrap();
-	println!("Intermediate: {}", intermediate_slices[1..2].len());
-	println!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
+	log::warn!("Intermediate: {}", intermediate_slices[1..2].len());
+	log::warn!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
 	let isv_report_slice = &dcap_quote[0..(48 + 384)];
 
-	println!("Report slice len: {}", isv_report_slice.len());
-	println!(
+	log::warn!("Report slice len: {}", isv_report_slice.len());
+	log::warn!(
 		"isv_enclave_report_signature: {:X?}",
 		q.quote_signature_data.isv_enclave_report_signature
 	);
-	println!("Authentication data: {}", q.quote_signature_data.qe_authentication_data.size);
+	log::warn!("Authentication data: {}", q.quote_signature_data.qe_authentication_data.size);
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const REPORT_SIZE: usize = core::mem::size_of::<SgxReportBody>();
 	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
@@ -441,10 +438,10 @@ pub fn verify_dcap_quote(
 		hash.as_ref() == &q.quote_signature_data.qe_report.report_data.d[0..32],
 		"Hashes must match"
 	);
-	println!("{:X?}", hash_data);
-	println!("{:X?}", hash);
-	println!("{:X?}", q.quote_signature_data.qe_report.report_data.d);
-	println!(
+	log::warn!("{:X?}", hash_data);
+	log::warn!("{:X?}", hash);
+	log::warn!("{:X?}", q.quote_signature_data.qe_report.report_data.d);
+	log::warn!(
 		"Certification data type: {:X?}",
 		q.quote_signature_data.qe_certification_data.certification_data_type
 	);
@@ -461,8 +458,8 @@ pub fn verify_dcap_quote(
 		.unwrap();
 
 	let asn1_signature = as_asn1(&q.quote_signature_data.qe_report_signature);
-	println!("Signature encoded len: {:?}", asn1_signature.len());
-	println!("Signature encoded: {:X?}", asn1_signature);
+	log::warn!("Signature encoded len: {:?}", asn1_signature.len());
+	log::warn!("Signature encoded: {:X?}", asn1_signature);
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
 		.unwrap();
 

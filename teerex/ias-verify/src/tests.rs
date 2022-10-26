@@ -209,12 +209,4 @@ fn verify_tcb_info_signature() {
 fn parse_pck_crl() {
 	let crl = parse_crl(&PCK_CRL);
 	assert_eq!(3, crl);
-	/*println!("Issuer: {:?}", &crl.tbs_cert_list.issuer.to_string());
-	println!("This Update: {:?}", &crl.tbs_cert_list.this_update.to_string());
-	println!("Next Update: {:?}", &crl.tbs_cert_list.next_update.unwrap().to_string());
-	let revoked_certs = crl.tbs_cert_list.revoked_certificates.unwrap();
-	assert_eq!(3, revoked_certs.len());
-	for c in &revoked_certs {
-		println!("Serial: {:?}", &c.serial_number);
-	}*/
 }

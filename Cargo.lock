@@ -1044,6 +1044,7 @@ dependencies = [
  "frame-support",
  "hex",
  "hex-literal",
+ "log",
  "parity-scale-codec",
  "ring 0.16.9",
  "scale-info",
