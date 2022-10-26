@@ -73,6 +73,7 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn sidechain_block_finalization_candidate)]
 	pub type SidechainBlockFinalizationCandidate<T: Config> =
 		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
 
@@ -108,8 +109,6 @@ pub mod pallet {
 				return Ok(().into())
 			}
 
-			let latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
-			let latest_block_number = latest_confirmation.block_number;
 			let block_number = confirmation.block_number;
 			let finalization_candidate_block_number =
 				<SidechainBlockFinalizationCandidate<T>>::try_get(shard_id).unwrap_or(1);
@@ -119,28 +118,18 @@ pub mod pallet {
 				next_finalization_candidate_block_number,
 			);
 
-			if block_number > finalization_candidate_block_number {
-				// Block is too early and hence refused.
-				Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number == finalization_candidate_block_number {
-				Self::finalize_block(shard_id, confirmation, &sender, sender_index);
-				Ok(().into())
-			} else if block_number > latest_block_number {
-				// Block does not belong to the finalized ones.
-				Err(<Error<T>>::ReceivedUnexpectedSidechainBlock.into())
-			} else {
-				// Block is too late and hence refused.
-				Err(<Error<T>>::OutdatedBlockNumber.into())
-			}
+			ensure!(
+				block_number == finalization_candidate_block_number,
+				<Error<T>>::ReceivedUnexpectedSidechainBlock
+			);
+
+			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
+			Ok(().into())
 		}
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// A proposed block is too early.
-		BlockNumberTooHigh,
-		/// A proposed block is too late and already outdated.
-		OutdatedBlockNumber,
 		/// A proposed block is unexpected.
 		ReceivedUnexpectedSidechainBlock,
 	}

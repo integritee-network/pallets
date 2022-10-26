@@ -33,13 +33,15 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
+		let block_number = 1;
+
 		register_enclave7();
 
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7,
-			1,
-			1,
+			block_number,
+			block_number,
 			hash
 		));
 
@@ -59,12 +61,14 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 
 		register_enclave7();
 
+		let block_number = 1;
+
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
 				Origin::signed(signer7),
 				shard4,
-				1,
-				1,
+				block_number,
+				block_number,
 				hash
 			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
@@ -82,14 +86,19 @@ fn confirm_imported_sidechain_block_correct_order() {
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
 		assert_ok!(confirm_block7(2, 3, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 3);
 		assert_ok!(confirm_block7(3, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_ok!(confirm_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
 		assert_ok!(confirm_block7(5, 6, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 6);
 	})
 }
 
@@ -103,15 +112,19 @@ fn confirm_imported_sidechain_block_wrong_next() {
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
 		assert_ok!(confirm_block7(2, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_err!(
 			confirm_block7(3, 4, H256::random(), true),
 			Error::<Test>::ReceivedUnexpectedSidechainBlock
 		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_ok!(confirm_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
 	})
 }
 
@@ -125,12 +138,19 @@ fn confirm_imported_sidechain_block_outdated() {
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
 		assert_ok!(confirm_block7(2, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
-		assert_err!(confirm_block7(2, 4, H256::random(), true), Error::<Test>::OutdatedBlockNumber);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
+		assert_err!(
+			confirm_block7(2, 4, H256::random(), true),
+			Error::<Test>::ReceivedUnexpectedSidechainBlock
+		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_ok!(confirm_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
 	})
 }
 
