@@ -405,19 +405,12 @@ pub fn verify_dcap_quote(
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_slices, verification_time).unwrap();
-	log::warn!("Intermediate: {}", intermediate_slices[1..2].len());
-	log::warn!("Public-key: {:X?}", q.quote_signature_data.ecdsa_attestation_key);
-	let isv_report_slice = &dcap_quote[0..(48 + 384)];
 
-	log::warn!("Report slice len: {}", isv_report_slice.len());
-	log::warn!(
-		"isv_enclave_report_signature: {:X?}",
-		q.quote_signature_data.isv_enclave_report_signature
-	);
-	log::warn!("Authentication data: {}", q.quote_signature_data.qe_authentication_data.size);
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
+	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
 	const REPORT_SIZE: usize = core::mem::size_of::<SgxReportBody>();
-	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
+	let isv_report_slice = &dcap_quote[0..(DCAP_QUOTE_HEADER_SIZE + REPORT_SIZE)];
+
 	let attestation_key_offset = core::mem::size_of::<DcapQuoteHeader>() +
 		REPORT_SIZE +
 		core::mem::size_of::<u32>() +
@@ -427,6 +420,7 @@ pub fn verify_dcap_quote(
 		REPORT_SIZE +
 		REPORT_SIGNATURE_SIZE +
 		core::mem::size_of::<u16>();
+	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
 	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
 		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
 	);
