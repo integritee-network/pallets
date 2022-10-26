@@ -46,10 +46,11 @@ pub struct Tcb {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TcbLevel {
 	tcb: Tcb,
-	tcbDate: String,
-	tcbStatus: String,
+	tcb_date: String,
+	tcb_status: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -421,14 +422,14 @@ pub fn verify_dcap_quote(
 		REPORT_SIZE +
 		core::mem::size_of::<u32>() +
 		REPORT_SIGNATURE_SIZE;
-	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
-		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
-	);
 	let authentication_data_offset = attestation_key_offset +
 		ATTESTATION_KEY_SIZE +
 		REPORT_SIZE +
 		REPORT_SIGNATURE_SIZE +
 		core::mem::size_of::<u16>();
+	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
+		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
+	);
 	hash_data[ATTESTATION_KEY_SIZE..].copy_from_slice(
 		&dcap_quote
 			[authentication_data_offset..(authentication_data_offset + AUTHENTICATION_DATA_SIZE)],
@@ -437,13 +438,6 @@ pub fn verify_dcap_quote(
 	ensure!(
 		hash.as_ref() == &q.quote_signature_data.qe_report.report_data.d[0..32],
 		"Hashes must match"
-	);
-	log::warn!("{:X?}", hash_data);
-	log::warn!("{:X?}", hash);
-	log::warn!("{:X?}", q.quote_signature_data.qe_report.report_data.d);
-	log::warn!(
-		"Certification data type: {:X?}",
-		q.quote_signature_data.qe_certification_data.certification_data_type
 	);
 
 	let qe_report_offset = attestation_key_offset + ATTESTATION_KEY_SIZE;
