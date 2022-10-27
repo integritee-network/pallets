@@ -132,18 +132,14 @@ impl pallet_teerex::Config for Test {
 	type MaxSilenceTime = MaxSilenceTime;
 }
 
-pub const EARLY_BLOCK_PROPOSAL_LENIENCE: u64 = 100;
-
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
-	pub const EarlyBlockProposalLenience: u64 = EARLY_BLOCK_PROPOSAL_LENIENCE;
 }
 
 impl Config for Test {
 	type Event = Event;
 	type WeightInfo = ();
-	type EarlyBlockProposalLenience = EarlyBlockProposalLenience;
 }
 
 // This function basically just builds a genesis storage key/value store according to
