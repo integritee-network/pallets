@@ -117,6 +117,10 @@ pub mod pallet {
 				block_number == finalization_candidate_block_number,
 				<Error<T>>::ReceivedUnexpectedSidechainBlock
 			);
+			ensure!(
+				next_finalization_candidate_block_number > finalization_candidate_block_number,
+				<Error<T>>::InvalidNextFinalizationCandidateBlockNumber
+			);
 
 			<SidechainBlockFinalizationCandidate<T>>::insert(
 				shard_id,
@@ -132,6 +136,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// A proposed block is unexpected.
 		ReceivedUnexpectedSidechainBlock,
+		/// The value for the next finalization candidate is invalid.
+		InvalidNextFinalizationCandidateBlockNumber,
 	}
 }
 
