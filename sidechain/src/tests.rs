@@ -26,7 +26,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 }
 
 #[test]
-fn confirm_imported_sidechain_block_works_for_correct_shard() {
+fn confirm_imported_sidechain_block_invalid_next_finalization_candidate() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let hash = H256::default();
@@ -37,11 +37,37 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 
 		register_enclave7();
 
+		assert_err!(
+			Sidechain::confirm_imported_sidechain_block(
+				Origin::signed(signer7.clone()),
+				shard7,
+				block_number,
+				block_number,
+				hash
+			),
+			Error::<Test>::InvalidNextFinalizationCandidateBlockNumber,
+		);
+	})
+}
+
+#[test]
+fn confirm_imported_sidechain_block_works_for_correct_shard() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let hash = H256::default();
+		let signer7 = get_signer(TEST7_SIGNER_PUB);
+		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
+
+		let block_number = 1;
+		let next_finalization_block_candidate = 20;
+
+		register_enclave7();
+
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			Origin::signed(signer7.clone()),
 			shard7,
 			block_number,
-			block_number,
+			next_finalization_block_candidate,
 			hash
 		));
 
