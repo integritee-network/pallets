@@ -31,10 +31,13 @@ use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
 #[cfg(not(feature = "skip-ias-check"))]
-use ias_verify::{verify_ias_report, SgxReport};
+use ias_verify::{
+	deserialize_enclave_identity, extract_certs, verify_certificate_chain, verify_dcap_quote,
+	verify_ias_report, SgxReport,
+};
 
 pub use crate::weights::WeightInfo;
-use ias_verify::{verify_dcap_quote, SgxBuildMode};
+use ias_verify::SgxBuildMode;
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
@@ -211,6 +214,22 @@ pub mod pallet {
 
 			Self::add_enclave(&sender, &enclave)?;
 			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Ok(().into())
+		}
+
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_quoting_enclave(
+			origin: OriginFor<T>,
+			enclave_identity: Vec<u8>,
+			signature: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			let certs = extract_certs(&certificate_chain);
+			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+			let leaf_cert =
+				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
+			let enclave_identity =
+				deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
 			Ok(().into())
 		}
 

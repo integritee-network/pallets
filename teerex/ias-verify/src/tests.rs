@@ -185,7 +185,7 @@ fn verify_qe_identity_signature() {
 		verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
 	let json: EnclaveIdentitySigned =
 		serde_json::from_slice(include_bytes!("../test/dcap/qe_identity.json")).unwrap();
-	let json_data = serde_json::to_string(&json.enclave_identity).unwrap();
+	let json_data = serde_json::to_vec(&json.enclave_identity).unwrap();
 	let signature = hex::decode(json.signature).unwrap();
 
 	let e = deserialize_enclave_identity(&json_data, &signature, &leaf_cert).unwrap();
