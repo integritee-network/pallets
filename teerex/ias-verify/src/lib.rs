@@ -54,6 +54,35 @@ pub struct TcbLevel {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct TcbFull {
+	sgxtcbcomp01svn: u8,
+	sgxtcbcomp02svn: u8,
+	sgxtcbcomp03svn: u8,
+	sgxtcbcomp04svn: u8,
+	sgxtcbcomp05svn: u8,
+	sgxtcbcomp06svn: u8,
+	sgxtcbcomp07svn: u8,
+	sgxtcbcomp08svn: u8,
+	sgxtcbcomp09svn: u8,
+	sgxtcbcomp10svn: u8,
+	sgxtcbcomp11svn: u8,
+	sgxtcbcomp12svn: u8,
+	sgxtcbcomp13svn: u8,
+	sgxtcbcomp14svn: u8,
+	sgxtcbcomp15svn: u8,
+	sgxtcbcomp16svn: u8,
+	pcesvn: u8,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TcbLevelFull {
+	tcb: TcbFull,
+	tcb_date: String,
+	tcb_status: String,
+}
+
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnclaveIdentity {
 	id: String,
@@ -68,6 +97,26 @@ pub struct EnclaveIdentity {
 	mrsigner: String,
 	isvprodid: u16,
 	tcb_levels: Vec<TcbLevel>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TcbInfo {
+	version: u8,
+	issue_date: String,
+	next_update: String,
+	fmspc: String,
+	pce_id: String,
+	tcb_type: u16,
+	tcb_evaluation_data_number: u16,
+	tcb_levels: Vec<TcbLevelFull>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TcbInfoSigned {
+	tcb_info: TcbInfo,
+	signature: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -346,6 +395,16 @@ pub fn deserialize_enclave_identity(
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
 ) -> Result<EnclaveIdentity, &'static str> {
+	let signature = as_asn1(signature);
+	verify_signature(&certificate, data.as_bytes(), &signature, &webpki::ECDSA_P256_SHA256)?;
+	serde_json::from_str(data).map_err(|_| "Deserialization failed")
+}
+
+pub fn deserialize_tcb_info(
+	data: &str,
+	signature: &[u8],
+	certificate: &webpki::EndEntityCert,
+) -> Result<TcbInfo, &'static str> {
 	let signature = as_asn1(signature);
 	verify_signature(&certificate, data.as_bytes(), &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_str(data).map_err(|_| "Deserialization failed")

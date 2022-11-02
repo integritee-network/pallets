@@ -194,6 +194,22 @@ fn verify_qe_identity_signature() {
 }
 
 #[test]
+fn verify_tcb_info_signature2() {
+	let certs = extract_certs(include_bytes!("../test/dcap/tcb_info_issuer_chain.pem"));
+	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
+	let json: TcbInfoSigned =
+		serde_json::from_slice(include_bytes!("../test/dcap/tcb_info.json")).unwrap();
+
+	let json_data = serde_json::to_string(&json.tcb_info).unwrap();
+	let signature = hex::decode(json.signature).unwrap();
+
+	let e = deserialize_tcb_info(&json_data, &signature, &leaf_cert).unwrap();
+	assert_eq!("00906EA10000", json.tcb_info.fmspc);
+}
+
+#[test]
 fn verify_tcb_info_signature() {
 	let cert = QE_IDENTITY_CERT.replace('\n', "");
 	let first_cert = base64::decode(&cert).unwrap();
