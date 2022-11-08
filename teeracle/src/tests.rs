@@ -39,7 +39,11 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_enclave(RuntimeOrigin::signed(signer), TEST4_CERT.to_vec(), URL.to_vec()));
+	assert_ok!(Teerex::register_enclave(
+		RuntimeOrigin::signed(signer),
+		TEST4_CERT.to_vec(),
+		URL.to_vec()
+	));
 	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
 	assert_ok!(Exchange::add_to_whitelist(RuntimeOrigin::root(), src.to_owned(), mrenclave));
 }
@@ -261,7 +265,11 @@ fn add_two_times_to_whitelist_fails() {
 			TEST4_MRENCLAVE
 		));
 		assert_err!(
-			Exchange::add_to_whitelist(RuntimeOrigin::root(), COINGECKO_SRC.to_owned(), TEST4_MRENCLAVE),
+			Exchange::add_to_whitelist(
+				RuntimeOrigin::root(),
+				COINGECKO_SRC.to_owned(),
+				TEST4_MRENCLAVE
+			),
 			crate::Error::<Test>::ReleaseAlreadyWhitelisted
 		);
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
@@ -322,7 +330,11 @@ fn add_too_many_oracles_to_whitelist_fails() {
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9")
 		));
 		assert_err!(
-			Exchange::add_to_whitelist(RuntimeOrigin::root(), COINGECKO_SRC.to_owned(), TEST8_MRENCLAVE),
+			Exchange::add_to_whitelist(
+				RuntimeOrigin::root(),
+				COINGECKO_SRC.to_owned(),
+				TEST8_MRENCLAVE
+			),
 			crate::Error::<Test>::ReleaseWhitelistOverflow
 		);
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 10);

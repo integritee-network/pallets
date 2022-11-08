@@ -59,7 +59,12 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 		register_enclave7();
 
 		assert_err!(
-			Sidechain::confirm_imported_sidechain_block(RuntimeOrigin::signed(signer7), shard4, 1, hash),
+			Sidechain::confirm_imported_sidechain_block(
+				RuntimeOrigin::signed(signer7),
+				shard4,
+				1,
+				hash
+			),
 			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
 		);
 	})
@@ -236,8 +241,10 @@ fn confirm_block(
 	)?;
 
 	if check_for_event {
-		let expected_event =
-			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, block_header_hash));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			signer7,
+			block_header_hash,
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())

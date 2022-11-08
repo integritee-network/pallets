@@ -171,7 +171,11 @@ fn register_enclave_with_different_signer_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_err!(
-			Teerex::register_enclave(RuntimeOrigin::signed(signer), TEST5_CERT.to_vec(), URL.to_vec()),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer),
+				TEST5_CERT.to_vec(),
+				URL.to_vec()
+			),
 			Error::<Test>::SenderIsNotAttestedEnclave
 		);
 	})
@@ -183,7 +187,11 @@ fn register_enclave_with_to_old_attestation_report_fails() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS + 1);
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_err!(
-			Teerex::register_enclave(RuntimeOrigin::signed(signer), TEST7_CERT.to_vec(), URL.to_vec(),),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer),
+				TEST7_CERT.to_vec(),
+				URL.to_vec(),
+			),
 			Error::<Test>::RemoteAttestationTooOld
 		);
 	})
@@ -472,7 +480,11 @@ fn debug_mode_enclave_attest_fails_when_sgx_debug_mode_not_allowed() {
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
 		//Try to register an enclave compiled in debug mode
 		assert_err!(
-			Teerex::register_enclave(RuntimeOrigin::signed(signer4), TEST4_CERT.to_vec(), URL.to_vec(),),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer4),
+				TEST4_CERT.to_vec(),
+				URL.to_vec(),
+			),
 			Error::<Test>::SgxModeNotAllowed
 		);
 		assert_eq!(Teerex::enclave_count(), 0);
@@ -543,8 +555,9 @@ fn verify_unshield_funds_works() {
 		.is_ok());
 		assert_eq!(Balances::free_balance(bonding_account), 50);
 
-		let expected_event =
-			RuntimeEvent::Teerex(TeerexEvent::UnshieldedFunds(AccountKeyring::Alice.to_account_id()));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::UnshieldedFunds(
+			AccountKeyring::Alice.to_account_id(),
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
