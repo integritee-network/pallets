@@ -85,11 +85,11 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
 		#[pallet::constant]
 		type Prefix: Get<&'static [u8]>;
-		type MoveClaimOrigin: EnsureOrigin<Self::Origin>;
+		type MoveClaimOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		type WeightInfo: WeightInfo;
 	}
 
@@ -516,11 +516,11 @@ impl<T: Config> Pallet<T> {
 #[scale_info(skip_type_params(T))]
 pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
 where
-	<T as frame_system::Config>::Call: IsSubType<Call<T>>;
+	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>;
 
 impl<T: Config + Send + Sync> Debug for PrevalidateAttests<T>
 where
-	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
 	#[cfg(feature = "std")]
 	fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
@@ -535,7 +535,7 @@ where
 
 impl<T: Config + Send + Sync> PrevalidateAttests<T>
 where
-	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
 	/// Create new `SignedExtension` to check runtime version.
 	pub fn new() -> Self {
@@ -544,7 +544,7 @@ where
 }
 impl<T: Config + Send + Sync> Default for PrevalidateAttests<T>
 where
-	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
 	fn default() -> Self {
 		Self::new()
@@ -553,10 +553,10 @@ where
 
 impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
 where
-	<T as frame_system::Config>::Call: IsSubType<Call<T>>,
+	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
 	type AccountId = T::AccountId;
-	type Call = <T as frame_system::Config>::Call;
+	type Call = <T as frame_system::Config>::RuntimeCall;
 	type AdditionalSigned = ();
 	type Pre = ();
 	const IDENTIFIER: &'static str = "PrevalidateAttests";
@@ -676,8 +676,8 @@ mod tests {
 		type BlockWeights = ();
 		type BlockLength = ();
 		type DbWeight = ();
-		type Origin = Origin;
-		type Call = Call;
+		type RuntimeOrigin = RuntimeOrigin;
+		type RuntimeCall = RuntimeCall;
 		type Index = u64;
 		type BlockNumber = u64;
 		type Hash = H256;
@@ -685,7 +685,7 @@ mod tests {
 		type AccountId = u64;
 		type Lookup = IdentityLookup<u64>;
 		type Header = Header;
-		type Event = Event;
+		type RuntimeEvent = RuntimeEvent;
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
 		type PalletInfo = PalletInfo;
@@ -704,7 +704,7 @@ mod tests {
 
 	impl pallet_balances::Config for Test {
 		type Balance = u64;
-		type Event = Event;
+		type RuntimeEvent = RuntimeEvent;
 		type DustRemoval = ();
 		type ExistentialDeposit = ExistentialDeposit;
 		type AccountStore = System;
@@ -719,7 +719,7 @@ mod tests {
 	}
 
 	impl pallet_vesting::Config for Test {
-		type Event = Event;
+		type RuntimeEvent = RuntimeEvent;
 		type Currency = Balances;
 		type BlockNumberToBalance = Identity;
 		type MinVestedTransfer = MinVestedTransfer;
@@ -735,7 +735,7 @@ mod tests {
 	}
 
 	impl Config for Test {
-		type Event = Event;
+		type RuntimeEvent = RuntimeEvent;
 		type VestingSchedule = Vesting;
 		type Prefix = Prefix;
 		type MoveClaimOrigin = frame_system::EnsureSignedBy<Six, u64>;
@@ -826,10 +826,10 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::move_claim(Origin::signed(1), eth(&alice()), eth(&bob()), None),
+				Claims::move_claim(RuntimeOrigin::signed(1), eth(&alice()), eth(&bob()), None),
 				BadOrigin
 			);
-			assert_ok!(Claims::move_claim(Origin::signed(6), eth(&alice()), eth(&bob()), None));
+			assert_ok!(Claims::move_claim(RuntimeOrigin::signed(6), eth(&alice()), eth(&bob()), None));
 			assert_noop!(
 				Claims::claim(Origin::none(), 42, sig::<Test>(&alice(), &42u64.encode(), &[][..])),
 				Error::<Test>::SignerHasNoClaim
@@ -848,7 +848,7 @@ mod tests {
 	#[test]
 	fn claim_attest_moving_works() {
 		new_test_ext().execute_with(|| {
-			assert_ok!(Claims::move_claim(Origin::signed(6), eth(&dave()), eth(&bob()), None));
+			assert_ok!(Claims::move_claim(RuntimeOrigin::signed(6), eth(&dave()), eth(&bob()), None));
 			let s = sig::<Test>(&bob(), &42u64.encode(), StatementKind::Regular.to_text());
 			assert_ok!(Claims::claim_attest(
 				Origin::none(),
@@ -863,8 +863,8 @@ mod tests {
 	#[test]
 	fn attest_moving_works() {
 		new_test_ext().execute_with(|| {
-			assert_ok!(Claims::move_claim(Origin::signed(6), eth(&eve()), eth(&bob()), Some(42)));
-			assert_ok!(Claims::attest(Origin::signed(42), StatementKind::Saft.to_text().to_vec()));
+			assert_ok!(Claims::move_claim(RuntimeOrigin::signed(6), eth(&eve()), eth(&bob()), Some(42)));
+			assert_ok!(Claims::attest(RuntimeOrigin::signed(42), StatementKind::Saft.to_text().to_vec()));
 			assert_eq!(Balances::free_balance(&42), 300);
 		});
 	}
@@ -942,14 +942,14 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::attest(Origin::signed(69), StatementKind::Saft.to_text().to_vec()),
+				Claims::attest(RuntimeOrigin::signed(69), StatementKind::Saft.to_text().to_vec()),
 				Error::<Test>::SenderHasNoClaim
 			);
 			assert_noop!(
-				Claims::attest(Origin::signed(42), StatementKind::Regular.to_text().to_vec()),
+				Claims::attest(RuntimeOrigin::signed(42), StatementKind::Regular.to_text().to_vec()),
 				Error::<Test>::InvalidStatement
 			);
-			assert_ok!(Claims::attest(Origin::signed(42), StatementKind::Saft.to_text().to_vec()));
+			assert_ok!(Claims::attest(RuntimeOrigin::signed(42), StatementKind::Saft.to_text().to_vec()));
 			assert_eq!(Balances::free_balance(&42), 300);
 			assert_eq!(Claims::total(), total_claims() - 300);
 		});
@@ -967,7 +967,7 @@ mod tests {
 			));
 			assert_eq!(Balances::free_balance(&42), 100);
 			// Eve's claim is 300 through Account 42
-			assert_ok!(Claims::attest(Origin::signed(42), StatementKind::Saft.to_text().to_vec()));
+			assert_ok!(Claims::attest(RuntimeOrigin::signed(42), StatementKind::Saft.to_text().to_vec()));
 			assert_eq!(Balances::free_balance(&42), 100 + 300);
 			assert_eq!(Claims::total(), total_claims() - 400);
 		});
@@ -1020,7 +1020,7 @@ mod tests {
 	fn add_claim_works() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Claims::mint_claim(Origin::signed(42), eth(&bob()), 200, None, None),
+				Claims::mint_claim(RuntimeOrigin::signed(42), eth(&bob()), 200, None, None),
 				sp_runtime::traits::BadOrigin,
 			);
 			assert_eq!(Balances::free_balance(42), 0);
@@ -1028,7 +1028,7 @@ mod tests {
 				Claims::claim(Origin::none(), 69, sig::<Test>(&bob(), &69u64.encode(), &[][..])),
 				Error::<Test>::SignerHasNoClaim,
 			);
-			assert_ok!(Claims::mint_claim(Origin::root(), eth(&bob()), 200, None, None));
+			assert_ok!(Claims::mint_claim(RuntimeOrigin::root(), eth(&bob()), 200, None, None));
 			assert_eq!(Claims::total(), total_claims() + 200);
 			assert_ok!(Claims::claim(
 				Origin::none(),
@@ -1045,7 +1045,7 @@ mod tests {
 	fn add_claim_with_vesting_works() {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
-				Claims::mint_claim(Origin::signed(42), eth(&bob()), 200, Some((50, 10, 1)), None),
+				Claims::mint_claim(RuntimeOrigin::signed(42), eth(&bob()), 200, Some((50, 10, 1)), None),
 				sp_runtime::traits::BadOrigin,
 			);
 			assert_eq!(Balances::free_balance(42), 0);
@@ -1054,7 +1054,7 @@ mod tests {
 				Error::<Test>::SignerHasNoClaim,
 			);
 			assert_ok!(Claims::mint_claim(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				eth(&bob()),
 				200,
 				Some((50, 10, 1)),
@@ -1086,7 +1086,7 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_noop!(
 				Claims::mint_claim(
-					Origin::signed(42),
+					RuntimeOrigin::signed(42),
 					eth(&bob()),
 					200,
 					None,
@@ -1106,7 +1106,7 @@ mod tests {
 				Error::<Test>::SignerHasNoClaim
 			);
 			assert_ok!(Claims::mint_claim(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				eth(&bob()),
 				200,
 				None,
@@ -1132,7 +1132,7 @@ mod tests {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_err!(
 				Claims::claim(
-					Origin::signed(42),
+					RuntimeOrigin::signed(42),
 					42,
 					sig::<Test>(&alice(), &42u64.encode(), &[][..])
 				),
@@ -1170,7 +1170,7 @@ mod tests {
 			CurrencyOf::<Test>::make_free_balance_be(&69, total_claims());
 			assert_eq!(Balances::free_balance(69), total_claims());
 			assert_ok!(Claims::mint_claim(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				eth(&bob()),
 				200,
 				Some((50, 10, 1)),

@@ -29,7 +29,7 @@ const COINGECKO_SRC: &str = "https://api.coingecko.com";
 const COINMARKETCAP_SRC: &str = "https://coinmarketcap.com/";
 
 const DOT_USD_TRADING_PAIR: &str = "DOT/USD";
-const TEER_USD_TRADING_PAIR: &str = "TEER/USD";
+// const TEER_USD_TRADING_PAIR: &str = "TEER/USD";
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
@@ -39,15 +39,15 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_enclave(Origin::signed(signer), TEST4_CERT.to_vec(), URL.to_vec()));
+	assert_ok!(Teerex::register_enclave(RuntimeOrigin::signed(signer), TEST4_CERT.to_vec(), URL.to_vec()));
 	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
-	assert_ok!(Exchange::add_to_whitelist(Origin::root(), src.to_owned(), mrenclave));
+	assert_ok!(Exchange::add_to_whitelist(RuntimeOrigin::root(), src.to_owned(), mrenclave));
 }
 
 fn update_exchange_rate_dot_dollars_ok(src: &str, rate: Option<U32F32>) {
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Exchange::update_exchange_rate(
-		Origin::signed(signer),
+		RuntimeOrigin::signed(signer),
 		src.to_owned(),
 		DOT_USD_TRADING_PAIR.to_owned(),
 		rate
@@ -61,7 +61,7 @@ fn update_exchange_rate_works() {
 
 		let rate = U32F32::from_num(43.65);
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
-		let expected_event = Event::Exchange(crate::Event::ExchangeRateUpdated(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::ExchangeRateUpdated(
 			COINGECKO_SRC.to_owned(),
 			DOT_USD_TRADING_PAIR.to_owned(),
 			Some(rate),
@@ -117,7 +117,7 @@ fn update_exchange_rate_to_none_delete_exchange_rate() {
 
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, None);
 
-		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::ExchangeRateDeleted(
 			COINGECKO_SRC.to_owned(),
 			DOT_USD_TRADING_PAIR.to_owned(),
 		));
@@ -138,7 +138,7 @@ fn update_exchange_rate_to_zero_delete_exchange_rate() {
 
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(U32F32::from_num(0)));
 
-		let expected_event = Event::Exchange(crate::Event::ExchangeRateDeleted(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::ExchangeRateDeleted(
 			COINGECKO_SRC.to_owned(),
 			DOT_USD_TRADING_PAIR.to_owned(),
 		));
@@ -158,7 +158,7 @@ fn update_exchange_rate_from_not_registered_enclave_fails() {
 		let rate = U32F32::from_num(43.65);
 		assert_err!(
 			Exchange::update_exchange_rate(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
 				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
@@ -174,7 +174,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec()
 		));
@@ -182,7 +182,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 		let rate = U32F32::from_num(43.65);
 		assert_err!(
 			Exchange::update_exchange_rate(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
 				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
@@ -201,7 +201,7 @@ fn update_exchange_rate_with_too_long_trading_pair_fails() {
 		let too_long_trading_pair = "123456789_12".to_owned();
 		assert_err!(
 			Exchange::update_exchange_rate(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
 				too_long_trading_pair,
 				rate
@@ -215,11 +215,11 @@ fn update_exchange_rate_with_too_long_trading_pair_fails() {
 fn add_to_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
-		let expected_event = Event::Exchange(crate::Event::AddedToWhitelist(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::AddedToWhitelist(
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE,
 		));
@@ -232,16 +232,16 @@ fn add_to_whitelist_works() {
 fn add_mulitple_src_to_whitelists_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINMARKETCAP_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
-		let expected_event = Event::Exchange(crate::Event::AddedToWhitelist(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::AddedToWhitelist(
 			COINMARKETCAP_SRC.to_owned(),
 			TEST4_MRENCLAVE,
 		));
@@ -256,12 +256,12 @@ fn add_mulitple_src_to_whitelists_works() {
 fn add_two_times_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_err!(
-			Exchange::add_to_whitelist(Origin::root(), COINGECKO_SRC.to_owned(), TEST4_MRENCLAVE),
+			Exchange::add_to_whitelist(RuntimeOrigin::root(), COINGECKO_SRC.to_owned(), TEST4_MRENCLAVE),
 			crate::Error::<Test>::ReleaseAlreadyWhitelisted
 		);
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
@@ -272,57 +272,57 @@ fn add_two_times_to_whitelist_fails() {
 fn add_too_many_oracles_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST5_MRENCLAVE
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d2")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d3")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d4")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d5")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d6")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d7")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d8")
 		));
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9")
 		));
 		assert_err!(
-			Exchange::add_to_whitelist(Origin::root(), COINGECKO_SRC.to_owned(), TEST8_MRENCLAVE),
+			Exchange::add_to_whitelist(RuntimeOrigin::root(), COINGECKO_SRC.to_owned(), TEST8_MRENCLAVE),
 			crate::Error::<Test>::ReleaseWhitelistOverflow
 		);
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 10);
@@ -333,7 +333,7 @@ fn add_to_whitelist_too_long_source_fails() {
 	new_test_ext().execute_with(|| {
 		let too_long_source = "123456789_223456789_323456789_423456789_1".to_owned();
 		assert_err!(
-			Exchange::add_to_whitelist(Origin::root(), too_long_source, TEST4_MRENCLAVE),
+			Exchange::add_to_whitelist(RuntimeOrigin::root(), too_long_source, TEST4_MRENCLAVE),
 			crate::Error::<Test>::MarketDataSourceStringTooLong
 		);
 	})
@@ -345,7 +345,7 @@ fn non_root_add_to_whitelist_fails() {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_err!(
 			Exchange::add_to_whitelist(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
 				TEST4_MRENCLAVE
 			),
@@ -359,16 +359,16 @@ fn non_root_add_to_whitelist_fails() {
 fn remove_from_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_ok!(Exchange::remove_from_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
-		let expected_event = Event::Exchange(crate::Event::RemovedFromWhitelist(
+		let expected_event = RuntimeEvent::Exchange(crate::Event::RemovedFromWhitelist(
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE,
 		));
@@ -381,13 +381,13 @@ fn remove_from_whitelist_works() {
 fn remove_from_whitelist_not_whitelisted_fails() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_err!(
 			Exchange::remove_from_whitelist(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
 				TEST5_MRENCLAVE
 			),
@@ -403,7 +403,7 @@ fn remove_from_empty_whitelist_doesnt_crash() {
 		assert_eq!(Exchange::whitelist(COINGECKO_SRC.to_owned()).len(), 0);
 		assert_err!(
 			Exchange::remove_from_whitelist(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
 				TEST5_MRENCLAVE
 			),
@@ -418,13 +418,13 @@ fn non_root_remove_from_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
 		assert_ok!(Exchange::add_to_whitelist(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
 			TEST4_MRENCLAVE
 		));
 		assert_err!(
 			Exchange::remove_from_whitelist(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
 				TEST4_MRENCLAVE
 			),
