@@ -67,9 +67,9 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	}
 	// TODO benchmark dcap registration
 	fn register_dcap_enclave() -> Weight {
-		(1_969_500_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(1_969_500_000)
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn unregister_enclave() -> Weight {
 		Weight::from_ref_time(53_300_000)
@@ -94,9 +94,9 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn register_dcap_enclave() -> Weight {
-		(1_969_500_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+		Weight::from_ref_time(1_969_500_000)
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn unregister_enclave() -> Weight {
 		Weight::from_ref_time(53_300_000)
