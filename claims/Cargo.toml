@@ -13,12 +13,12 @@ serde = { version = "1.0.13", default-features = false }
 serde_derive = { version = "1.0.13", optional = true }
 
 # substrate dependencies
-frame-benchmarking = { optional = true, default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+frame-benchmarking = { optional = true, default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+frame-support = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+frame-system = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+sp-io = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+sp-runtime = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+sp-std = { package = "sp-std", default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
 
 # local
 claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false }
@@ -26,10 +26,10 @@ claims-primitives = { package = "claims-primitives", path = "../primitives/claim
 [dev-dependencies]
 hex-literal = "0.3.3"
 libsecp256k1 = "0.7.0"
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
-pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.30" }
+pallet-balances = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+pallet-vesting = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
 serde_json = { version = "1.0" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-core = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
 
 [features]
 default = ["std"]
