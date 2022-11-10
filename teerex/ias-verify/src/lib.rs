@@ -401,13 +401,13 @@ pub fn deserialize_enclave_identity(
 }
 
 pub fn deserialize_tcb_info(
-	data: &str,
+	data: &[u8],
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
 ) -> Result<TcbInfo, &'static str> {
 	let signature = as_asn1(signature);
-	verify_signature(&certificate, data.as_bytes(), &signature, &webpki::ECDSA_P256_SHA256)?;
-	serde_json::from_str(data).map_err(|_| "Deserialization failed")
+	verify_signature(&certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
+	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
 pub fn parse_crl(crl_data: &str) -> usize {
