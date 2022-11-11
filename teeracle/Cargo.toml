@@ -21,27 +21,27 @@ teeracle-primitives = { path = "../primitives/teeracle", default-features = fals
 substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
 
 # substrate
-frame-support = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-frame-system = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-sp-core = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-sp-io = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-sp-runtime = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-sp-std = { default-features = false, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 
 # benchmarking
-frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 hex-literal = { version = "0.3.2", optional = true }
 test-utils = { path = "../test-utils", optional = true, default-features = false }
-timestamp = { package = "pallet-timestamp", default-features = false, optional = true, git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+timestamp = { package = "pallet-timestamp", default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 
 [dev-dependencies]
-externalities = { package = "sp-externalities", git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-frame-benchmarking = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 hex-literal = "0.3.2"
-sp-keyring = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
-pallet-balances = { git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+sp-keyring = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 test-utils = { path = "../test-utils" }
-timestamp = { package = "pallet-timestamp", git = "https://github.com/litentry/litentry-substrate.git", branch = "polkadot-v0.9.30" }
+timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.30" }
 
 
 [features]
