@@ -176,7 +176,7 @@ pub mod pallet {
 			dcap_quote: Vec<u8>,
 			worker_url: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_enclave()");
+			log::info!("teerex: called into runtime call register_dcap_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
@@ -481,8 +481,11 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 
-		let report = verify_dcap_quote(&dcap_quote, verification_time.saturated_into())
-			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
+		let report =
+			verify_dcap_quote(&dcap_quote, verification_time.saturated_into()).map_err(|e| {
+				log::info!("verify_dcap_quote failed: {:?}", e);
+				<Error<T>>::RemoteAttestationVerificationFailed
+			})?;
 		log::info!("RA Report: {:?}", report);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])

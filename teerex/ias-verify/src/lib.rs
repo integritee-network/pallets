@@ -433,12 +433,13 @@ pub fn verify_certificate_chain<'a>(
 	intermediate_certs: &[&[u8]],
 	verification_time: u64,
 ) -> Result<webpki::EndEntityCert<'a>, &'static str> {
-	let first_cert: webpki::EndEntityCert = webpki::EndEntityCert::from(first_cert).unwrap();
+	let first_cert: webpki::EndEntityCert =
+		webpki::EndEntityCert::from(first_cert).map_err(|_| "Failed to parse leaf certificate")?;
 	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
 	first_cert
 		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_certs, time)
-		.unwrap();
+		.map_err(|_| "Invalid certificate chain")?;
 	Ok(first_cert)
 }
 
@@ -462,8 +463,7 @@ pub fn verify_dcap_quote(
 	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
 
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert =
-		verify_certificate_chain(&certs[0], &intermediate_slices, verification_time).unwrap();
+	let leaf_cert = verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
@@ -502,13 +502,10 @@ pub fn verify_dcap_quote(
 		signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, pub_key);
 	peer_public_key
 		.verify(&isv_report_slice, &q.quote_signature_data.isv_enclave_report_signature)
-		.unwrap();
+		.map_err(|_| "Failed to verify report signature")?;
 
 	let asn1_signature = as_asn1(&q.quote_signature_data.qe_report_signature);
-	log::warn!("Signature encoded len: {:?}", asn1_signature.len());
-	log::warn!("Signature encoded: {:X?}", asn1_signature);
-	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)
-		.unwrap();
+	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
 	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
 	let report = SgxReport {
