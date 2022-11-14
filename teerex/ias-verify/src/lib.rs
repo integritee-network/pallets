@@ -362,12 +362,26 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 		spki: b"0\r\x06\t*\x86H\x86\xf7\r\x01\x01\x01\x05\x00\x03\x82\x01\x8f\x000\x82\x01\x8a\x02\x82\x01\x81\x00\x9f<d~\xb5w<\xbbQ-\'2\xc0\xd7A^\xbbU\xa0\xfa\x9e\xde.d\x91\x99\xe6\x82\x1d\xb9\x10\xd51w7\twFjj^G\x86\xcc\xd2\xdd\xeb\xd4\x14\x9dj/c%R\x9d\xd1\x0c\xc9\x877\xb0w\x9c\x1a\x07\xe2\x9cG\xa1\xae\x00IHGlH\x9fE\xa5\xa1]z\xc8\xec\xc6\xac\xc6E\xad\xb4=\x87g\x9d\xf5\x9c\t;\xc5\xa2\xe9ilTxT\x1b\x97\x9euKW9\x14\xbeU\xd3/\xf4\xc0\x9d\xdf\'!\x994\xcd\x99\x05\'\xb3\xf9.\xd7\x8f\xbf)$j\xbe\xcbq$\x0e\xf3\x9c-q\x07\xb4GTZ\x7f\xfb\x10\xeb\x06\nh\xa9\x85\x80!\x9e6\x91\tRh8\x92\xd6\xa5\xe2\xa8\x08\x03\x19>@u1@N6\xb3\x15b7\x99\xaa\x82Pt@\x97T\xa2\xdf\xe8\xf5\xaf\xd5\xfec\x1e\x1f\xc2\xaf8\x08\x90o(\xa7\x90\xd9\xdd\x9f\xe0`\x93\x9b\x12W\x90\xc5\x80]\x03}\xf5j\x99S\x1b\x96\xdei\xde3\xed\"l\xc1 }\x10B\xb5\xc9\xab\x7f@O\xc7\x11\xc0\xfeGi\xfb\x95x\xb1\xdc\x0e\xc4i\xea\x1a%\xe0\xff\x99\x14\x88n\xf2i\x9b#[\xb4\x84}\xd6\xff@\xb6\x06\xe6\x17\x07\x93\xc2\xfb\x98\xb3\x14X\x7f\x9c\xfd%sb\xdf\xea\xb1\x0b;\xd2\xd9vs\xa1\xa4\xbdD\xc4S\xaa\xf4\x7f\xc1\xf2\xd3\xd0\xf3\x84\xf7J\x06\xf8\x9c\x08\x9f\r\xa6\xcd\xb7\xfc\xee\xe8\xc9\x82\x1a\x8eT\xf2\\\x04\x16\xd1\x8cF\x83\x9a_\x80\x12\xfb\xdd=\xc7M%by\xad\xc2\xc0\xd5Z\xffo\x06\"B]\x1b\x02\x03\x01\x00\x01",
 		name_constraints: None
 	},
-	webpki::TrustAnchor {
-		subject: &[49, 26, 48, 24, 06, 03, 85, 04, 03, 12, 17, 73, 110, 116, 101, 108, 32, 83, 71, 88, 32, 82, 111, 111, 116, 32, 67, 65, 49, 26, 48, 24, 06, 03, 85, 04, 10, 12, 17, 73, 110, 116, 101, 108, 32, 67, 111, 114, 112, 111, 114, 97, 116, 105, 111, 110, 49, 20, 48, 18, 06, 03, 85, 04, 07, 12, 11, 83, 97, 110, 116, 97, 32, 67, 108, 97, 114, 97, 49, 11, 48, 09, 06, 03, 85, 04, 08, 12, 02, 67, 65, 49, 11, 48, 09, 06, 03, 85, 04, 06, 19, 02, 85, 83],
-		spki: &[48, 19, 06, 07, 42, 134, 72, 206, 61, 02, 01, 06, 08, 42, 134, 72, 206, 61, 03, 01, 07, 03, 66, 00, 04, 11, 169, 196, 192, 192, 200, 97, 147, 163, 254, 35, 214, 176, 44, 218, 16, 168, 187, 212, 232, 142, 72, 180, 69, 133, 97, 163, 110, 112, 85, 37, 245, 103, 145, 142, 46, 220, 136, 228, 13, 134, 11, 208, 204, 78, 226, 106, 172, 201, 136, 229, 05, 169, 83, 85, 140, 69, 63, 107, 09, 04, 174, 115, 148,],
-		name_constraints: None
-	},
 ]);
+pub static DCAP_SERVER_ROOTS: webpki::TLSServerTrustAnchors =
+	webpki::TLSServerTrustAnchors(&[webpki::TrustAnchor {
+		subject: &[
+			49, 26, 48, 24, 06, 03, 85, 04, 03, 12, 17, 73, 110, 116, 101, 108, 32, 83, 71, 88, 32,
+			82, 111, 111, 116, 32, 67, 65, 49, 26, 48, 24, 06, 03, 85, 04, 10, 12, 17, 73, 110,
+			116, 101, 108, 32, 67, 111, 114, 112, 111, 114, 97, 116, 105, 111, 110, 49, 20, 48, 18,
+			06, 03, 85, 04, 07, 12, 11, 83, 97, 110, 116, 97, 32, 67, 108, 97, 114, 97, 49, 11, 48,
+			09, 06, 03, 85, 04, 08, 12, 02, 67, 65, 49, 11, 48, 09, 06, 03, 85, 04, 06, 19, 02, 85,
+			83,
+		],
+		spki: &[
+			48, 19, 06, 07, 42, 134, 72, 206, 61, 02, 01, 06, 08, 42, 134, 72, 206, 61, 03, 01, 07,
+			03, 66, 00, 04, 11, 169, 196, 192, 192, 200, 97, 147, 163, 254, 35, 214, 176, 44, 218,
+			16, 168, 187, 212, 232, 142, 72, 180, 69, 133, 97, 163, 110, 112, 85, 37, 245, 103,
+			145, 142, 46, 220, 136, 228, 13, 134, 11, 208, 204, 78, 226, 106, 172, 201, 136, 229,
+			05, 169, 83, 85, 140, 69, 63, 107, 09, 04, 174, 115, 148,
+		],
+		name_constraints: None,
+	}]);
 
 /// Contains an unvalidated ias remote attestation certificate.
 ///
@@ -383,7 +397,7 @@ pub fn as_asn1(data: &[u8]) -> Vec<u8> {
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
 	sequence.add(der::asn1::UIntRef::new(&data[0..32]).unwrap());
 	sequence.add(der::asn1::UIntRef::new(&data[32..]).unwrap());
-	// 72 should be enough in all cases. 2x32 + 2x3 + 2
+	// 72 should be enough in all cases. 2 + 2 x (32 + 3)
 	let mut asn1 = vec![0u8; 72];
 	let mut writer = der::SliceWriter::new(&mut asn1);
 	writer.encode(&sequence).expect("Should not fail");
@@ -419,28 +433,33 @@ pub fn parse_crl(crl_data: &str) -> usize {
 	crl.tbs_cert_list.revoked_certificates.unwrap().len()
 }
 
+/// Extract a list of certificates from a byte vec. The certificates must be separated by
+/// `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` markers
 pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
+	// The certificates should be valid UTF-8 but if not we continue. The certificate verification
+	// will fail at a later point.
 	let certs_concat = String::from_utf8_lossy(&cert_chain);
 	let certs_concat = certs_concat.replace('\n', "");
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
+	// Use the end marker to split the string into certificates
 	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
 	let parts = parts.filter(|p| p.len() > 0).map(|p| base64::decode(&p).unwrap()).collect();
 	parts
 }
 
 pub fn verify_certificate_chain<'a>(
-	first_cert: &'a [u8],
+	leaf_cert: &'a [u8],
 	intermediate_certs: &[&[u8]],
 	verification_time: u64,
 ) -> Result<webpki::EndEntityCert<'a>, &'static str> {
-	let first_cert: webpki::EndEntityCert =
-		webpki::EndEntityCert::from(first_cert).map_err(|_| "Failed to parse leaf certificate")?;
+	let leaf_cert: webpki::EndEntityCert =
+		webpki::EndEntityCert::from(leaf_cert).map_err(|_| "Failed to parse leaf certificate")?;
 	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
-	first_cert
-		.verify_is_valid_tls_server_cert(sig_algs, &IAS_SERVER_ROOTS, &intermediate_certs, time)
+	leaf_cert
+		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, &intermediate_certs, time)
 		.map_err(|_| "Invalid certificate chain")?;
-	Ok(first_cert)
+	Ok(leaf_cert)
 }
 
 pub fn verify_dcap_quote(
