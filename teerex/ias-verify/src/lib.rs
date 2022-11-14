@@ -443,7 +443,7 @@ pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
 	// Use the end marker to split the string into certificates
 	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
-	let parts = parts.filter(|p| p.len() > 0).map(|p| base64::decode(&p).unwrap()).collect();
+	let parts = parts.filter(|p| p.len() > 0).filter_map(|p| base64::decode(&p).ok()).collect();
 	parts
 }
 
@@ -481,8 +481,10 @@ pub fn verify_dcap_quote(
 	let certs = extract_certs(&q.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
 
-	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert = verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+F	let intermediate_certificate_slices: Vec<&[u8]> =
+		certs[1..].iter().map(Vec::as_slice).collect();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_certificate_slices, verification_time)?;
 
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
