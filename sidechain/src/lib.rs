@@ -18,7 +18,7 @@ limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-use frame_support::{dispatch::DispatchResultWithPostInfo, traits::Get};
+use frame_support::dispatch::DispatchResultWithPostInfo;
 use frame_system::{self};
 use pallet_teerex::Pallet as Teerex;
 use sidechain_primitives::SidechainBlockConfirmation;
@@ -52,9 +52,6 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + pallet_teerex::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type WeightInfo: WeightInfo;
-		// If a block arrives far too early, an error should be returned
-		#[pallet::constant]
-		type EarlyBlockProposalLenience: Get<u64>;
 	}
 
 	#[pallet::event]
@@ -76,8 +73,9 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, ValueQuery>;
 
 	#[pallet::storage]
-	pub type SidechainBlockConfirmationQueue<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardBlockNumber, SidechainBlockConfirmation, ValueQuery>;
+	#[pallet::getter(fn sidechain_block_finalization_candidate)]
+	pub type SidechainBlockFinalizationCandidate<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -87,6 +85,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			shard_id: ShardIdentifier,
 			block_number: u64,
+			next_finalization_candidate_block_number: u64,
 			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
@@ -110,47 +109,35 @@ pub mod pallet {
 				return Ok(().into())
 			}
 
-			let lenience = T::EarlyBlockProposalLenience::get();
-			let mut latest_confirmation = <LatestSidechainBlockConfirmation<T>>::get(shard_id);
-			let latest_block_number = latest_confirmation.block_number;
 			let block_number = confirmation.block_number;
+			let finalization_candidate_block_number =
+				<SidechainBlockFinalizationCandidate<T>>::try_get(shard_id).unwrap_or(1);
 
-			if block_number > Self::add_to_block_number(latest_block_number, lenience)? {
-				// Block is far too early and hence refused.
-				return Err(<Error<T>>::BlockNumberTooHigh.into())
-			} else if block_number > Self::add_to_block_number(latest_block_number, 1)? {
-				// Block is too early and stored in the queue for later import.
-				if !<SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, block_number)) {
-					<SidechainBlockConfirmationQueue<T>>::insert(
-						(shard_id, block_number),
-						confirmation,
-					);
-				}
-			} else if block_number == Self::add_to_block_number(latest_block_number, 1)? {
-				Self::finalize_block(shard_id, confirmation, &sender, sender_index);
-				latest_confirmation = confirmation;
+			ensure!(
+				block_number == finalization_candidate_block_number,
+				<Error<T>>::ReceivedUnexpectedSidechainBlock
+			);
+			ensure!(
+				next_finalization_candidate_block_number > finalization_candidate_block_number,
+				<Error<T>>::InvalidNextFinalizationCandidateBlockNumber
+			);
 
-				Self::finalize_blocks_from_queue(
-					shard_id,
-					&sender,
-					sender_index,
-					latest_confirmation,
-				)?;
-			} else {
-				// Block is too late and hence refused.
-				return Err(<Error<T>>::OutdatedBlockNumber.into())
-			}
+			<SidechainBlockFinalizationCandidate<T>>::insert(
+				shard_id,
+				next_finalization_candidate_block_number,
+			);
 
+			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
 			Ok(().into())
 		}
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// A proposed block is too early.
-		BlockNumberTooHigh,
-		/// A propsed block is too late and already outdated.
-		OutdatedBlockNumber,
+		/// A proposed block is unexpected.
+		ReceivedUnexpectedSidechainBlock,
+		/// The value for the next finalization candidate is invalid.
+		InvalidNextFinalizationCandidateBlockNumber,
 	}
 }
 
@@ -170,36 +157,6 @@ impl<T: Config> Pallet<T> {
 			block_header_hash
 		);
 		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));
-	}
-
-	fn finalize_blocks_from_queue(
-		shard_id: ShardIdentifier,
-		sender: &T::AccountId,
-		sender_index: u64,
-		mut latest_confirmation: SidechainBlockConfirmation,
-	) -> DispatchResultWithPostInfo {
-		let mut latest_block_number = latest_confirmation.block_number;
-		let mut expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-		let lenience = T::EarlyBlockProposalLenience::get();
-		let mut i: u64 = 0;
-		while <SidechainBlockConfirmationQueue<T>>::contains_key((shard_id, expected_block_number)) &&
-			i < lenience
-		{
-			let confirmation =
-				<SidechainBlockConfirmationQueue<T>>::take((shard_id, expected_block_number));
-
-			Self::finalize_block(shard_id, confirmation, sender, sender_index);
-			latest_confirmation = confirmation;
-
-			latest_block_number = latest_confirmation.block_number;
-			expected_block_number = Self::add_to_block_number(latest_block_number, 1)?;
-			i = Self::add_to_block_number(i, 1)?;
-		}
-		Ok(().into())
-	}
-
-	fn add_to_block_number(block_number: u64, diff: u64) -> Result<u64, &'static str> {
-		block_number.checked_add(diff).ok_or("[Sidechain]: Overflow adding new block")
 	}
 }
 
