@@ -225,9 +225,10 @@ pub mod pallet {
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let certs = extract_certs(&certificate_chain);
+			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
+				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000)?;
 			let enclave_identity =
 				deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
 			Ok(().into())
@@ -241,10 +242,11 @@ pub mod pallet {
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let certs = extract_certs(&certificate_chain);
+			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000).unwrap();
-			let enclave_identity = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000)?;
+			let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 			Ok(().into())
 		}
 

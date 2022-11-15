@@ -481,7 +481,7 @@ pub fn verify_dcap_quote(
 	let certs = extract_certs(&q.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
 
-F	let intermediate_certificate_slices: Vec<&[u8]> =
+	let intermediate_certificate_slices: Vec<&[u8]> =
 		certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_certificate_slices, verification_time)?;
