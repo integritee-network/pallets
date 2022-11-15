@@ -28,6 +28,7 @@ use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::borrow::ToOwned;
 use teeracle_primitives::{DataSource, OracleDataName, TradingPairString};
+
 use test_utils::{
 	get_signer,
 	ias::{consts::*, setups::*},
