@@ -644,7 +644,6 @@ mod tests {
 		dispatch::DispatchError::BadOrigin,
 		ord_parameter_types, parameter_types,
 		traits::{ExistenceRequirement, GenesisBuild,WithdrawReasons},
-		pallet_prelude::*,
 	};
 
 	use sp_runtime::{
