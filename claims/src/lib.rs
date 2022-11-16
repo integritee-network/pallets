@@ -639,11 +639,12 @@ mod tests {
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
 	use frame_support::{
+		dispatch::*,
 		assert_err, assert_noop, assert_ok,
 		dispatch::DispatchError::BadOrigin,
 		ord_parameter_types, parameter_types,
-		traits::{ExistenceRequirement, GenesisBuild},
-		weights::{GetDispatchInfo, Pays},
+		traits::{ExistenceRequirement, GenesisBuild,WithdrawReasons},
+		pallet_prelude::*,
 	};
 
 	use sp_runtime::{
@@ -716,6 +717,8 @@ mod tests {
 
 	parameter_types! {
 		pub const MinVestedTransfer: u64 = 1;
+		pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+			WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 	}
 
 	impl pallet_vesting::Config for Test {
@@ -725,6 +728,7 @@ mod tests {
 		type MinVestedTransfer = MinVestedTransfer;
 		type WeightInfo = ();
 		const MAX_VESTING_SCHEDULES: u32 = 28;
+		type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
 	}
 
 	parameter_types! {
