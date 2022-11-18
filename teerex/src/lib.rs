@@ -32,8 +32,8 @@ use teerex_primitives::*;
 
 #[cfg(not(feature = "skip-ias-check"))]
 use ias_verify::{
-	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
-	verify_dcap_quote, verify_ias_report, SgxReport,
+	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, parse_crl,
+	verify_certificate_chain, verify_dcap_quote, verify_ias_report, SgxReport,
 };
 
 pub use crate::weights::WeightInfo;
@@ -224,21 +224,7 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
-			let certs = extract_certs(&certificate_chain);
-			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
-			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
-			let enclave_identity =
-				deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
-			if 1000 * (enclave_identity.issue_date.timestamp() as u64) < verification_time &&
-				1000 * (enclave_identity.next_update.timestamp() as u64) > verification_time
-			{
-				Ok(().into())
-			} else {
-				Err(<Error<T>>::CollateralInvalid.into())
-			}
+			Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -248,20 +234,18 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
-			let certs = extract_certs(&certificate_chain);
-			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
-			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
-			let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
-			if 1000 * (tcb_info.issue_date.timestamp() as u64) < verification_time &&
-				1000 * (tcb_info.next_update.timestamp() as u64) > verification_time
-			{
-				Ok(().into())
-			} else {
-				Err(<Error<T>>::CollateralInvalid.into())
-			}
+			Self::verify_tcb_info(tcb_info, signature, certificate_chain)
+		}
+
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_pck_crl(
+			origin: OriginFor<T>,
+			pck_crl: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			let serials = parse_crl(&pck_crl);
+
+			Ok(().into())
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -516,6 +500,49 @@ impl<T: Config> Pallet<T> {
 		// log::info!("teerex: status is acceptable");
 
 		Ok(report)
+	}
+
+	fn verify_quoting_enclave(
+		enclave_identity: Vec<u8>,
+		signature: Vec<u8>,
+		certificate_chain: Vec<u8>,
+	) -> DispatchResultWithPostInfo {
+		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let certs = extract_certs(&certificate_chain);
+		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
+		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+		let leaf_cert =
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+		let enclave_identity =
+			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
+		if 1000 * (enclave_identity.issue_date.timestamp() as u64) < verification_time &&
+			1000 * (enclave_identity.next_update.timestamp() as u64) > verification_time
+		{
+			Ok(().into())
+		} else {
+			Err(<Error<T>>::CollateralInvalid.into())
+		}
+	}
+
+	pub fn verify_tcb_info(
+		tcb_info: Vec<u8>,
+		signature: Vec<u8>,
+		certificate_chain: Vec<u8>,
+	) -> DispatchResultWithPostInfo {
+		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let certs = extract_certs(&certificate_chain);
+		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
+		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+		let leaf_cert =
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+		if 1000 * (tcb_info.issue_date.timestamp() as u64) < verification_time &&
+			1000 * (tcb_info.next_update.timestamp() as u64) > verification_time
+		{
+			Ok(().into())
+		} else {
+			Err(<Error<T>>::CollateralInvalid.into())
+		}
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]

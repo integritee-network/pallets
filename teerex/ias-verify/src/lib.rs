@@ -16,16 +16,18 @@
 */
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
 pub extern crate alloc;
-use crate::netscape_comment::NetscapeComment;
+
+use crate::{
+	collateral::{EnclaveIdentity, EnclaveIdentitySigned, TcbInfo, TcbInfoSigned},
+	netscape_comment::NetscapeComment,
+};
 use alloc::string::String;
-use chrono::prelude::*;
+use chrono::DateTime;
 use codec::{Decode, Encode, Input};
 use frame_support::ensure;
 use ring::signature::{self};
 use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sp_std::{
 	convert::{TryFrom, TryInto},
@@ -34,94 +36,12 @@ use sp_std::{
 use webpki::SignatureAlgorithm;
 use x509_cert::crl::CertificateList;
 
+mod collateral;
 mod ephemeral_key;
 mod netscape_comment;
 #[cfg(test)]
 mod tests;
 mod utils;
-
-#[derive(Serialize, Deserialize)]
-pub struct Tcb {
-	isvsvn: u16,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TcbLevel {
-	tcb: Tcb,
-	tcb_date: DateTime<Utc>,
-	tcb_status: String,
-	#[serde(rename = "advisoryIDs")]
-	#[serde(skip_serializing_if = "Option::is_none")]
-	advisory_ids: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct TcbComponent {
-	svn: u8,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TcbFull {
-	sgxtcbcomponents: Vec<TcbComponent>,
-	pcesvn: u8,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TcbLevelFull {
-	tcb: TcbFull,
-	tcb_date: DateTime<Utc>,
-	tcb_status: String,
-	#[serde(rename = "advisoryIDs")]
-	#[serde(skip_serializing_if = "Option::is_none")]
-	advisory_ids: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EnclaveIdentity {
-	id: String,
-	version: u16,
-	pub issue_date: DateTime<Utc>,
-	pub next_update: DateTime<Utc>,
-	tcb_evaluation_data_number: u16,
-	miscselect: String,
-	miscselect_mask: String,
-	attributes: String,
-	attributes_mask: String,
-	mrsigner: String,
-	isvprodid: u16,
-	tcb_levels: Vec<TcbLevel>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TcbInfo {
-	id: String,
-	version: u8,
-	pub issue_date: DateTime<Utc>,
-	pub next_update: DateTime<Utc>,
-	fmspc: String,
-	pce_id: String,
-	tcb_type: u16,
-	tcb_evaluation_data_number: u16,
-	tcb_levels: Vec<TcbLevelFull>,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TcbInfoSigned {
-	tcb_info: TcbInfo,
-	signature: String,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EnclaveIdentitySigned {
-	enclave_identity: EnclaveIdentity,
-	signature: String,
-}
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
@@ -425,13 +345,22 @@ pub fn deserialize_tcb_info(
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
-pub fn parse_crl(crl_data: &str) -> usize {
-	let crl_decoded = hex::decode(crl_data).unwrap();
-	let crl: CertificateList = der::Decode::from_der(&crl_decoded).unwrap();
+pub fn parse_crl(crl_data: &[u8]) -> Result<usize, &'static str> {
+	let crl_decoded = hex::decode(crl_data).map_err(|_| "Deserialization failed")?;
+	let crl: CertificateList =
+		der::Decode::from_der(&crl_decoded).map_err(|_| "Deserialization failed")?;
 
 	log::warn!("{}", crl.signature.bit_len());
 	log::warn!("{}", crl.signature.unused_bits());
-	crl.tbs_cert_list.revoked_certificates.unwrap().len()
+	/*let mut serials = vec![];
+	if let Some(certs) = crl.tbs_cert_list.revoked_certificates {
+		for c in certs {
+			let serial = c.serial_number.as_bytes().to_vec();
+			serials.push(serial);
+		}
+	}
+	Ok(serials)*/
+	Ok(crl.tbs_cert_list.revoked_certificates.unwrap().len())
 }
 
 /// Extract a list of certificates from a byte vec. The certificates must be separated by
@@ -443,7 +372,7 @@ pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	let certs_concat = certs_concat.replace('\n', "");
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
 	// Use the end marker to split the string into certificates
-	let mut parts = certs_concat.split("-----END CERTIFICATE-----");
+	let parts = certs_concat.split("-----END CERTIFICATE-----");
 	let parts = parts.filter(|p| p.len() > 0).filter_map(|p| base64::decode(&p).ok()).collect();
 	parts
 }

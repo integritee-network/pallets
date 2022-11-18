@@ -34,7 +34,7 @@ const TEST5_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-T
 const TEST6_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST6.bin");
 const TEST7_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST7.bin");
 const QE_IDENTITY_CERT: &str = include_str!("../test/dcap/qe_identity_cert.pem");
-const PCK_CRL: &str = include_str!("../test/dcap/pck_crl.der");
+const PCK_CRL: &[u8] = include_bytes!("../test/dcap/pck_crl.der");
 
 // reproduce with "make mrenclave" in worker repo root
 const TEST1_MRENCLAVE: &[u8] = &[
@@ -223,6 +223,6 @@ fn verify_tcb_info_signature() {
 
 #[test]
 fn parse_pck_crl() {
-	let crl = parse_crl(&PCK_CRL);
+	let crl = parse_crl(&PCK_CRL).unwrap();
 	assert_eq!(3, crl);
 }
