@@ -224,14 +224,21 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 			let certs = extract_certs(&certificate_chain);
 			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000)?;
+				verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 			let enclave_identity =
 				deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
-			Ok(().into())
+			if 1000 * (enclave_identity.issue_date.timestamp() as u64) < verification_time &&
+				1000 * (enclave_identity.next_update.timestamp() as u64) > verification_time
+			{
+				Ok(().into())
+			} else {
+				Err(<Error<T>>::CollateralInvalid.into())
+			}
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -241,13 +248,20 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 			let certs = extract_certs(&certificate_chain);
 			ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 			let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 			let leaf_cert =
-				verify_certificate_chain(&certs[0], &intermediate_slices, 1665489662000)?;
+				verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 			let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
-			Ok(().into())
+			if 1000 * (tcb_info.issue_date.timestamp() as u64) < verification_time &&
+				1000 * (tcb_info.next_update.timestamp() as u64) > verification_time
+			{
+				Ok(().into())
+			} else {
+				Err(<Error<T>>::CollateralInvalid.into())
+			}
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -373,6 +387,8 @@ pub mod pallet {
 		RaReportTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
+		/// The provided collateral data is invalid
+		CollateralInvalid,
 	}
 }
 

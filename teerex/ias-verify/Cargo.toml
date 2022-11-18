@@ -10,7 +10,7 @@ edition = "2021"
 
 [dependencies]
 base64 = { version = "0.13", default-features = false, features = ["alloc"] }
-chrono = { version = "0.4", default-features = false }
+chrono = { version = "0.4", default-features = false, features = ["serde"] }
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 log = { version = "0.4.14", default-features = false }
@@ -27,6 +27,7 @@ frame-support = { default-features = false, git = "https://github.com/paritytech
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.29" }
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.29" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.29" }
+honggfuzz = "0.5.55"
 
 [dev-dependencies]
 hex-literal = "*"

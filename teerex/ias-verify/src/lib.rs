@@ -49,7 +49,7 @@ pub struct Tcb {
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevel {
 	tcb: Tcb,
-	tcb_date: String,
+	tcb_date: DateTime<Utc>,
 	tcb_status: String,
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -100,8 +100,8 @@ pub struct EnclaveIdentity {
 pub struct TcbInfo {
 	id: String,
 	version: u8,
-	issue_date: DateTime<Utc>,
-	next_update: DateTime<Utc>,
+	pub issue_date: DateTime<Utc>,
+	pub next_update: DateTime<Utc>,
 	fmspc: String,
 	pce_id: String,
 	tcb_type: u16,
