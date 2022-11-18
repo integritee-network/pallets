@@ -48,8 +48,10 @@ pub struct TcbLevel {
 }
 
 impl TcbLevel {
-	pub fn is_valid(&self) -> bool {
-		self.tcb.is_valid() && self.tcb_status == "UpToDate"
+	pub fn is_valid(&self, now: DateTime<Utc>) -> bool {
+		// A possible extension would be to also verify that the advisory_ids list is empty,
+		// but I think this could also lead to all TcbLevels being invalid
+		self.tcb.is_valid() && self.tcb_status == "UpToDate" && self.tcb_date < now
 	}
 }
 
@@ -64,6 +66,20 @@ pub struct TcbFull {
 	pcesvn: u8,
 }
 
+impl TcbFull {
+	fn is_valid(&self, reference: &TcbFull) -> bool {
+		if self.sgxtcbcomponents.len() != 16 {
+			return false
+		}
+		for (v, r) in self.sgxtcbcomponents.iter().zip(reference.sgxtcbcomponents.iter()) {
+			if v.svn < r.svn {
+				return false
+			}
+		}
+		return self.pcesvn >= reference.pcesvn
+	}
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevelFull {
@@ -73,6 +89,14 @@ pub struct TcbLevelFull {
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	advisory_ids: Option<Vec<String>>,
+}
+
+impl TcbLevelFull {
+	pub fn is_valid(&self, now: DateTime<Utc>) -> bool {
+		// A possible extension would be to also verify that the advisory_ids list is empty,
+		// but I think this could also lead to all TcbLevels being invalid
+		self.tcb_status == "UpToDate" && self.tcb_date < now
+	}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -123,19 +147,48 @@ pub struct EnclaveIdentitySigned {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use der::ErrorKind::DateTime;
 
 	#[test]
 	fn tcb_level_is_valid() {
+		let now = Utc::now();
+
 		let t: TcbLevel = serde_json::from_str(
 			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
 		)
 		.unwrap();
-		assert!(t.is_valid());
+		assert!(t.is_valid(now));
 
 		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2025-11-10T00:00:00Z", "tcbStatus":"OutOfDate" }"#,
+			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"OutOfDate" }"#,
 		)
 		.unwrap();
-		assert!(!t.is_valid());
+		assert!(!t.is_valid(now));
+
+		let t: TcbLevel = serde_json::from_str(
+			r#"{"tcb":{"isvsvn":5}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
+		)
+		.unwrap();
+		assert!(!t.is_valid(now));
+
+		let t: TcbLevel = serde_json::from_str(
+			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2023-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
+		)
+		.unwrap();
+		assert!(!t.is_valid(now));
+	}
+
+	#[test]
+	fn tcb_full_is_valid() {
+		let reference = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
+		let reference: TcbFull = serde_json::from_str(reference).unwrap();
+
+		let invalid_pcesvn = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":6}"#;
+		let invalid_pcesvn: TcbFull = serde_json::from_str(invalid_pcesvn).unwrap();
+		assert!(!invalid_pcesvn.is_valid(&reference));
+
+		let invalid_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":127},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
+		let invalid_component: TcbFull = serde_json::from_str(invalid_component).unwrap();
+		assert!(!invalid_component.is_valid(&reference));
 	}
 }
