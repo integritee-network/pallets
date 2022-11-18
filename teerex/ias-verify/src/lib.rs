@@ -51,26 +51,19 @@ pub struct TcbLevel {
 	tcb: Tcb,
 	tcb_date: String,
 	tcb_status: String,
+	#[serde(rename = "advisoryIDs")]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	advisory_ids: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct TcbComponent {
+	svn: u8,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct TcbFull {
-	sgxtcbcomp01svn: u8,
-	sgxtcbcomp02svn: u8,
-	sgxtcbcomp03svn: u8,
-	sgxtcbcomp04svn: u8,
-	sgxtcbcomp05svn: u8,
-	sgxtcbcomp06svn: u8,
-	sgxtcbcomp07svn: u8,
-	sgxtcbcomp08svn: u8,
-	sgxtcbcomp09svn: u8,
-	sgxtcbcomp10svn: u8,
-	sgxtcbcomp11svn: u8,
-	sgxtcbcomp12svn: u8,
-	sgxtcbcomp13svn: u8,
-	sgxtcbcomp14svn: u8,
-	sgxtcbcomp15svn: u8,
-	sgxtcbcomp16svn: u8,
+	sgxtcbcomponents: Vec<TcbComponent>,
 	pcesvn: u8,
 }
 
@@ -78,8 +71,11 @@ pub struct TcbFull {
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevelFull {
 	tcb: TcbFull,
-	tcb_date: String,
+	tcb_date: DateTime<Utc>,
 	tcb_status: String,
+	#[serde(rename = "advisoryIDs")]
+	#[serde(skip_serializing_if = "Option::is_none")]
+	advisory_ids: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -87,8 +83,8 @@ pub struct TcbLevelFull {
 pub struct EnclaveIdentity {
 	id: String,
 	version: u16,
-	issue_date: String,
-	next_update: String,
+	pub issue_date: DateTime<Utc>,
+	pub next_update: DateTime<Utc>,
 	tcb_evaluation_data_number: u16,
 	miscselect: String,
 	miscselect_mask: String,
@@ -102,9 +98,10 @@ pub struct EnclaveIdentity {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TcbInfo {
+	id: String,
 	version: u8,
-	issue_date: String,
-	next_update: String,
+	issue_date: DateTime<Utc>,
+	next_update: DateTime<Utc>,
 	fmspc: String,
 	pce_id: String,
 	tcb_type: u16,
@@ -404,6 +401,8 @@ pub fn as_asn1(data: &[u8]) -> Vec<u8> {
 	writer.finish().unwrap().to_vec()
 }
 
+/// Also verifies that the data matches the given signature and was produced by the given certificate
+/// and matches the data
 pub fn deserialize_enclave_identity(
 	data: &[u8],
 	signature: &[u8],
@@ -414,6 +413,8 @@ pub fn deserialize_enclave_identity(
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
+/// Also verifies that the data matches the given signature and was produced by the given certificate
+/// and matches the data
 pub fn deserialize_tcb_info(
 	data: &[u8],
 	signature: &[u8],
