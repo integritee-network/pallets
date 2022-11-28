@@ -25,6 +25,7 @@ use crate::Pallet as Teeracle;
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
+use sp_std::prelude::Vec;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::borrow::ToOwned;
 use teeracle_primitives::{DataSource, OracleDataName, TradingPairString};
@@ -48,7 +49,7 @@ benchmarks! {
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".into();
 		let rate = U32F32::from_num(43.65);
-		let data_source: DataSource = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".into();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
 		Teerex::<T>::register_enclave(
@@ -88,7 +89,7 @@ benchmarks! {
 
 	add_to_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: DataSource = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".into();
 
 	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
 	verify {
@@ -97,7 +98,7 @@ benchmarks! {
 
 	remove_from_whitelist {
 		let mrenclave = TEST4_MRENCLAVE;
-		let data_source: DataSource = "https://api.coingecko.com".to_owned();
+		let data_source: DataSource = "https://api.coingecko.com".into();
 
 		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
 
