@@ -25,7 +25,7 @@ use crate::Pallet as Teeracle;
 use frame_benchmarking::benchmarks;
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
-use sp_std::prelude::Vec;
+use sp_std::prelude::*;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::borrow::ToOwned;
 use teeracle_primitives::{DataSource, OracleDataName, TradingPairString};
