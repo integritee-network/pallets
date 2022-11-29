@@ -95,6 +95,10 @@ pub mod pallet {
 	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn quoting_enclave_count)]
+	pub type QuotingEnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
 	pub type EnclaveIndex<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
@@ -217,14 +221,20 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_quoting_enclave(
 			origin: OriginFor<T>,
-			enclave_identity: Vec<u8>,
+			//enclave_identity: Vec<u8>,
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)
+			let quoting_enclaves_count = Self::quoting_enclave_count()
+				.checked_add(1)
+				.ok_or("[Teerex]: Overflow adding new enclave to registry")?;
+			<QuotingEnclaveCount<T>>::put(quoting_enclaves_count);
+
+			//Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)
+			Ok(().into())
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -515,9 +525,7 @@ impl<T: Config> Pallet<T> {
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
-		if 1000 * (enclave_identity.issue_date.timestamp() as u64) < verification_time &&
-			1000 * (enclave_identity.next_update.timestamp() as u64) > verification_time
-		{
+		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(().into())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())
@@ -536,9 +544,7 @@ impl<T: Config> Pallet<T> {
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
-		if 1000 * (tcb_info.issue_date.timestamp() as u64) < verification_time &&
-			1000 * (tcb_info.next_update.timestamp() as u64) > verification_time
-		{
+		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(().into())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())

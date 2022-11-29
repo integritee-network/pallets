@@ -104,8 +104,8 @@ impl TcbLevelFull {
 pub struct EnclaveIdentity {
 	id: String,
 	version: u16,
-	pub issue_date: DateTime<Utc>,
-	pub next_update: DateTime<Utc>,
+	issue_date: DateTime<Utc>,
+	next_update: DateTime<Utc>,
 	tcb_evaluation_data_number: u16,
 	miscselect: String,
 	miscselect_mask: String,
@@ -116,18 +116,36 @@ pub struct EnclaveIdentity {
 	pub tcb_levels: Vec<TcbLevel>,
 }
 
+impl EnclaveIdentity {
+	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
+		self.id == "QE" &&
+			self.version == 2 &&
+			self.issue_date.timestamp_millis() < timestamp_millis &&
+			timestamp_millis < self.next_update.timestamp_millis()
+	}
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TcbInfo {
 	id: String,
 	version: u8,
-	pub issue_date: DateTime<Utc>,
-	pub next_update: DateTime<Utc>,
+	issue_date: DateTime<Utc>,
+	next_update: DateTime<Utc>,
 	pub fmspc: String,
 	pce_id: String,
 	tcb_type: u16,
 	tcb_evaluation_data_number: u16,
 	tcb_levels: Vec<TcbLevelFull>,
+}
+
+impl TcbInfo {
+	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
+		self.id == "SGX" &&
+			self.version == 3 &&
+			self.issue_date.timestamp_millis() < timestamp_millis &&
+			timestamp_millis < self.next_update.timestamp_millis()
+	}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -189,6 +207,10 @@ mod tests {
 
 		let invalid_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":127},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
 		let invalid_component: TcbFull = serde_json::from_str(invalid_component).unwrap();
+		assert!(!invalid_component.is_valid(&reference));
+
+		let missing_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
+		let missing_component: TcbFull = serde_json::from_str(missing_component).unwrap();
 		assert!(!invalid_component.is_valid(&reference));
 	}
 }
