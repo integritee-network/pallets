@@ -14,10 +14,10 @@
 	limitations under the License.
 
 */
-use crate as pallet_exchange;
+use crate as pallet_teeracle;
 use frame_support::{pallet_prelude::GenesisBuild, parameter_types};
 use frame_system as system;
-use pallet_exchange::Config;
+use pallet_teeracle::Config;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -49,11 +49,11 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
-		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
-		Exchange: pallet_exchange::{Pallet, Call, Storage, Event<T>},
+		System: frame_system,
+		Balances: pallet_balances,
+		Timestamp: timestamp,
+		Teerex: pallet_teerex,
+		Teeracle: pallet_teeracle,
 	}
 );
 
@@ -122,6 +122,7 @@ parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
 	pub const MaxWhitelistedReleases: u32 = 10;
+	pub const MaxOracleBlobLen: u32 = 4096;
 }
 
 impl pallet_teerex::Config for Test {
@@ -136,6 +137,7 @@ impl Config for Test {
 	type Event = Event;
 	type WeightInfo = ();
 	type MaxWhitelistedReleases = MaxWhitelistedReleases;
+	type MaxOracleBlobLen = MaxOracleBlobLen;
 }
 
 // This function basically just builds a genesis storage key/value store according to

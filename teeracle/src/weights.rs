@@ -22,6 +22,7 @@ pub trait WeightInfo {
 	fn add_to_whitelist() -> Weight;
 	fn remove_from_whitelist() -> Weight;
 	fn update_exchange_rate() -> Weight;
+	fn update_oracle() -> Weight;
 }
 
 pub struct IntegriteeWeight<T>(PhantomData<T>);
@@ -35,6 +36,9 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn update_exchange_rate() -> Weight {
 		Weight::from_ref_time(46_200_000)
 	}
+	fn update_oracle() -> Weight {
+		Weight::from_ref_time(46_200_000)
+	}
 }
 // For tests
 impl WeightInfo for () {
@@ -45,6 +49,9 @@ impl WeightInfo for () {
 		Weight::from_ref_time(46_200_000)
 	}
 	fn update_exchange_rate() -> Weight {
+		Weight::from_ref_time(46_200_000)
+	}
+	fn update_oracle() -> Weight {
 		Weight::from_ref_time(46_200_000)
 	}
 }
