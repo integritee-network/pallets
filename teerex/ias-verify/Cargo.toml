@@ -5,7 +5,7 @@ description = "a certificate verification and IAS report parser crate for the te
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
-license = "Proprietary"
+license = "GPL-3.0"
 edition = "2021"
 
 [dependencies]

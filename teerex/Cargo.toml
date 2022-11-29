@@ -5,7 +5,7 @@ version = "0.9.0"
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
-license = "Proprietary"
+license = "GPL-3.0"
 edition = "2021"
 
 [dependencies]
