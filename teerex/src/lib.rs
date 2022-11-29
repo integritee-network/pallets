@@ -112,7 +112,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
-			AllowSGXDebugMode::<T>::put(&self.allow_sgx_debug_mode);
+			AllowSGXDebugMode::<T>::put(self.allow_sgx_debug_mode);
 		}
 	}
 
@@ -309,7 +309,7 @@ impl<T: Config> Pallet<T> {
 			enclaves_count
 		};
 
-		<EnclaveRegistry<T>>::insert(enclave_idx, &enclave);
+		<EnclaveRegistry<T>>::insert(enclave_idx, enclave);
 		Ok(().into())
 	}
 
@@ -333,7 +333,7 @@ impl<T: Config> Pallet<T> {
 	/// the registry.
 	fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> DispatchResultWithPostInfo {
 		if index_to_remove != new_enclaves_count {
-			let last_enclave = <EnclaveRegistry<T>>::get(&new_enclaves_count)
+			let last_enclave = <EnclaveRegistry<T>>::get(new_enclaves_count)
 				.ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			<EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
 			<EnclaveIndex<T>>::insert(last_enclave.pubkey, index_to_remove);
@@ -366,7 +366,7 @@ impl<T: Config> Pallet<T> {
 	pub fn is_registered_enclave(
 		account: &T::AccountId,
 	) -> Result<bool, DispatchErrorWithPostInfo> {
-		ensure!(<EnclaveIndex<T>>::contains_key(&account), <Error<T>>::EnclaveIsNotRegistered);
+		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
 		Ok(true)
 	}
 
