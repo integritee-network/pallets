@@ -178,26 +178,32 @@ pub mod pallet {
 			data_source: DataSource,
 			new_blob: OracleDataBlob<T>,
 		) -> DispatchResultWithPostInfo {
+            log::info!("update_oracle extrinsic entered");
 			let signer = ensure_signed(origin)?;
+            log::info!("signer good");
 			<pallet_teerex::Pallet<T>>::is_registered_enclave(&signer)?;
+            log::info!("signer is a registered enclave");
 			let signer_index = <pallet_teerex::Pallet<T>>::enclave_index(signer);
 			let signer_enclave = <pallet_teerex::Pallet<T>>::enclave(signer_index)
 				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
 
+            log::info!("Got passed the Teerex checks");
 			ensure!(
 				Self::is_whitelisted(&data_source, signer_enclave.mr_enclave),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
+            log::info!("Got passed the is_whitelisted check");
 			ensure!(
 				oracle_name.len() <= MAX_ORACLE_DATA_NAME_LEN,
 				Error::<T>::OracleDataNameStringTooLong
 			);
+            log::info!("Got passed the oracle_name check");
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
 			ensure!(
 				new_blob.len() as u32 <= T::MaxOracleBlobLen::get(),
 				Error::<T>::OracleBlobTooBig
 			);
-
+            log::info!("Got passed OracleBlob len check");
 			OracleData::<T>::insert(&oracle_name, &data_source, new_blob);
 			Self::deposit_event(Event::<T>::OracleUpdated(oracle_name, data_source));
 			Ok(().into())
