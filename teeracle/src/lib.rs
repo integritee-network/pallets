@@ -141,15 +141,19 @@ pub mod pallet {
 			mrenclave: [u8; 32],
 		) -> DispatchResult {
 			ensure_root(origin)?;
+			log::info!("add_to_whitelist extrinsic entered");
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
+			log::info!("data_source len check passed!!");
 			ensure!(
 				!Self::is_whitelisted(&data_source, mrenclave),
 				<Error<T>>::ReleaseAlreadyWhitelisted
 			);
+			log::info!("is_whitelisted() passed !! extrinsic entered");
 			<Whitelists<T>>::try_mutate(data_source.clone(), |mrenclave_vec| {
 				mrenclave_vec.try_push(mrenclave)
 			})
 			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
+			log::info!("ReleaseWhiteListOverflow didnt happen");
 			Self::deposit_event(Event::AddedToWhitelist(data_source, mrenclave));
 			Ok(())
 		}
