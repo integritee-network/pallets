@@ -154,7 +154,7 @@ pub mod pallet {
 			})
 			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
 			log::info!("ReleaseWhiteListOverflow didnt happen");
-			log::info!("data_source: {}", data_source);
+			log::info!("data_source len: {}", data_source.len());
 			Self::deposit_event(Event::AddedToWhitelist(data_source, mrenclave));
 			Ok(())
 		}
@@ -184,7 +184,7 @@ pub mod pallet {
 			new_blob: OracleDataBlob<T>,
 		) -> DispatchResultWithPostInfo {
             log::info!("update_oracle extrinsic entered");
-			log::info!("data_source is {}", data_source);
+			log::info!("data_source.len is {}", data_source.len());
 			let signer = ensure_signed(origin)?;
             log::info!("signer good");
 			<pallet_teerex::Pallet<T>>::is_registered_enclave(&signer)?;
