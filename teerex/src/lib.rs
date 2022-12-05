@@ -488,9 +488,9 @@ impl<T: Config> Pallet<T> {
 		dcap_quote: Vec<u8>,
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
-
-		let report =
-			verify_dcap_quote(&dcap_quote, verification_time.saturated_into()).map_err(|e| {
+		let qe = <QuotingEnclaveRegistry<T>>::get();
+		let report = verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), qe)
+			.map_err(|e| {
 				log::info!("verify_dcap_quote failed: {:?}", e);
 				<Error<T>>::RemoteAttestationVerificationFailed
 			})?;
@@ -526,9 +526,10 @@ impl<T: Config> Pallet<T> {
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
 		log::info!("deserialize_enclave_identity end");
-		let qe = enclave_identity.to_quoting_enclave();
-		<QuotingEnclaveRegistry<T>>::put(qe);
+
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
+			let qe = enclave_identity.to_quoting_enclave();
+			<QuotingEnclaveRegistry<T>>::put(qe);
 			Ok(().into())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())

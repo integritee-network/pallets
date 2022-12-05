@@ -33,7 +33,7 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
-use teerex_primitives::SgxBuildMode;
+use teerex_primitives::{QuotingEnclave, SgxBuildMode};
 use webpki::SignatureAlgorithm;
 use x509_cert::crl::CertificateList;
 
@@ -385,6 +385,7 @@ pub fn verify_certificate_chain<'a>(
 pub fn verify_dcap_quote(
 	dcap_quote: &[u8],
 	verification_time: u64,
+	qe: QuotingEnclave,
 ) -> Result<SgxReport, &'static str> {
 	let mut dcap_quote_clone = dcap_quote;
 	let q: DcapQuote =
@@ -394,6 +395,10 @@ pub fn verify_dcap_quote(
 	ensure!(
 		q.quote_signature_data.qe_certification_data.certification_data_type == 5,
 		"Only support for PEM formatted PCK Cert Chain"
+	);
+	ensure!(
+		qe.mrsigner == q.quote_signature_data.qe_report.mr_signer,
+		"mrenclave values for quoting enclave don't match"
 	);
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
