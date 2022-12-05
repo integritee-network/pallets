@@ -20,9 +20,9 @@ use crate::{
 	ShardIdentifier,
 };
 use frame_support::{assert_err, assert_ok};
-use ias_verify::SgxBuildMode;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
+use teerex_primitives::SgxBuildMode;
 use test_utils::ias::consts::*;
 
 fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {

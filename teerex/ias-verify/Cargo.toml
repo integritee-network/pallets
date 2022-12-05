@@ -22,6 +22,9 @@ ring = { git = "https://github.com/Niederb/ring-xous.git", branch = "0.16.20-cle
 der = { default-features = false, version = "0.6.0" }
 x509-cert = { default-features = false, version = "0.1.0", features = ["alloc"] }
 
+# local
+teerex-primitives = { path = "../../primitives/teerex", default-features = false }
+
 # substrate dependencies
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.29" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.29" }
@@ -41,6 +44,8 @@ std = [
     "scale-info/std",
     "serde_json/std",
     "webpki/std",
+    # local
+    "teerex-primitives/std",
     # substrate
     "frame-support/std",
     "sp-core/std",

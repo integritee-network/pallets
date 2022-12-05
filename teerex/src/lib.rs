@@ -37,7 +37,7 @@ use ias_verify::{
 };
 
 pub use crate::weights::WeightInfo;
-use ias_verify::SgxBuildMode;
+use teerex_primitives::SgxBuildMode;
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
@@ -95,8 +95,8 @@ pub mod pallet {
 	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn quoting_enclave_count)]
-	pub type QuotingEnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+	#[pallet::getter(fn quoting_enclave)]
+	pub type QuotingEnclaveRegistry<T: Config> = StorageValue<_, QuotingEnclave, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
@@ -224,16 +224,12 @@ pub mod pallet {
 		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_quoting_enclave(
 			origin: OriginFor<T>,
-			//enclave_identity: Vec<u8>,
+			enclave_identity: Vec<u8>,
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			let quoting_enclaves_count = Self::quoting_enclave_count()
-				.checked_add(1)
-				.ok_or("[Teerex]: Overflow adding new enclave to registry")?;
-			<QuotingEnclaveCount<T>>::put(quoting_enclaves_count);
-
-			//Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)
+			log::info!("register_quoting_enclave start");
+			Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
 			Ok(().into())
 		}
 
@@ -517,14 +513,21 @@ impl<T: Config> Pallet<T> {
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
 	) -> DispatchResultWithPostInfo {
+		log::info!("verify_quoting_enclave start");
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		log::info!("extract_certs start");
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+		log::info!("verify_certificate_chain start");
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+		log::info!("deserialize_enclave_identity start");
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
+		log::info!("deserialize_enclave_identity end");
+		let qe = enclave_identity.to_quoting_enclave();
+		<QuotingEnclaveRegistry<T>>::put(qe);
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(().into())
 		} else {

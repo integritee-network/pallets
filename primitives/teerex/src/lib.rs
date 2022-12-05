@@ -18,10 +18,21 @@
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
-use ias_verify::SgxBuildMode;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_std::prelude::*;
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub enum SgxBuildMode {
+	Debug,
+	Production,
+}
+
+impl Default for SgxBuildMode {
+	fn default() -> Self {
+		SgxBuildMode::Production
+	}
+}
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Enclave<PubKey, Url> {
@@ -42,6 +53,22 @@ impl<PubKey, Url> Enclave<PubKey, Url> {
 		sgx_build_mode: SgxBuildMode,
 	) -> Self {
 		Enclave { pubkey, mr_enclave, timestamp, url, sgx_mode: sgx_build_mode }
+	}
+}
+
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct QuotingEnclave {
+	pub mrsigner: [u8; 32],
+	// Todo: make timestamp: Moment
+	pub issue_date: u64, // unix epoch in milliseconds
+	// Todo: make timestamp: Moment
+	pub next_update: u64, // unix epoch in milliseconds
+	pub isvprodid: u16,
+}
+
+impl QuotingEnclave {
+	pub fn new(mrsigner: [u8; 32], issue_date: u64, next_update: u64, isvprodid: u16) -> Self {
+		Self { mrsigner, issue_date, next_update, isvprodid }
 	}
 }
 

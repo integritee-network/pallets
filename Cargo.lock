@@ -1064,6 +1064,7 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-std",
+ "teerex-primitives",
  "webpki",
  "x509-cert",
 ]
@@ -2936,7 +2937,6 @@ dependencies = [
 name = "teerex-primitives"
 version = "0.1.0"
 dependencies = [
- "ias-verify",
  "parity-scale-codec",
  "scale-info",
  "serde",

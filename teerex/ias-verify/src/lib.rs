@@ -33,6 +33,7 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
+use teerex_primitives::SgxBuildMode;
 use webpki::SignatureAlgorithm;
 use x509_cert::crl::CertificateList;
 
@@ -190,17 +191,6 @@ pub struct SgxQuote {
 	report_body: SgxReportBody, /* 48  */
 	                    //signature_len: u32,    /* 432 */
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
-}
-
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub enum SgxBuildMode {
-	Debug,
-	Production,
-}
-impl Default for SgxBuildMode {
-	fn default() -> Self {
-		SgxBuildMode::Production
-	}
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
