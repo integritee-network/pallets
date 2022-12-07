@@ -23,7 +23,7 @@ use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
-use teerex_primitives::QuotingEnclave;
+use teerex_primitives::{QeTcb, QuotingEnclave};
 
 #[derive(Serialize, Deserialize)]
 pub struct Tcb {
@@ -146,11 +146,23 @@ where
 
 impl EnclaveIdentity {
 	pub fn to_quoting_enclave(&self) -> QuotingEnclave {
+		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
+		for tcb in &self.tcb_levels {
+			// UpToDate is the only valid status (the other being OutOfDate and Revoked)
+			if tcb.tcb_status == "UpToDate" {
+				valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
+			}
+		}
 		QuotingEnclave::new(
-			self.mrsigner,
 			self.issue_date.timestamp_millis().try_into().unwrap(),
 			self.next_update.timestamp_millis().try_into().unwrap(),
+			self.miscselect,
+			self.miscselect_mask,
+			self.attributes,
+			self.attributes_mask,
+			self.mrsigner,
 			self.isvprodid,
+			valid_tcbs,
 		)
 	}
 

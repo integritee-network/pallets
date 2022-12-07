@@ -18,6 +18,7 @@
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
+use common_primitives::PalletString;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_std::prelude::*;
@@ -56,19 +57,57 @@ impl<PubKey, Url> Enclave<PubKey, Url> {
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+/// The list of valid TCBs for an enclave.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct QeTcb {
+	pub isvsvn: u16,
+}
+
+impl QeTcb {
+	pub fn new(isvsvn: u16) -> Self {
+		Self { isvsvn }
+	}
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct QuotingEnclave {
-	pub mrsigner: [u8; 32],
 	// Todo: make timestamp: Moment
 	pub issue_date: u64, // unix epoch in milliseconds
 	// Todo: make timestamp: Moment
 	pub next_update: u64, // unix epoch in milliseconds
+	pub miscselect: [u8; 4],
+	pub miscselect_mask: [u8; 4],
+	pub attributes: [u8; 16],
+	pub attributes_mask: [u8; 16],
+	pub mrsigner: [u8; 32],
 	pub isvprodid: u16,
+	/// Contains only the TCB versions that are considered UpToDate
+	pub tcb: Vec<QeTcb>,
 }
 
 impl QuotingEnclave {
-	pub fn new(mrsigner: [u8; 32], issue_date: u64, next_update: u64, isvprodid: u16) -> Self {
-		Self { mrsigner, issue_date, next_update, isvprodid }
+	pub fn new(
+		issue_date: u64,
+		next_update: u64,
+		miscselect: [u8; 4],
+		miscselect_mask: [u8; 4],
+		attributes: [u8; 16],
+		attributes_mask: [u8; 16],
+		mrsigner: [u8; 32],
+		isvprodid: u16,
+		tcb: Vec<QeTcb>,
+	) -> Self {
+		Self {
+			issue_date,
+			next_update,
+			miscselect,
+			miscselect_mask,
+			attributes,
+			attributes_mask,
+			mrsigner,
+			isvprodid,
+			tcb,
+		}
 	}
 }
 
