@@ -176,6 +176,10 @@ impl SgxReportBody {
 			SgxBuildMode::Production
 		}
 	}
+
+	pub fn verify(&self, o: QuotingEnclave) -> bool {
+		self.isv_prod_id == o.isvprodid && self.mr_signer == o.mrsigner
+	}
 }
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_quote.h
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
@@ -396,10 +400,7 @@ pub fn verify_dcap_quote(
 		q.quote_signature_data.qe_certification_data.certification_data_type == 5,
 		"Only support for PEM formatted PCK Cert Chain"
 	);
-	ensure!(
-		qe.mrsigner == q.quote_signature_data.qe_report.mr_signer,
-		"mrenclave values for quoting enclave don't match"
-	);
+	ensure!(q.quote_signature_data.qe_report.verify(qe), "Enclave rejected by quoting enclave");
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
 	let ra_status = SgxStatus::Ok;

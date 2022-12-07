@@ -18,7 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub extern crate alloc;
 
-use crate::alloc::string::ToString;
+use crate::{alloc::string::ToString, SgxReportBody};
 use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
@@ -109,8 +109,8 @@ pub struct EnclaveIdentity {
 	issue_date: DateTime<Utc>,
 	next_update: DateTime<Utc>,
 	tcb_evaluation_data_number: u16,
-	miscselect: String,
-	miscselect_mask: String,
+	miscselect: String,      //[u8; 4],
+	miscselect_mask: String, //[u8; 4],
 	attributes: String,
 	attributes_mask: String,
 	#[serde(deserialize_with = "decode_mrsigner")]
@@ -132,10 +132,8 @@ where
 	D: Deserializer<'de>,
 {
 	let s: &str = Deserialize::deserialize(deserializer)?;
-	// do better hex decoding than this
-	let hex = hex::decode(&s).unwrap();
-	let result = hex.try_into().unwrap();
-	Ok(result)
+	let hex = hex::decode(&s).map_err(|_| D::Error::custom("Failed to decode hex string"));
+	hex.try_into().map_err(|_| D::Error::custom("Invalid hex length"))
 }
 
 impl EnclaveIdentity {
@@ -152,7 +150,11 @@ impl EnclaveIdentity {
 		self.id == "QE" &&
 			self.version == 2 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&
-			timestamp_millis < self.next_update.timestamp_millis()
+			timestamp_millis < self.next_update.timestamp_millis() &&
+			self.miscselect.len() == 8 &&
+			self.miscselect_mask.len() == 8 &&
+			self.attributes.len() == 32 &&
+			self.attributes_mask.len() == 32
 	}
 }
 
