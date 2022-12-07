@@ -109,30 +109,38 @@ pub struct EnclaveIdentity {
 	issue_date: DateTime<Utc>,
 	next_update: DateTime<Utc>,
 	tcb_evaluation_data_number: u16,
-	miscselect: String,      //[u8; 4],
-	miscselect_mask: String, //[u8; 4],
-	attributes: String,
-	attributes_mask: String,
-	#[serde(deserialize_with = "decode_mrsigner")]
-	#[serde(serialize_with = "encode_mrsigner")]
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 4>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 4>")]
+	miscselect: [u8; 4],
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 4>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 4>")]
+	miscselect_mask: [u8; 4],
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 16>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 16>")]
+	attributes: [u8; 16],
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 16>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 16>")]
+	attributes_mask: [u8; 16],
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 32>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 32>")]
 	mrsigner: [u8; 32],
 	pub isvprodid: u16,
 	pub tcb_levels: Vec<TcbLevel>,
 }
 
-fn encode_mrsigner<S>(x: &[u8; 32], s: S) -> Result<S::Ok, S::Error>
+fn serialize_to_hex<S, const N: usize>(x: &[u8; N], s: S) -> Result<S::Ok, S::Error>
 where
 	S: Serializer,
 {
 	s.serialize_str(&hex::encode(x).to_uppercase())
 }
 
-fn decode_mrsigner<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+fn deserialize_from_hex<'de, D, const N: usize>(deserializer: D) -> Result<[u8; N], D::Error>
 where
 	D: Deserializer<'de>,
 {
 	let s: &str = Deserialize::deserialize(deserializer)?;
-	let hex = hex::decode(&s).map_err(|_| D::Error::custom("Failed to decode hex string"));
+	let hex = hex::decode(&s).map_err(|_| D::Error::custom("Failed to deserialize hex string"))?;
 	hex.try_into().map_err(|_| D::Error::custom("Invalid hex length"))
 }
 
@@ -151,8 +159,6 @@ impl EnclaveIdentity {
 			self.version == 2 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&
 			timestamp_millis < self.next_update.timestamp_millis() &&
-			self.miscselect.len() == 8 &&
-			self.miscselect_mask.len() == 8 &&
 			self.attributes.len() == 32 &&
 			self.attributes_mask.len() == 32
 	}
