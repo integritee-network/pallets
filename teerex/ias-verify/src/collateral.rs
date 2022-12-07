@@ -158,9 +158,7 @@ impl EnclaveIdentity {
 		self.id == "QE" &&
 			self.version == 2 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&
-			timestamp_millis < self.next_update.timestamp_millis() &&
-			self.attributes.len() == 32 &&
-			self.attributes_mask.len() == 32
+			timestamp_millis < self.next_update.timestamp_millis()
 	}
 }
 
