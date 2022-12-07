@@ -230,7 +230,7 @@ pub mod pallet {
 			let data = dest.using_encoded(to_ascii_hex);
 			let signer = Self::eth_recover(&ethereum_signature, &data, &[][..])
 				.ok_or(Error::<T>::InvalidEthereumSignature)?;
-			ensure!(Signing::<T>::get(&signer).is_none(), Error::<T>::InvalidStatement);
+			ensure!(Signing::<T>::get(signer).is_none(), Error::<T>::InvalidStatement);
 
 			Self::process_claim(signer, dest)?;
 			Ok(())
@@ -359,16 +359,16 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			T::MoveClaimOrigin::try_origin(origin).map(|_| ()).or_else(ensure_root)?;
 
-			if let Some(c) = Claims::<T>::take(&old) {
-				Claims::<T>::insert(&new, c);
+			if let Some(c) = Claims::<T>::take(old) {
+				Claims::<T>::insert(new, c);
 			}
 
-			if let Some(c) = Vesting::<T>::take(&old) {
-				Vesting::<T>::insert(&new, c)
+			if let Some(c) = Vesting::<T>::take(old) {
+				Vesting::<T>::insert(new, c)
 			}
 
-			if let Some(c) = Signing::<T>::take(&old) {
-				Signing::<T>::insert(&new, c)
+			if let Some(c) = Signing::<T>::take(old) {
+				Signing::<T>::insert(new, c)
 			}
 
 			if let Some(preclaim) = maybe_preclaim {
@@ -415,7 +415,7 @@ pub mod pallet {
 			})?;
 
 			let e = InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into());
-			ensure!(<Claims<T>>::contains_key(&signer), e);
+			ensure!(<Claims<T>>::contains_key(signer), e);
 
 			let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
 			match Signing::<T>::get(signer) {
@@ -474,11 +474,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn process_claim(signer: EthereumAddress, dest: T::AccountId) -> sp_runtime::DispatchResult {
-		let balance_due = <Claims<T>>::get(&signer).ok_or(Error::<T>::SignerHasNoClaim)?;
+		let balance_due = <Claims<T>>::get(signer).ok_or(Error::<T>::SignerHasNoClaim)?;
 
 		let new_total = Self::total().checked_sub(&balance_due).ok_or(Error::<T>::PotUnderflow)?;
 
-		let vesting = Vesting::<T>::get(&signer);
+		let vesting = Vesting::<T>::get(signer);
 		if vesting.is_some() && T::VestingSchedule::vesting_balance(&dest).is_some() {
 			return Err(Error::<T>::VestedBalanceExists.into())
 		}
@@ -495,9 +495,9 @@ impl<T: Config> Pallet<T> {
 		}
 
 		<Total<T>>::put(new_total);
-		<Claims<T>>::remove(&signer);
-		<Vesting<T>>::remove(&signer);
-		Signing::<T>::remove(&signer);
+		<Claims<T>>::remove(signer);
+		<Vesting<T>>::remove(signer);
+		Signing::<T>::remove(signer);
 
 		// Let's deposit an event to let the outside world know this happened.
 		Self::deposit_event(Event::<T>::Claimed(dest, signer, balance_due));
@@ -639,11 +639,10 @@ mod tests {
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
 	use frame_support::{
-		dispatch::*,
 		assert_err, assert_noop, assert_ok,
-		dispatch::DispatchError::BadOrigin,
+		dispatch::{DispatchError::BadOrigin, GetDispatchInfo, Pays},
 		ord_parameter_types, parameter_types,
-		traits::{ExistenceRequirement, GenesisBuild,WithdrawReasons},
+		traits::{ExistenceRequirement, GenesisBuild, WithdrawReasons},
 	};
 
 	use sp_runtime::{
@@ -839,7 +838,11 @@ mod tests {
 				None
 			));
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&alice(), &42u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&alice(), &42u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim
 			);
 			assert_ok!(Claims::claim(
@@ -899,11 +902,19 @@ mod tests {
 				sig::<Test>(&alice(), &42u64.encode(), &[][..])
 			));
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&dave(), &42u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&dave(), &42u64.encode(), &[][..])
+				),
 				Error::<Test>::InvalidStatement,
 			);
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&eve(), &42u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&eve(), &42u64.encode(), &[][..])
+				),
 				Error::<Test>::InvalidStatement,
 			);
 			assert_ok!(Claims::claim(
@@ -1055,7 +1066,11 @@ mod tests {
 			);
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 69, sig::<Test>(&bob(), &69u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					69,
+					sig::<Test>(&bob(), &69u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim,
 			);
 			assert_ok!(Claims::mint_claim(RuntimeOrigin::root(), eth(&bob()), 200, None, None));
@@ -1086,7 +1101,11 @@ mod tests {
 			);
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 69, sig::<Test>(&bob(), &69u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					69,
+					sig::<Test>(&bob(), &69u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim,
 			);
 			assert_ok!(Claims::mint_claim(
@@ -1187,7 +1206,11 @@ mod tests {
 				sig::<Test>(&alice(), &42u64.encode(), &[][..])
 			));
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&alice(), &42u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&alice(), &42u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim
 			);
 		});
@@ -1217,7 +1240,11 @@ mod tests {
 
 			// They should not be able to claim
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 69, sig::<Test>(&bob(), &69u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					69,
+					sig::<Test>(&bob(), &69u64.encode(), &[][..])
+				),
 				Error::<Test>::VestedBalanceExists,
 			);
 		});
@@ -1228,7 +1255,11 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&alice(), &69u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&alice(), &69u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim
 			);
 		});
@@ -1239,7 +1270,11 @@ mod tests {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
-				Claims::claim(RuntimeOrigin::none(), 42, sig::<Test>(&bob(), &69u64.encode(), &[][..])),
+				Claims::claim(
+					RuntimeOrigin::none(),
+					42,
+					sig::<Test>(&bob(), &69u64.encode(), &[][..])
+				),
 				Error::<Test>::SignerHasNoClaim
 			);
 		});
