@@ -39,7 +39,7 @@ fn confirm_imported_sidechain_block_invalid_next_finalization_candidate() {
 
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
-				Origin::signed(signer7.clone()),
+				RuntimeOrigin::signed(signer7.clone()),
 				shard7,
 				block_number,
 				block_number,
@@ -64,7 +64,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		register_enclave7();
 
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
-			Origin::signed(signer7.clone()),
+			RuntimeOrigin::signed(signer7.clone()),
 			shard7,
 			block_number,
 			next_finalization_block_candidate,
@@ -72,7 +72,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		));
 
 		let expected_event =
-			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, hash));
+			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -91,7 +91,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
-				Origin::signed(signer7),
+				RuntimeOrigin::signed(signer7),
 				shard4,
 				block_number,
 				block_number,
@@ -203,7 +203,7 @@ fn register_enclave(signer_pub_key: &[u8; 32], cert: &[u8], expected_enclave_cou
 
 	//Ensure that enclave is registered
 	assert_ok!(Teerex::<Test>::register_enclave(
-		Origin::signed(signer7),
+		RuntimeOrigin::signed(signer7),
 		cert.to_vec(),
 		URL.to_vec(),
 	));
@@ -238,7 +238,7 @@ fn confirm_block(
 	let signer7 = get_signer(signer_pub_key);
 
 	Sidechain::confirm_imported_sidechain_block(
-		Origin::signed(signer7.clone()),
+		RuntimeOrigin::signed(signer7.clone()),
 		shard7,
 		block_number,
 		next_finalized_block_number,
@@ -246,8 +246,10 @@ fn confirm_block(
 	)?;
 
 	if check_for_event {
-		let expected_event =
-			Event::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, block_header_hash));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			signer7,
+			block_header_hash,
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
