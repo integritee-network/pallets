@@ -99,6 +99,10 @@ pub mod pallet {
 	pub type QuotingEnclaveRegistry<T: Config> = StorageValue<_, QuotingEnclave, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn tcb_info_count)]
+	pub type TcbInfoCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
 	pub type EnclaveIndex<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
@@ -240,6 +244,10 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			let tcb_info_count = Self::tcb_info_count()
+				.checked_add(1)
+				.ok_or("[Teerex]: Overflow adding new TCB info to registry")?;
+			<TcbInfoCount<T>>::put(tcb_info_count);
 			Self::verify_tcb_info(tcb_info, signature, certificate_chain)
 		}
 
