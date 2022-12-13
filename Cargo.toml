@@ -7,8 +7,10 @@ members = [
     "teerex/ias-verify",
     "teeracle",
     "test-utils",
+    "xcm-transactor",
     "primitives/claims",
     "primitives/teerex",
     "primitives/teeracle",
     "primitives/common",
+    "primitives/xcm-transactor",
 ]
