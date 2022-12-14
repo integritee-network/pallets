@@ -244,11 +244,12 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			let tcb_info_count = Self::tcb_info_count()
 				.checked_add(1)
 				.ok_or("[Teerex]: Overflow adding new TCB info to registry")?;
 			<TcbInfoCount<T>>::put(tcb_info_count);
-			Self::verify_tcb_info(tcb_info, signature, certificate_chain)
+			Ok(().into())
 		}
 
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]

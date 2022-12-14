@@ -23,7 +23,11 @@ use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
-use teerex_primitives::{QeTcb, QuotingEnclave};
+use teerex_primitives::{QeTcb, QuotingEnclave, TcbVersionStatus};
+
+/// The data structures in here are designed such that they can be used to serialize/deserialize
+/// the "TCB info" and "enclave identity" collateral data in JSON format provided by intel
+/// See https://api.portal.trustedservices.intel.com/documentation for further information and examples
 
 #[derive(Serialize, Deserialize)]
 pub struct Tcb {
@@ -42,6 +46,8 @@ impl Tcb {
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevel {
 	tcb: Tcb,
+	/// Intel does not verify the tcb_date in their code and their API documentation also does
+	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
 	tcb_status: String,
 	#[serde(rename = "advisoryIDs")]
@@ -50,10 +56,10 @@ pub struct TcbLevel {
 }
 
 impl TcbLevel {
-	pub fn is_valid(&self, now: DateTime<Utc>) -> bool {
+	pub fn is_valid(&self) -> bool {
 		// A possible extension would be to also verify that the advisory_ids list is empty,
 		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb.is_valid() && self.tcb_status == "UpToDate" && self.tcb_date < now
+		self.tcb.is_valid() && self.tcb_status == "UpToDate"
 	}
 }
 
@@ -64,15 +70,12 @@ struct TcbComponent {
 
 #[derive(Serialize, Deserialize)]
 pub struct TcbFull {
-	sgxtcbcomponents: Vec<TcbComponent>,
-	pcesvn: u8,
+	sgxtcbcomponents: [TcbComponent; 16],
+	pcesvn: u16,
 }
 
 impl TcbFull {
 	fn is_valid(&self, reference: &TcbFull) -> bool {
-		if self.sgxtcbcomponents.len() != 16 {
-			return false
-		}
 		for (v, r) in self.sgxtcbcomponents.iter().zip(reference.sgxtcbcomponents.iter()) {
 			if v.svn < r.svn {
 				return false
@@ -86,6 +89,8 @@ impl TcbFull {
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevelFull {
 	tcb: TcbFull,
+	/// Intel does not verify the tcb_date in their code and their API documentation also does
+	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
 	tcb_status: String,
 	#[serde(rename = "advisoryIDs")]
@@ -94,10 +99,10 @@ pub struct TcbLevelFull {
 }
 
 impl TcbLevelFull {
-	pub fn is_valid(&self, now: DateTime<Utc>) -> bool {
+	pub fn is_valid(&self) -> bool {
 		// A possible extension would be to also verify that the advisory_ids list is empty,
 		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb_status == "UpToDate" && self.tcb_date < now
+		self.tcb_status == "UpToDate"
 	}
 }
 
@@ -145,6 +150,7 @@ where
 }
 
 impl EnclaveIdentity {
+	/// This extracts the necessary information into the struct that we actually store in the chain
 	pub fn to_quoting_enclave(&self) -> QuotingEnclave {
 		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
 		for tcb in &self.tcb_levels {
@@ -189,6 +195,17 @@ pub struct TcbInfo {
 }
 
 impl TcbInfo {
+	/// This extracts the necessary information into the struct that we actually store in the chain
+	pub fn to_chain_tcb_info(&self) {
+		let mut valid_tcbs: Vec<TcbVersionStatus> = Vec::new();
+		for tcb in &self.tcb_levels {
+			// UpToDate is the only valid status (the other being OutOfDate and Revoked)
+			if tcb.is_valid() {
+				valid_tcbs.push(TcbVersionStatus::new([0; 16], tcb.tcb.pcesvn));
+			}
+		}
+	}
+
 	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
 		self.id == "SGX" &&
 			self.version == 3 &&
@@ -233,17 +250,19 @@ mod tests {
 	use super::*;
 	use der::ErrorKind::DateTime;
 
+	#[test]
 	fn separate_json_data_and_signature_enclave_identity() {
 		let json = include_bytes!("../test/dcap/qe_identity.json");
 		let (data, signature) = separate_json_data_and_signature("enclaveIdentity", json).unwrap();
 		assert_eq!(
 			data,
-			r#"{"id":"QE","version":2,"issueDate":"2022-11-17T14:34:49Z","nextUpdate":"2023-04-16T14:34:49Z","tcbEvaluationDataNumber":12,"miscselect":"00000000","miscselectMask":"FFFFFFFF","attributes":"11000000000000000000000000000000","attributesMask":"FBFFFFFFFFFFFFFF0000000000000000","mrsigner":"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF","isvprodid":1,"tcbLevels":[{"tcb":{"isvsvn":6},"tcbDate":"2021-11-10T00:00:00Z","tcbStatus":"UpToDate"},{"tcb":{"isvsvn":5},"tcbDate":"2020-11-11T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00477"]},{"tcb":{"isvsvn":4},"tcbDate":"2019-11-13T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00334","INTEL-SA-00477"]},{"tcb":{"isvsvn":2},"tcbDate":"2019-05-15T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00219","INTEL-SA-00293","INTEL-SA-00334","INTEL-SA-00477"]},{"tcb":{"isvsvn":1},"tcbDate":"2018-08-15T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00202","INTEL-SA-00219","INTEL-SA-00293","INTEL-SA-00334","INTEL-SA-00477"]}]}"#
+			r#"{"id":"QE","version":2,"issueDate":"2022-12-04T22:45:33Z","nextUpdate":"2023-01-03T22:45:33Z","tcbEvaluationDataNumber":13,"miscselect":"00000000","miscselectMask":"FFFFFFFF","attributes":"11000000000000000000000000000000","attributesMask":"FBFFFFFFFFFFFFFF0000000000000000","mrsigner":"8C4F5775D796503E96137F77C68A829A0056AC8DED70140B081B094490C57BFF","isvprodid":1,"tcbLevels":[{"tcb":{"isvsvn":6},"tcbDate":"2022-11-09T00:00:00Z","tcbStatus":"UpToDate"},{"tcb":{"isvsvn":5},"tcbDate":"2020-11-11T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00477"]},{"tcb":{"isvsvn":4},"tcbDate":"2019-11-13T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00334","INTEL-SA-00477"]},{"tcb":{"isvsvn":2},"tcbDate":"2019-05-15T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00219","INTEL-SA-00293","INTEL-SA-00334","INTEL-SA-00477"]},{"tcb":{"isvsvn":1},"tcbDate":"2018-08-15T00:00:00Z","tcbStatus":"OutOfDate","advisoryIDs":["INTEL-SA-00202","INTEL-SA-00219","INTEL-SA-00293","INTEL-SA-00334","INTEL-SA-00477"]}]}"#
 		);
-		assert_eq!(signature, "a9456c69e5878ee2f689b3d449bc961add61a6b80d30804a5510dbd2813d6c748ee8562a02de8d02b1528e83d9740e34736495512eff4a45db11c42002a4c8cf");
+		assert_eq!(signature, "47accba321e57c20722a0d3d1db11c9b52661239857dc578ca1bde13976ee288cf39f72111ffe445c7389ef56447c79e30e6b83a8863ed9880de5bde4a8d5c91");
 	}
 
-	fn separate_json_data_and_signature_tcb_inf() {
+	#[test]
+	fn separate_json_data_and_signature_tcb_info() {
 		let json = include_bytes!("../test/dcap/tcb_info.json");
 		let (data, signature) = separate_json_data_and_signature("tcbInfo", json).unwrap();
 		assert_eq!(
@@ -255,31 +274,23 @@ mod tests {
 
 	#[test]
 	fn tcb_level_is_valid() {
-		let now = Utc::now();
-
 		let t: TcbLevel = serde_json::from_str(
 			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
 		)
 		.unwrap();
-		assert!(t.is_valid(now));
+		assert!(t.is_valid());
 
 		let t: TcbLevel = serde_json::from_str(
 			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"OutOfDate" }"#,
 		)
 		.unwrap();
-		assert!(!t.is_valid(now));
+		assert!(!t.is_valid());
 
 		let t: TcbLevel = serde_json::from_str(
 			r#"{"tcb":{"isvsvn":5}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
 		)
 		.unwrap();
-		assert!(!t.is_valid(now));
-
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2023-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
-		)
-		.unwrap();
-		assert!(!t.is_valid(now));
+		assert!(!t.is_valid());
 	}
 
 	#[test]
@@ -296,7 +307,8 @@ mod tests {
 		assert!(!invalid_component.is_valid(&reference));
 
 		let missing_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
-		let missing_component: TcbFull = serde_json::from_str(missing_component).unwrap();
-		assert!(!invalid_component.is_valid(&reference));
+		let missing_component: Result<TcbFull, serde_json::Error> =
+			serde_json::from_str(missing_component);
+		assert!(missing_component.is_err());
 	}
 }

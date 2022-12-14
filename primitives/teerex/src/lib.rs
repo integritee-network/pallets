@@ -69,6 +69,8 @@ impl QeTcb {
 	}
 }
 
+/// This represents all the collateral data that we need to store on chain in order to verify
+/// the quoting enclave validity of another enclave that wants to register itself on chain
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct QuotingEnclave {
 	// Todo: make timestamp: Moment
@@ -108,6 +110,35 @@ impl QuotingEnclave {
 			isvprodid,
 			tcb,
 		}
+	}
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct TcbVersionStatus {
+	cpusvn: [u8; 16],
+	pcesvn: u16,
+}
+
+impl TcbVersionStatus {
+	pub fn new(cpusvn: [u8; 16], pcesvn: u16) -> Self {
+		Self { cpusvn, pcesvn }
+	}
+}
+
+/// This represents all the collateral data that we need to store on chain in order to verify
+/// the quoting enclave validity of another enclave that wants to register itself on chain
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct TcbInfoOnChain {
+	// Todo: make timestamp: Moment
+	pub issue_date: u64, // unix epoch in milliseconds
+	// Todo: make timestamp: Moment
+	pub next_update: u64, // unix epoch in milliseconds
+	tcb_levels: Vec<TcbVersionStatus>,
+}
+
+impl TcbInfoOnChain {
+	pub fn new(issue_date: u64, next_update: u64, tcb_levels: Vec<TcbVersionStatus>) -> Self {
+		Self { issue_date, next_update, tcb_levels }
 	}
 }
 
