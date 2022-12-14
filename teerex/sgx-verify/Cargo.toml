@@ -1,5 +1,5 @@
 [package]
-name = "ias-verify"
+name = "sgx-verify"
 version = "0.1.4"
 description = "a certificate verification and IAS report parser crate for the teerex pallet"
 authors = ["Integritee AG <hello@integritee.network>"]

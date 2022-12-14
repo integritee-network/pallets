@@ -31,7 +31,7 @@ use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
 #[cfg(not(feature = "skip-ias-check"))]
-use ias_verify::{
+use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, parse_crl,
 	verify_certificate_chain, verify_dcap_quote, verify_ias_report, SgxReport,
 };

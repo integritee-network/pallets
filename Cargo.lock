@@ -1045,31 +1045,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ias-verify"
-version = "0.1.4"
-dependencies = [
- "base64",
- "chrono",
- "der 0.6.0",
- "frame-support",
- "hex",
- "hex-literal",
- "honggfuzz",
- "log",
- "parity-scale-codec",
- "ring 0.16.20 (git+https://github.com/Niederb/ring-xous.git?branch=0.16.20-cleanup)",
- "scale-info",
- "serde",
- "serde_json",
- "sp-core",
- "sp-io",
- "sp-std",
- "teerex-primitives",
- "webpki",
- "x509-cert",
-]
-
-[[package]]
 name = "impl-codec"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1620,13 +1595,13 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex-literal",
- "ias-verify",
  "log",
  "pallet-balances",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
  "serde",
+ "sgx-verify",
  "sp-core",
  "sp-externalities",
  "sp-io",
@@ -2266,6 +2241,31 @@ dependencies = [
  "itoa 1.0.3",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "sgx-verify"
+version = "0.1.4"
+dependencies = [
+ "base64",
+ "chrono",
+ "der 0.6.0",
+ "frame-support",
+ "hex",
+ "hex-literal",
+ "honggfuzz",
+ "log",
+ "parity-scale-codec",
+ "ring 0.16.20 (git+https://github.com/Niederb/ring-xous.git?branch=0.16.20-cleanup)",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-io",
+ "sp-std",
+ "teerex-primitives",
+ "webpki",
+ "x509-cert",
 ]
 
 [[package]]
