@@ -99,8 +99,8 @@ pub mod pallet {
 	pub type QuotingEnclaveRegistry<T: Config> = StorageValue<_, QuotingEnclave, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn tcb_info_count)]
-	pub type TcbInfoCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+	#[pallet::getter(fn tcb_info)]
+	pub type TcbInfo<T: Config> = StorageValue<_, TcbInfoOnChain, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
@@ -245,10 +245,6 @@ pub mod pallet {
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
-			let tcb_info_count = Self::tcb_info_count()
-				.checked_add(1)
-				.ok_or("[Teerex]: Overflow adding new TCB info to registry")?;
-			<TcbInfoCount<T>>::put(tcb_info_count);
 			Ok(().into())
 		}
 
@@ -553,6 +549,8 @@ impl<T: Config> Pallet<T> {
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
+			let on_chain_info = tcb_info.to_chain_tcb_info();
+			<TcbInfo<T>>::put(on_chain_info);
 			Ok(().into())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())
