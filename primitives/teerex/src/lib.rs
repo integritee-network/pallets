@@ -142,6 +142,7 @@ impl TcbInfoOnChain {
 	}
 }
 
+pub type Fmspc = [u8; 6];
 pub type ShardIdentifier = H256;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]

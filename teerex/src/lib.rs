@@ -100,7 +100,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn tcb_info)]
-	pub type TcbInfo<T: Config> = StorageValue<_, TcbInfoOnChain, ValueQuery>;
+	pub type TcbInfo<T: Config> =
+		StorageMap<_, Blake2_128Concat, Fmspc, TcbInfoOnChain, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
@@ -550,7 +551,8 @@ impl<T: Config> Pallet<T> {
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			let on_chain_info = tcb_info.to_chain_tcb_info();
-			<TcbInfo<T>>::put(on_chain_info);
+			let fmspc = [0x0u8, 0x90, 0x6e, 0xa1, 0x0, 0x0];
+			<TcbInfo<T>>::insert(fmspc, on_chain_info);
 			Ok(().into())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())

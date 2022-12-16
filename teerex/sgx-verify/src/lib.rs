@@ -21,10 +21,12 @@ pub extern crate alloc;
 use crate::{
 	collateral::{EnclaveIdentity, EnclaveIdentitySigned, TcbInfo, TcbInfoSigned},
 	netscape_comment::NetscapeComment,
+	utils::length_from_raw_data,
 };
 use alloc::string::String;
 use chrono::DateTime;
 use codec::{Decode, Encode, Input};
+use der::asn1::ObjectIdentifier;
 use frame_support::ensure;
 use ring::signature::{self};
 use scale_info::TypeInfo;
@@ -35,7 +37,7 @@ use sp_std::{
 };
 use teerex_primitives::{QuotingEnclave, SgxBuildMode};
 use webpki::SignatureAlgorithm;
-use x509_cert::crl::CertificateList;
+use x509_cert::{crl::CertificateList, Certificate};
 
 mod collateral;
 mod ephemeral_key;
@@ -428,6 +430,11 @@ pub fn verify_dcap_quote(
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_certificate_slices, verification_time)?;
 
+	let (fmspc, cpusvn, pcesvn) = extract_tcb_info(&certs[0])?;
+	log::info!("FMSPC: {:?}", fmspc);
+	log::info!("CPUSVN: {:?}", cpusvn);
+	log::info!("PCESVN: {:?}", pcesvn);
+
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
 	const REPORT_SIZE: usize = core::mem::size_of::<SgxReportBody>();
@@ -628,4 +635,81 @@ pub fn verify_server_cert(
 			Err("CA verification failed")
 		},
 	}
+}
+
+/// See document "Intel® Software Guard Extensions: PCK Certificate and Certificate Revocation List Profile Specification"
+/// https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
+const INTEL_SGX_EXTENSION_OID: ObjectIdentifier =
+	ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1");
+const FMSPC_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.4");
+const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
+const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
+
+pub fn extract_tcb_info(cert: &[u8]) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), &'static str> {
+	let extension_section = get_intel_extension(cert)?;
+
+	let fmspc = get_fmspc(&extension_section)?;
+	let cpusvn = get_cpusvn(&extension_section)?;
+	let pcesvn = get_pcesvn(&extension_section)?;
+	Ok((fmspc, cpusvn, pcesvn))
+}
+
+fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
+	let cert: Certificate =
+		der::Decode::from_der(&der_encoded).map_err(|_| "Error parsing certificate")?;
+	// Quite inefficient as we copy the complete part here and then again in the end
+	let ext: Vec<Vec<u8>> = cert
+		.tbs_certificate
+		.extensions
+		.as_deref()
+		.unwrap_or(&[])
+		.iter()
+		.filter(|e| e.extn_id == INTEL_SGX_EXTENSION_OID)
+		.map(|e| e.extn_value.to_vec())
+		.collect();
+	ensure!(ext.len() == 1, "There should only be one section containing Intel extensions");
+	Ok(ext[0].clone())
+}
+
+fn get_fmspc(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+	let bytes_oid = FMSPC_OID.as_bytes();
+	let mut offset = der
+		.windows(bytes_oid.len())
+		.position(|window| window == bytes_oid)
+		.ok_or("Certificate does not contain 'FMSPC_OID'")?;
+	offset += 12; // length oid (10) + asn1 tag (1) + asn1 length10 (1)
+
+	// FMSPC is specified to have length 6
+	let len = 6;
+	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
+	Ok(data.to_vec())
+}
+
+fn get_cpusvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+	let bytes_oid = CPUSVN_OID.as_bytes();
+	let mut offset = der
+		.windows(bytes_oid.len())
+		.position(|window| window == bytes_oid)
+		.ok_or("Certificate does not contain 'CPUSVN_OID'")?;
+	offset += 13; // length oid (11) + asn1 tag (1) + asn1 length10 (1)
+
+	// CPUSVN is specified to have length 16
+	let len = 16;
+	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
+	Ok(data.to_vec())
+}
+
+fn get_pcesvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+	let bytes_oid = PCESVN_OID.as_bytes();
+	let mut offset = der
+		.windows(bytes_oid.len())
+		.position(|window| window == bytes_oid)
+		.ok_or("Certificate does not contain 'PCESVN_OID'")?;
+	// length oid + asn1 tag (1 byte)
+	offset += bytes_oid.len() + 1;
+	// PCESVN can be 1 or 2 bytes
+	let len = length_from_raw_data(der, &mut offset)?;
+	offset += 1; // length_from_raw_data does not move the offset when the length is encoded in a single byte
+	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
+	Ok(data.to_vec())
 }

@@ -57,6 +57,7 @@ pub struct TcbLevel {
 
 impl TcbLevel {
 	pub fn is_valid(&self) -> bool {
+		// UpToDate is the only valid status (the other being OutOfDate and Revoked)
 		// A possible extension would be to also verify that the advisory_ids list is empty,
 		// but I think this could also lead to all TcbLevels being invalid
 		self.tcb.is_valid() && self.tcb_status == "UpToDate"
@@ -107,7 +108,7 @@ impl TcbLevelFull {
 	pub fn is_valid(&self) -> bool {
 		// A possible extension would be to also verify that the advisory_ids list is empty,
 		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb_status == "UpToDate"
+		self.tcb_status == "UpToDate" || self.tcb_status == "SWHardeningNeeded"
 	}
 }
 
@@ -159,8 +160,7 @@ impl EnclaveIdentity {
 	pub fn to_quoting_enclave(&self) -> QuotingEnclave {
 		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
 		for tcb in &self.tcb_levels {
-			// UpToDate is the only valid status (the other being OutOfDate and Revoked)
-			if tcb.tcb_status == "UpToDate" {
+			if tcb.is_valid() {
 				valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
 			}
 		}

@@ -230,100 +230,20 @@ fn parse_pck_crl() {
 	assert_eq!(3, crl);
 }
 
-/// See document "Intel® Software Guard Extensions: PCK Certificate and Certificate Revocation List Profile Specification"
-/// https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
-const INTEL_SGX_EXTENSION_OID: ObjectIdentifier =
-	ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1");
-const FMSPC_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.4");
-const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
-const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
-
-fn get_intel_extension(cert: &Certificate) -> Vec<(bool, Vec<u8>)> {
-	let extensions: Vec<(bool, Vec<u8>)> = cert
-		.tbs_certificate
-		.extensions
-		.as_deref()
-		.unwrap_or(&[])
-		.iter()
-		.filter(|e| e.extn_id == INTEL_SGX_EXTENSION_OID)
-		.map(|e| (e.critical, e.extn_value.to_vec()))
-		.collect();
-	extensions
-}
-
-fn get_fmspc(der: &[u8]) -> Result<Vec<u8>, &'static str> {
-	let bytes_oid = FMSPC_OID.as_bytes();
-	let mut offset = der
-		.windows(bytes_oid.len())
-		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'FMSPC_OID'")?;
-	offset += 12; // length oid (10) + asn1 tag (1) + asn1 length10 (1)
-
-	// FMSPC is specified to have length 6
-	let len = 6;
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
-}
-
-fn get_cpusvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
-	let bytes_oid = CPUSVN_OID.as_bytes();
-	let mut offset = der
-		.windows(bytes_oid.len())
-		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'CPUSVN_OID'")?;
-	offset += 13; // length oid (11) + asn1 tag (1) + asn1 length10 (1)
-
-	// CPUSVN is specified to have length 16
-	let len = 16;
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
-}
-
-fn get_pcesvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
-	let bytes_oid = PCESVN_OID.as_bytes();
-	let mut offset = der
-		.windows(bytes_oid.len())
-		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'PCESVN_OID'")?;
-	// length oid + asn1 tag (1 byte)
-	offset += bytes_oid.len() + 1;
-	// PCESVN can be 1 or 2 bytes
-	let len = length_from_raw_data(der, &mut offset)?;
-	offset += 1; // length_from_raw_data does not move the offset when the length is encoded in a single byte
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
-}
-
 #[test]
 fn parse_pck_certificate() {
 	let der = DCAP_QUOTE_CERT.replace('\n', "");
-	//let der_decoded = hex::decode(der).unwrap();
-	let der_decoded = base64::decode(&der).unwrap();
-	let cert: Certificate = der::Decode::from_der(&der_decoded).unwrap();
-	println!("{}", cert.tbs_certificate.issuer);
-	println!("{:?}", cert.tbs_certificate.serial_number);
+	let der = base64::decode(&der).unwrap();
 
-	for e in cert.tbs_certificate.extensions.as_ref().unwrap() {
-		println!("{}", e.extn_id);
-	}
+	let ext = get_intel_extension(&der).unwrap();
+	assert_eq!(453, ext.len());
 
-	let ext = get_intel_extension(&cert);
-	assert_eq!(1, ext.len());
-	assert_eq!(453, ext[0].1.len());
-
-	let fmspc = get_fmspc(&ext[0].1).unwrap();
+	let fmspc = get_fmspc(&ext).unwrap();
 	assert_eq!(hex!("00906EA10000"), &fmspc[..]);
 
-	let cpusvn = get_cpusvn(&ext[0].1).unwrap();
+	let cpusvn = get_cpusvn(&ext).unwrap();
 	assert_eq!(hex!("11110204018007000000000000000000"), &cpusvn[..]);
 
-	let pcesvn = get_pcesvn(&ext[0].1).unwrap();
+	let pcesvn = get_pcesvn(&ext).unwrap();
 	assert_eq!(hex!("0B"), &pcesvn[..]);
-
-	println!("{:?}", ext);
-	println!("{:?}", ext[0].1.len());
-	//let bla = cert.tbs_certificate.get::<CrlDistributionPoints>().unwrap().unwrap();
-	//println!("{:?}", bla);
-	//panic!("Oops");
-	//assert_eq!(3, crl);
 }
