@@ -192,7 +192,9 @@ pub struct TcbInfo {
 	version: u8,
 	issue_date: DateTime<Utc>,
 	next_update: DateTime<Utc>,
-	pub fmspc: String,
+	#[serde(deserialize_with = "deserialize_from_hex::<_, 6>")]
+	#[serde(serialize_with = "serialize_to_hex::<_, 6>")]
+	pub fmspc: teerex_primitives::Fmspc,
 	pce_id: String,
 	tcb_type: u16,
 	tcb_evaluation_data_number: u16,

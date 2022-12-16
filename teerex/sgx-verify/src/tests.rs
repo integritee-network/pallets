@@ -209,7 +209,7 @@ fn verify_tcb_info_signature2() {
 	let signature = hex::decode(json.signature).unwrap();
 
 	let e = deserialize_tcb_info(&json_data, &signature, &leaf_cert).unwrap();
-	assert_eq!("00906EA10000", json.tcb_info.fmspc);
+	assert_eq!(hex!("00906EA10000"), json.tcb_info.fmspc);
 }
 
 #[test]
