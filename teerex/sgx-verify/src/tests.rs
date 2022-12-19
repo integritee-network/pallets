@@ -239,11 +239,11 @@ fn parse_pck_certificate() {
 	assert_eq!(453, ext.len());
 
 	let fmspc = get_fmspc(&ext).unwrap();
-	assert_eq!(hex!("00906EA10000"), &fmspc[..]);
+	assert_eq!(hex!("00906EA10000"), fmspc);
 
 	let cpusvn = get_cpusvn(&ext).unwrap();
-	assert_eq!(hex!("11110204018007000000000000000000"), &cpusvn[..]);
+	assert_eq!(hex!("11110204018007000000000000000000"), cpusvn);
 
 	let pcesvn = get_pcesvn(&ext).unwrap();
-	assert_eq!(hex!("0B"), &pcesvn[..]);
+	assert_eq!(u16::from_be_bytes(hex!("000B")), pcesvn);
 }

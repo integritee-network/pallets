@@ -33,7 +33,7 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 honggfuzz = "0.5.55"
 
 [dev-dependencies]
-hex-literal = "*"
+hex-literal = "0.3.4"
 
 [features]
 default = ["std"]

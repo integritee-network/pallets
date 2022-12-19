@@ -44,6 +44,7 @@ pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
 
 pub use pallet::*;
+use sgx_verify::extract_tcb_info;
 
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_DCAP_QUOTE_LEN: usize = 4599;
@@ -495,11 +496,22 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 		let qe = <QuotingEnclaveRegistry<T>>::get();
-		let report = verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), qe)
-			.map_err(|e| {
-				log::info!("verify_dcap_quote failed: {:?}", e);
-				<Error<T>>::RemoteAttestationVerificationFailed
-			})?;
+		let (fmspc, tcb_info) = extract_tcb_info(&dcap_quote)?;
+
+		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
+
+		ensure!(tcb_info_on_chain.is_valid(&tcb_info).is_some(), "tcb_info is outdated");
+
+		let report = verify_dcap_quote(
+			&dcap_quote,
+			verification_time.saturated_into(),
+			qe,
+			tcb_info_on_chain,
+		)
+		.map_err(|e| {
+			log::info!("verify_dcap_quote failed: {:?}", e);
+			<Error<T>>::RemoteAttestationVerificationFailed
+		})?;
 		log::info!("RA Report: {:?}", report);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])

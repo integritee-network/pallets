@@ -27,7 +27,7 @@ use alloc::string::String;
 use chrono::DateTime;
 use codec::{Decode, Encode, Input};
 use der::asn1::ObjectIdentifier;
-use frame_support::ensure;
+use frame_support::{ensure, traits::Len};
 use ring::signature::{self};
 use scale_info::TypeInfo;
 use serde_json::Value;
@@ -35,7 +35,9 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
-use teerex_primitives::{QuotingEnclave, SgxBuildMode};
+use teerex_primitives::{
+	Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, TcbInfoOnChain, TcbVersionStatus,
+};
 use webpki::SignatureAlgorithm;
 use x509_cert::{crl::CertificateList, Certificate};
 
@@ -408,6 +410,7 @@ pub fn verify_dcap_quote(
 	dcap_quote: &[u8],
 	verification_time: u64,
 	qe: QuotingEnclave,
+	tcb_info: TcbInfoOnChain,
 ) -> Result<SgxReport, &'static str> {
 	let mut dcap_quote_clone = dcap_quote;
 	let q: DcapQuote =
@@ -421,19 +424,13 @@ pub fn verify_dcap_quote(
 	ensure!(q.quote_signature_data.qe_report.verify(&qe), "Enclave rejected by quoting enclave");
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
-	let ra_status = SgxStatus::Ok;
+
 	let certs = extract_certs(&q.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
-
 	let intermediate_certificate_slices: Vec<&[u8]> =
 		certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_certificate_slices, verification_time)?;
-
-	let (fmspc, cpusvn, pcesvn) = extract_tcb_info(&certs[0])?;
-	log::info!("FMSPC: {:?}", fmspc);
-	log::info!("CPUSVN: {:?}", cpusvn);
-	log::info!("PCESVN: {:?}", pcesvn);
 
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
@@ -480,7 +477,7 @@ pub fn verify_dcap_quote(
 	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
 	let report = SgxReport {
 		mr_enclave: q.body.mr_enclave,
-		status: ra_status,
+		status: SgxStatus::Ok,
 		pubkey: xt_signer_array,
 		timestamp: verification_time,
 		build_mode: q.body.sgx_build_mode(),
@@ -645,13 +642,14 @@ const FMSPC_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741
 const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
 const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
 
-pub fn extract_tcb_info(cert: &[u8]) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), &'static str> {
+pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
 	let extension_section = get_intel_extension(cert)?;
 
 	let fmspc = get_fmspc(&extension_section)?;
 	let cpusvn = get_cpusvn(&extension_section)?;
 	let pcesvn = get_pcesvn(&extension_section)?;
-	Ok((fmspc, cpusvn, pcesvn))
+
+	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn)))
 }
 
 fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
@@ -671,7 +669,7 @@ fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
 	Ok(ext[0].clone())
 }
 
-fn get_fmspc(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+fn get_fmspc(der: &[u8]) -> Result<Fmspc, &'static str> {
 	let bytes_oid = FMSPC_OID.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
@@ -682,10 +680,10 @@ fn get_fmspc(der: &[u8]) -> Result<Vec<u8>, &'static str> {
 	// FMSPC is specified to have length 6
 	let len = 6;
 	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
+	data.try_into().map_err(|_| "FMSPC must be 6 bytes long")
 }
 
-fn get_cpusvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+fn get_cpusvn(der: &[u8]) -> Result<Cpusvn, &'static str> {
 	let bytes_oid = CPUSVN_OID.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
@@ -696,10 +694,10 @@ fn get_cpusvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
 	// CPUSVN is specified to have length 16
 	let len = 16;
 	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
+	data.try_into().map_err(|_| "CPUSVN must be 16 bytes long")
 }
 
-fn get_pcesvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
+fn get_pcesvn(der: &[u8]) -> Result<Pcesvn, &'static str> {
 	let bytes_oid = PCESVN_OID.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
@@ -710,6 +708,13 @@ fn get_pcesvn(der: &[u8]) -> Result<Vec<u8>, &'static str> {
 	// PCESVN can be 1 or 2 bytes
 	let len = length_from_raw_data(der, &mut offset)?;
 	offset += 1; // length_from_raw_data does not move the offset when the length is encoded in a single byte
+	ensure!(len == 1 || len == 2, "PCESVN must be 1 or 2 bytes");
 	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	Ok(data.to_vec())
+	if data.len() == 1 {
+		Ok(u16::from(data[0]))
+	} else {
+		// Unwrap is fine here as we check the length above
+		// DER integers are encoded in big endian
+		Ok(u16::from_be_bytes(data.try_into().unwrap()))
+	}
 }

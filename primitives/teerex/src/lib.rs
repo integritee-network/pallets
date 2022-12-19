@@ -115,13 +115,22 @@ impl QuotingEnclave {
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct TcbVersionStatus {
-	cpusvn: [u8; 16],
-	pcesvn: u16,
+	pub cpusvn: Cpusvn,
+	pub pcesvn: Pcesvn,
 }
 
 impl TcbVersionStatus {
-	pub fn new(cpusvn: [u8; 16], pcesvn: u16) -> Self {
+	pub fn new(cpusvn: Cpusvn, pcesvn: Pcesvn) -> Self {
 		Self { cpusvn, pcesvn }
+	}
+
+	pub fn is_valid(&self, examinee: &TcbVersionStatus) -> bool {
+		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
+			if *v > *r {
+				return false
+			}
+		}
+		return self.pcesvn <= examinee.pcesvn
 	}
 }
 
@@ -140,13 +149,46 @@ impl TcbInfoOnChain {
 	pub fn new(issue_date: u64, next_update: u64, tcb_levels: Vec<TcbVersionStatus>) -> Self {
 		Self { issue_date, next_update, tcb_levels }
 	}
+
+	pub fn is_valid(&self, examinee: &TcbVersionStatus) -> Option<TcbVersionStatus> {
+		for tb in &self.tcb_levels {
+			if tb.is_valid(examinee) {
+				return Some(tb.clone())
+			}
+		}
+		None
+	}
 }
 
 pub type Fmspc = [u8; 6];
+pub type Cpusvn = [u8; 16];
+pub type Pcesvn = u16;
 pub type ShardIdentifier = H256;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Request {
 	pub shard: ShardIdentifier,
 	pub cyphertext: Vec<u8>,
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use hex_literal::hex;
+
+	#[test]
+	fn tcb_full_is_valid() {
+		let reference = TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7);
+		assert!(reference.is_valid(&reference));
+		assert!(
+			reference.is_valid(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7))
+		);
+		assert!(
+			reference.is_valid(&TcbVersionStatus::new(hex!("21110204018007000000000000000001"), 7))
+		);
+		assert!(!reference
+			.is_valid(&TcbVersionStatus::new(hex!("10110204018007000000000000000000"), 6)));
+		assert!(!reference
+			.is_valid(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 6)));
+	}
 }

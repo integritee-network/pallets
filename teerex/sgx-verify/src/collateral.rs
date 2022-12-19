@@ -23,7 +23,7 @@ use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
-use teerex_primitives::{Fmspc, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus};
+use teerex_primitives::{Fmspc, Pcesvn, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus};
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
 /// the "TCB info" and "enclave identity" collateral data in JSON format provided by intel
@@ -77,18 +77,7 @@ struct TcbComponent {
 #[derive(Serialize, Deserialize)]
 pub struct TcbFull {
 	sgxtcbcomponents: [TcbComponent; 16],
-	pcesvn: u16,
-}
-
-impl TcbFull {
-	fn is_valid(&self, reference: &TcbFull) -> bool {
-		for (v, r) in self.sgxtcbcomponents.iter().zip(reference.sgxtcbcomponents.iter()) {
-			if v.svn < r.svn {
-				return false
-			}
-		}
-		return self.pcesvn >= reference.pcesvn
-	}
+	pcesvn: Pcesvn,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -267,7 +256,7 @@ fn separate_json_data_and_signature(data_name: &str, data: &[u8]) -> Option<(Str
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use der::ErrorKind::DateTime;
+	use hex_literal::hex;
 
 	#[test]
 	fn separate_json_data_and_signature_enclave_identity() {
@@ -310,24 +299,5 @@ mod tests {
 		)
 		.unwrap();
 		assert!(!t.is_valid());
-	}
-
-	#[test]
-	fn tcb_full_is_valid() {
-		let reference = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
-		let reference: TcbFull = serde_json::from_str(reference).unwrap();
-
-		let invalid_pcesvn = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":6}"#;
-		let invalid_pcesvn: TcbFull = serde_json::from_str(invalid_pcesvn).unwrap();
-		assert!(!invalid_pcesvn.is_valid(&reference));
-
-		let invalid_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":127},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
-		let invalid_component: TcbFull = serde_json::from_str(invalid_component).unwrap();
-		assert!(!invalid_component.is_valid(&reference));
-
-		let missing_component = r#"{"sgxtcbcomponents":[{"svn":5},{"svn":5},{"svn":2},{"svn":4},{"svn":1},{"svn":128},{"svn":1},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0},{"svn":0}],"pcesvn":7}"#;
-		let missing_component: Result<TcbFull, serde_json::Error> =
-			serde_json::from_str(missing_component);
-		assert!(missing_component.is_err());
 	}
 }
