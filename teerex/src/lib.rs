@@ -550,8 +550,7 @@ impl<T: Config> Pallet<T> {
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
-			let on_chain_info = tcb_info.to_chain_tcb_info();
-			let fmspc = [0x0u8, 0x90, 0x6e, 0xa1, 0x0, 0x0];
+			let (fmspc, on_chain_info) = tcb_info.to_chain_tcb_info();
 			<TcbInfo<T>>::insert(fmspc, on_chain_info);
 			Ok(().into())
 		} else {

@@ -23,7 +23,7 @@ use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
-use teerex_primitives::{QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus};
+use teerex_primitives::{Fmspc, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus};
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
 /// the "TCB info" and "enclave identity" collateral data in JSON format provided by intel
@@ -203,7 +203,7 @@ pub struct TcbInfo {
 
 impl TcbInfo {
 	/// This extracts the necessary information into the struct that we actually store in the chain
-	pub fn to_chain_tcb_info(&self) -> TcbInfoOnChain {
+	pub fn to_chain_tcb_info(&self) -> (Fmspc, TcbInfoOnChain) {
 		let mut valid_tcbs: Vec<TcbVersionStatus> = Vec::new();
 		for tcb in &self.tcb_levels {
 			// Only store TCB levels on chain that are currently valid
@@ -215,10 +215,13 @@ impl TcbInfo {
 				valid_tcbs.push(TcbVersionStatus::new(components, tcb.tcb.pcesvn));
 			}
 		}
-		TcbInfoOnChain::new(
-			self.issue_date.timestamp_millis().try_into().unwrap(),
-			self.next_update.timestamp_millis().try_into().unwrap(),
-			valid_tcbs,
+		(
+			self.fmspc,
+			TcbInfoOnChain::new(
+				self.issue_date.timestamp_millis().try_into().unwrap(),
+				self.next_update.timestamp_millis().try_into().unwrap(),
+				valid_tcbs,
+			),
 		)
 	}
 
