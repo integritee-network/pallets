@@ -107,14 +107,14 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-	pub const ShellRuntimeParaId: ParaId = ParaId::from(2017u32);
-	pub const IntegriteeKsmParaId: ParaId = ParaId::from(2052u32);
+	pub const ShellRuntimeParaId: u32 = 2223u32;
+	pub const IntegriteeKsmParaId: u32 = 2015u32;
 	pub const WeightForParaSwap: XcmWeight = 10_000_000_000;
 }
 
 pub struct DummySendXcm;
 impl SendXcm for DummySendXcm {
-	fn send_xcm(destination: impl Into<MultiLocation>, message: Xcm<()>) -> SendResult {
+	fn send_xcm(_destination: impl Into<MultiLocation>, _message: Xcm<()>) -> SendResult {
 		Ok(())
 	}
 }

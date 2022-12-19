@@ -29,10 +29,10 @@ pub mod pallet {
 		type XcmSender: SendXcm;
 
 		#[pallet::constant]
-		type ShellRuntimeParaId: Get<ParaId>;
+		type ShellRuntimeParaId: Get<u32>;
 
 		#[pallet::constant]
-		type IntegriteeKsmParaId: Get<ParaId>;
+		type IntegriteeKsmParaId: Get<u32>;
 
 		#[pallet::constant]
 		type WeightForParaSwap: Get<XcmWeight>;
@@ -66,8 +66,8 @@ pub mod pallet {
 				Error::<T>::SwapIdsEqual
 			);
 
-			let shell_id = T::ShellRuntimeParaId::get();
-			let integritee_id = T::IntegriteeKsmParaId::get();
+			let shell_id = ParaId::from(T::ShellRuntimeParaId::get());
+			let integritee_id = ParaId::from(T::IntegriteeKsmParaId::get());
 			let input_valid =
 				vec![para_a, para_b].iter().filter(|&&id| id == shell_id || id == integritee_id).count() == 2;
 			if !input_valid {

@@ -29,7 +29,7 @@ fn swap_ump_fails_1_id_invalid() {
     new_test_ext().execute_with(|| {
         let shell_id = <Test as Config>::ShellRuntimeParaId::get();
         assert_noop!(
-            XcmTransactor::send_swap_ump(RuntimeOrigin::root(), shell_id, ParaId::from(20000)),
+            XcmTransactor::send_swap_ump(RuntimeOrigin::root(), shell_id.into(), ParaId::from(20000)),
             Error::<Test>::InvalidSwapIds
         );
     })
