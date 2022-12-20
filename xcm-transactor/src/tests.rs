@@ -14,10 +14,10 @@
 	limitations under the License.
 
 */
-use crate::{mock::*, Config, Error, Event};
+use crate::{mock::*, Config, Error};
 use codec::{Decode, Encode};
 use cumulus_primitives_core::ParaId;
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use sp_keyring::AccountKeyring;
 use xcm_transactor_primitives::*;
 
