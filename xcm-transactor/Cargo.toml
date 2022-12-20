@@ -14,7 +14,7 @@ log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 
 # Local
-xcm-transactor-primitives = { path = "../primitives/xcm-transactor", features = ["polkadot", "kusama"]}
+xcm-transactor-primitives = { path = "../primitives/xcm-transactor", features = ["polkadot", "kusama"] }
 
 # substrate
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.32" }
