@@ -6,8 +6,13 @@ use xcm::{latest::Weight as XcmWeight, prelude::*};
 
 pub trait BuildRelayCall {
 	type RelayCall: FullCodec;
-	/// TODO: Add Notes about which function this is and why it is being used
+	/// Constructs the RelayCall RegistrarCall to be fed into 'construct_transact_xcm()'
 	///
+	/// Params:
+	/// - ParaIds for the parachains involved in swapping
+	///
+	/// Returns:
+	/// - constructed RelayCall to be fed to `construct_transact_xcm()`
 	///
 	fn swap_call(self_para_id: ParaId, other_para_id: ParaId) -> Self::RelayCall;
 
