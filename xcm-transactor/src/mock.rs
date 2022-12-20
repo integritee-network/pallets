@@ -121,7 +121,7 @@ impl SendXcm for DummySendXcm {
 
 impl pallet_xcm_transactor::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type RelayCallBuilder = RelayCallBuilderType;
+	type RelayCallBuilder = RelayCallBuilder;
 	type XcmSender = DummySendXcm;
 	type ShellRuntimeParaId = ShellRuntimeParaId;
 	type IntegriteeKsmParaId = IntegriteeKsmParaId;

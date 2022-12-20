@@ -49,7 +49,7 @@ pub trait BuildRelayCall {
 pub enum RegistrarCall {
 	/// Corresponds to the swap extrinsic index within the Registrar Pallet
 	#[codec(index = 3)]
-	Swap(ParaId, ParaId),
+	Swap { this: ParaId, other: ParaId },
 }
 
 #[cfg(feature = "kusama")]
@@ -80,12 +80,12 @@ pub use ksm::*;
 #[cfg(feature = "polkadot")]
 pub use dot::*;
 
-pub struct RelayCallBuilderType;
-impl BuildRelayCall for RelayCallBuilderType {
+pub struct RelayCallBuilder;
+impl BuildRelayCall for RelayCallBuilder {
 	type RelayCall = RelayRuntimeCall;
 
 	fn swap_call(self_para_id: ParaId, other_para_id: ParaId) -> Self::RelayCall {
-		Self::RelayCall::Registrar(RegistrarCall::Swap(self_para_id, other_para_id))
+		Self::RelayCall::Registrar(RegistrarCall::Swap { this: self_para_id, other: other_para_id })
 	}
 
 	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {

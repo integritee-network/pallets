@@ -74,6 +74,21 @@ fn swap_ump_fails_1_id_invalid() {
 }
 
 #[test]
+fn swap_ump_fails_2_id_invalid() {
+	new_test_ext().execute_with(|| {
+		let integritee_id = <Test as Config>::IntegriteeKsmParaId::get();
+		assert_noop!(
+			XcmTransactor::send_swap_ump(
+				RuntimeOrigin::root(),
+				integritee_id.into(),
+				ParaId::from(20000)
+			),
+			Error::<Test>::InvalidSwapIds
+		);
+	})
+}
+
+#[test]
 fn swap_ump_success() {
 	new_test_ext().execute_with(|| {
 		let shell_id = <Test as Config>::ShellRuntimeParaId::get();

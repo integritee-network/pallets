@@ -8,8 +8,8 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-# local
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+# local
 common-primitives = { path = "../common", default-features = false }
 
 # substrate
@@ -27,6 +27,7 @@ default = ["std"]
 kusama = []
 polkadot = []
 std = [
+    "codec/std",
     "common-primitives/std",
     "cumulus-primitives-core/std",
     "frame-support/std",
