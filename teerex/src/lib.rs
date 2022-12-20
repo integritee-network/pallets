@@ -47,7 +47,7 @@ pub use pallet::*;
 use sgx_verify::extract_tcb_info;
 
 const MAX_RA_REPORT_LEN: usize = 4096;
-const MAX_DCAP_QUOTE_LEN: usize = 4599;
+const MAX_DCAP_QUOTE_LEN: usize = 5000;
 const MAX_URL_LEN: usize = 256;
 
 #[frame_support::pallet]
@@ -143,7 +143,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter lenght ok");
+			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
@@ -495,23 +495,21 @@ impl<T: Config> Pallet<T> {
 		dcap_quote: Vec<u8>,
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
+
 		let qe = <QuotingEnclaveRegistry<T>>::get();
-		let (fmspc, tcb_info) = extract_tcb_info(&dcap_quote)?;
+		log::info!("teerex: tcb_info_on_chain verified");
+		let (fmspc, tcb_info, report) =
+			verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe).map_err(
+				|e| {
+					log::info!("verify_dcap_quote failed: {:?}", e);
+					<Error<T>>::RemoteAttestationVerificationFailed
+				},
+			)?;
 
+		log::info!("teerex: tcb_info_on_chain: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-
+		log::info!("teerex: tcb_info_getter: {:?}", tcb_info_on_chain.next_update);
 		ensure!(tcb_info_on_chain.is_valid(&tcb_info).is_some(), "tcb_info is outdated");
-
-		let report = verify_dcap_quote(
-			&dcap_quote,
-			verification_time.saturated_into(),
-			qe,
-			tcb_info_on_chain,
-		)
-		.map_err(|e| {
-			log::info!("verify_dcap_quote failed: {:?}", e);
-			<Error<T>>::RemoteAttestationVerificationFailed
-		})?;
 		log::info!("RA Report: {:?}", report);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])

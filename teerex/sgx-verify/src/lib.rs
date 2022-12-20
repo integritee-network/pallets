@@ -407,35 +407,40 @@ pub fn verify_certificate_chain<'a>(
 }
 
 pub fn verify_dcap_quote(
-	dcap_quote: &[u8],
+	dcap_quote_raw: &[u8],
 	verification_time: u64,
-	qe: QuotingEnclave,
-	tcb_info: TcbInfoOnChain,
-) -> Result<SgxReport, &'static str> {
-	let mut dcap_quote_clone = dcap_quote;
-	let q: DcapQuote =
+	qe: &QuotingEnclave,
+) -> Result<([u8; 6], TcbVersionStatus, SgxReport), &'static str> {
+	let mut dcap_quote_clone = dcap_quote_raw;
+	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
-	ensure!(q.header.version == 3, "Only support for version 3");
-	ensure!(q.header.attestation_key_type == 2, "Only support for ECDSA-256");
+
+	ensure!(quote.header.version == 3, "Only support for version 3");
+	ensure!(quote.header.attestation_key_type == 2, "Only support for ECDSA-256");
 	ensure!(
-		q.quote_signature_data.qe_certification_data.certification_data_type == 5,
+		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
 		"Only support for PEM formatted PCK Cert Chain"
 	);
-	ensure!(q.quote_signature_data.qe_report.verify(&qe), "Enclave rejected by quoting enclave");
+	ensure!(
+		quote.quote_signature_data.qe_report.verify(&qe),
+		"Enclave rejected by quoting enclave"
+	);
 	let mut xt_signer_array = [0u8; 32];
-	xt_signer_array.copy_from_slice(&q.body.report_data.d[..32]);
+	xt_signer_array.copy_from_slice(&quote.body.report_data.d[..32]);
 
-	let certs = extract_certs(&q.quote_signature_data.qe_certification_data.certification_data);
+	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
 	let intermediate_certificate_slices: Vec<&[u8]> =
 		certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
 		verify_certificate_chain(&certs[0], &intermediate_certificate_slices, verification_time)?;
 
+	let (fmspc, tcb_info) = extract_tcb_info(&certs[0])?;
+
 	const AUTHENTICATION_DATA_SIZE: usize = 32; // This is actually variable but assume 32 for now
 	const DCAP_QUOTE_HEADER_SIZE: usize = core::mem::size_of::<DcapQuoteHeader>();
 	const REPORT_SIZE: usize = core::mem::size_of::<SgxReportBody>();
-	let isv_report_slice = &dcap_quote[0..(DCAP_QUOTE_HEADER_SIZE + REPORT_SIZE)];
+	let isv_report_slice = &dcap_quote_raw[0..(DCAP_QUOTE_HEADER_SIZE + REPORT_SIZE)];
 
 	let attestation_key_offset = core::mem::size_of::<DcapQuoteHeader>() +
 		REPORT_SIZE +
@@ -448,41 +453,41 @@ pub fn verify_dcap_quote(
 		core::mem::size_of::<u16>();
 	let mut hash_data = [0u8; ATTESTATION_KEY_SIZE + AUTHENTICATION_DATA_SIZE];
 	hash_data[0..ATTESTATION_KEY_SIZE].copy_from_slice(
-		&dcap_quote[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
+		&dcap_quote_raw[attestation_key_offset..(attestation_key_offset + ATTESTATION_KEY_SIZE)],
 	);
 	hash_data[ATTESTATION_KEY_SIZE..].copy_from_slice(
-		&dcap_quote
+		&dcap_quote_raw
 			[authentication_data_offset..(authentication_data_offset + AUTHENTICATION_DATA_SIZE)],
 	);
 	let hash = ring::digest::digest(&ring::digest::SHA256, &hash_data);
 	ensure!(
-		hash.as_ref() == &q.quote_signature_data.qe_report.report_data.d[0..32],
+		hash.as_ref() == &quote.quote_signature_data.qe_report.report_data.d[0..32],
 		"Hashes must match"
 	);
 
 	let qe_report_offset = attestation_key_offset + ATTESTATION_KEY_SIZE;
-	let qe_report_slice = &dcap_quote[qe_report_offset..(qe_report_offset + REPORT_SIZE)];
+	let qe_report_slice = &dcap_quote_raw[qe_report_offset..(qe_report_offset + REPORT_SIZE)];
 	let mut pub_key = [0x04u8; 65]; //Prepend 0x04 to specify uncompressed format
-	pub_key[1..].copy_from_slice(&q.quote_signature_data.ecdsa_attestation_key);
+	pub_key[1..].copy_from_slice(&quote.quote_signature_data.ecdsa_attestation_key);
 
 	let peer_public_key =
 		signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, pub_key);
 	peer_public_key
-		.verify(&isv_report_slice, &q.quote_signature_data.isv_enclave_report_signature)
+		.verify(&isv_report_slice, &quote.quote_signature_data.isv_enclave_report_signature)
 		.map_err(|_| "Failed to verify report signature")?;
 
-	let asn1_signature = as_asn1(&q.quote_signature_data.qe_report_signature);
+	let asn1_signature = as_asn1(&quote.quote_signature_data.qe_report_signature);
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
 	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
 	let report = SgxReport {
-		mr_enclave: q.body.mr_enclave,
+		mr_enclave: quote.body.mr_enclave,
 		status: SgxStatus::Ok,
 		pubkey: xt_signer_array,
 		timestamp: verification_time,
-		build_mode: q.body.sgx_build_mode(),
+		build_mode: quote.body.sgx_build_mode(),
 	};
-	Ok(report)
+	Ok((fmspc, tcb_info, report))
 }
 
 // make sure this function doesn't panic!
@@ -643,11 +648,16 @@ const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.11374
 const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
 
 pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
+	log::info!("teerex: extract_tcb_info start");
 	let extension_section = get_intel_extension(cert)?;
+	log::info!("teerex: Extension length: {}", extension_section.len());
 
 	let fmspc = get_fmspc(&extension_section)?;
+	log::info!("teerex: FMSPC: {:?}", fmspc);
 	let cpusvn = get_cpusvn(&extension_section)?;
+	log::info!("teerex: CPUSVN: {:?}", cpusvn);
 	let pcesvn = get_pcesvn(&extension_section)?;
+	log::info!("teerex: PCESVN: {:?}", pcesvn);
 
 	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn)))
 }
