@@ -24,7 +24,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
 
-use xcm::latest::{Weight as XcmWeight, prelude::*};
+use xcm::latest::{prelude::*, Weight as XcmWeight};
 use xcm_transactor_primitives::*;
 
 pub type Signature = sp_runtime::MultiSignature;

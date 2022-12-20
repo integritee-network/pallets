@@ -32,7 +32,7 @@ pub enum RegistrarCall {
 }
 
 #[cfg(feature = "kusama")]
-pub mod kusama {
+pub mod ksm {
 	use crate::*;
 	#[derive(Encode, Decode, RuntimeDebug)]
 	pub enum RelayRuntimeCall {
@@ -43,7 +43,7 @@ pub mod kusama {
 }
 
 #[cfg(feature = "polkadot")]
-pub mod polkadot {
+pub mod dot {
 	use crate::*;
 	#[derive(Encode, Decode, RuntimeDebug)]
 	pub enum RelayRuntimeCall {
@@ -54,10 +54,10 @@ pub mod polkadot {
 }
 
 #[cfg(feature = "kusama")]
-pub use kusama::*;
+pub use ksm::*;
 
 #[cfg(feature = "polkadot")]
-pub use polkadot::*;
+pub use dot::*;
 
 pub struct RelayCallBuilderType;
 impl BuildRelayCall for RelayCallBuilderType {
