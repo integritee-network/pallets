@@ -38,7 +38,7 @@ use teeracle_primitives::{DataSource, MAX_ORACLE_DATA_NAME_LEN};
 const MAX_TRADING_PAIR_LEN: usize = 11;
 const MAX_SOURCE_LEN: usize = 40;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::{pallet_prelude::*, BoundedVec, WeakBoundedVec};
