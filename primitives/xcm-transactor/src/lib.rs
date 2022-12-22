@@ -52,7 +52,7 @@ pub enum RegistrarCall {
 	Swap { this: ParaId, other: ParaId },
 }
 
-#[cfg(feature = "kusama")]
+#[cfg(feature = "ksm")]
 pub mod ksm {
 	use crate::*;
 	#[derive(Encode, Decode, RuntimeDebug)]
@@ -63,7 +63,7 @@ pub mod ksm {
 	}
 }
 
-#[cfg(feature = "polkadot")]
+#[cfg(feature = "dot")]
 pub mod dot {
 	use crate::*;
 	#[derive(Encode, Decode, RuntimeDebug)]
@@ -74,10 +74,10 @@ pub mod dot {
 	}
 }
 
-#[cfg(feature = "kusama")]
+#[cfg(feature = "ksm")]
 pub use ksm::*;
 
-#[cfg(feature = "polkadot")]
+#[cfg(feature = "dot")]
 pub use dot::*;
 
 pub struct RelayCallBuilder;

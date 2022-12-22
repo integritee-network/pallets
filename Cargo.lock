@@ -131,7 +131,7 @@ version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.1.19",
  "libc",
  "winapi",
 ]
@@ -1135,6 +1135,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hermit-abi"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee512640fe35acbfb4bb779db6f0d80704c2cacfa2e39b601ef3e3f47d1ae4c7"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1503,9 +1512,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.138"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db6d7e329c562c5dfab7a46a2afabc8b987ab9a4834c9d1ca04dc54c1546cef8"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "libm"
@@ -1790,11 +1799,11 @@ dependencies = [
 
 [[package]]
 name = "num_cpus"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6058e64324c71e02bc2b150e4f3bc8286db6c83092132ffa3f6b1eab0f9def5"
+checksum = "0fac9e2da13b5eb447a6ce3d392f23a29d8694bff781bf03a16cd9ac8697593b"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.2.6",
  "libc",
 ]
 
@@ -3852,10 +3861,8 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 [[package]]
 name = "subxt"
 version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3cbc78fd36035a24883eada29e0205b9b1416172530a7d00a60c07d0337db0c"
+source = "git+https://github.com/paritytech/subxt.git?branch=master#0ff4e13b838f2f8ca7a87f120024563ed5ec4d3f"
 dependencies = [
- "bitvec",
  "derivative",
  "frame-metadata",
  "futures",
@@ -3864,6 +3871,7 @@ dependencies = [
  "jsonrpsee",
  "parity-scale-codec",
  "parking_lot",
+ "scale-bits",
  "scale-decode",
  "scale-info",
  "scale-value",
@@ -3880,8 +3888,7 @@ dependencies = [
 [[package]]
 name = "subxt-codegen"
 version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7722c31febf55eb300c73d977da5d65cfd6fb443419b1185b9abcdd9925fd7be"
+source = "git+https://github.com/paritytech/subxt.git?branch=master#0ff4e13b838f2f8ca7a87f120024563ed5ec4d3f"
 dependencies = [
  "darling",
  "frame-metadata",
@@ -3901,8 +3908,7 @@ dependencies = [
 [[package]]
 name = "subxt-macro"
 version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f64826f2c4ba20e3b2a86ec81a6ae8655ca6b6a4c2a6ccc888b6615efc2df14"
+source = "git+https://github.com/paritytech/subxt.git?branch=master#0ff4e13b838f2f8ca7a87f120024563ed5ec4d3f"
 dependencies = [
  "darling",
  "proc-macro-error",
@@ -3913,8 +3919,7 @@ dependencies = [
 [[package]]
 name = "subxt-metadata"
 version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "869af75e23513538ad0af046af4a97b8d684e8d202e35ff4127ee061c1110813"
+source = "git+https://github.com/paritytech/subxt.git?branch=master#0ff4e13b838f2f8ca7a87f120024563ed5ec4d3f"
 dependencies = [
  "frame-metadata",
  "parity-scale-codec",

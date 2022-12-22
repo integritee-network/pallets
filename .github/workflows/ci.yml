@@ -32,8 +32,12 @@ jobs:
         os: [ ubuntu-latest ]
         check: [ cargo build --release,
                  cargo build --release --features skip-ias-check,
+                 cargo build --release --features dot,
+                 cargo build --release --features ksm,
                  cargo test --all --features runtime-benchmarks,
                  cargo test --all --features skip-ias-check,
+                 cargo test --all --features dot,
+                 cargo test --all --features ksm,
                  cargo fmt --all -- --check,
                  cargo clippy -- -D warnings
         ]

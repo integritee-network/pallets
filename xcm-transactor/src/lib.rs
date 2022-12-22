@@ -71,7 +71,10 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(0)]
+		// This function should really only be called once via governance
+		// There is chance for it to be called another time or two in the future
+		// This weight is ARBITRARY.
+		#[pallet::weight(46_200_000)]
 		pub fn send_swap_ump(
 			origin: OriginFor<T>,
 			para_a: ParaId,
