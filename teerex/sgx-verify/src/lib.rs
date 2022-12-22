@@ -219,7 +219,7 @@ pub struct SgxQuote {
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxStatus {
 	Invalid,
 	Ok,
@@ -233,7 +233,7 @@ impl Default for SgxStatus {
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct SgxReport {
 	pub mr_enclave: [u8; 32],
 	pub pubkey: [u8; 32],
@@ -296,6 +296,7 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 		name_constraints: None
 	},
 ]);
+#[allow(clippy::zero_prefixed_literal)]
 pub static DCAP_SERVER_ROOTS: webpki::TLSServerTrustAnchors =
 	webpki::TLSServerTrustAnchors(&[webpki::TrustAnchor {
 		subject: &[
@@ -345,7 +346,7 @@ pub fn deserialize_enclave_identity(
 	certificate: &webpki::EndEntityCert,
 ) -> Result<EnclaveIdentity, &'static str> {
 	let signature = as_asn1(signature);
-	verify_signature(&certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
+	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
@@ -357,7 +358,7 @@ pub fn deserialize_tcb_info(
 	certificate: &webpki::EndEntityCert,
 ) -> Result<TcbInfo, &'static str> {
 	let signature = as_asn1(signature);
-	verify_signature(&certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
+	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
@@ -384,13 +385,15 @@ pub fn parse_crl(crl_data: &[u8]) -> Result<usize, &'static str> {
 pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	// The certificates should be valid UTF-8 but if not we continue. The certificate verification
 	// will fail at a later point.
-	let certs_concat = String::from_utf8_lossy(&cert_chain);
+	let certs_concat = String::from_utf8_lossy(cert_chain);
 	let certs_concat = certs_concat.replace('\n', "");
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
 	// Use the end marker to split the string into certificates
 	let parts = certs_concat.split("-----END CERTIFICATE-----");
-	let parts = parts.filter(|p| p.len() > 0).filter_map(|p| base64::decode(&p).ok()).collect();
 	parts
+		.filter(|p| !p.is_empty())
+		.filter_map(|p| base64::decode(&p).ok())
+		.collect()
 }
 
 pub fn verify_certificate_chain<'a>(
@@ -403,7 +406,7 @@ pub fn verify_certificate_chain<'a>(
 	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
 	leaf_cert
-		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, &intermediate_certs, time)
+		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, intermediate_certs, time)
 		.map_err(|_| "Invalid certificate chain")?;
 	Ok(leaf_cert)
 }
@@ -423,10 +426,7 @@ pub fn verify_dcap_quote(
 		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
 		"Only support for PEM formatted PCK Cert Chain"
 	);
-	ensure!(
-		quote.quote_signature_data.qe_report.verify(&qe),
-		"Enclave rejected by quoting enclave"
-	);
+	ensure!(quote.quote_signature_data.qe_report.verify(qe), "Enclave rejected by quoting enclave");
 	let mut xt_signer_array = [0u8; 32];
 	xt_signer_array.copy_from_slice(&quote.body.report_data.d[..32]);
 
@@ -475,13 +475,13 @@ pub fn verify_dcap_quote(
 	let peer_public_key =
 		signature::UnparsedPublicKey::new(&signature::ECDSA_P256_SHA256_FIXED, pub_key);
 	peer_public_key
-		.verify(&isv_report_slice, &quote.quote_signature_data.isv_enclave_report_signature)
+		.verify(isv_report_slice, &quote.quote_signature_data.isv_enclave_report_signature)
 		.map_err(|_| "Failed to verify report signature")?;
 
 	let asn1_signature = as_asn1(&quote.quote_signature_data.qe_report_signature);
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
-	ensure!(dcap_quote_clone.len() == 0, "There should be no bytes left over after decoding");
+	ensure!(dcap_quote_clone.is_empty(), "There should be no bytes left over after decoding");
 	let report = SgxReport {
 		mr_enclave: quote.body.mr_enclave,
 		status: SgxStatus::Ok,
@@ -603,7 +603,7 @@ pub fn verify_signature(
 	signature: &[u8],
 	signature_algorithm: &SignatureAlgorithm,
 ) -> Result<(), &'static str> {
-	match entity_cert.verify_signature(signature_algorithm, data, &signature) {
+	match entity_cert.verify_signature(signature_algorithm, data, signature) {
 		Ok(()) => {
 			#[cfg(test)]
 			println!("IAS signature is valid");
@@ -666,7 +666,7 @@ pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'stat
 
 fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
 	let cert: Certificate =
-		der::Decode::from_der(&der_encoded).map_err(|_| "Error parsing certificate")?;
+		der::Decode::from_der(der_encoded).map_err(|_| "Error parsing certificate")?;
 	// Quite inefficient as we copy the complete part here and then again in the end
 	let ext: Vec<Vec<u8>> = cert
 		.tbs_certificate

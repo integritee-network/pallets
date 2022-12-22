@@ -87,6 +87,7 @@ pub struct QuotingEnclave {
 }
 
 impl QuotingEnclave {
+	#[allow(clippy::too_many_arguments)]
 	pub fn new(
 		issue_date: u64,
 		next_update: u64,
