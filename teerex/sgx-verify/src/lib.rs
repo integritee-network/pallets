@@ -134,6 +134,10 @@ impl Decode for QeCertificationData {
 		let mut size_buf: [u8; 4] = [0; 4];
 		input.read(&mut size_buf)?;
 		let size = u32::from_le_bytes(size_buf);
+		// This is an arbitrary limit to prevent out of memory issues. Intel does not specify a max value
+		if size > 65_000 {
+			return Result::Err(codec::Error::from("Certification data too long"))
+		}
 
 		let mut certification_data = vec![0; size.try_into().unwrap()];
 		input.read(&mut certification_data)?;
