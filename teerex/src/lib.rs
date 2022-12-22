@@ -236,7 +236,9 @@ pub mod pallet {
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
 			log::info!("register_quoting_enclave start");
-			Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
+			let quoting_enclave =
+				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
+			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
 			Ok(().into())
 		}
 
@@ -249,7 +251,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
+			let (fmspc, on_chain_info) =
+				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
+			<TcbInfo<T>>::insert(fmspc, on_chain_info);
 			Ok(().into())
 		}
 
@@ -533,7 +537,7 @@ impl<T: Config> Pallet<T> {
 		enclave_identity: Vec<u8>,
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
-	) -> DispatchResultWithPostInfo {
+	) -> Result<QuotingEnclave, DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
@@ -544,9 +548,7 @@ impl<T: Config> Pallet<T> {
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
 
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
-			let qe = enclave_identity.to_quoting_enclave();
-			<QuotingEnclaveRegistry<T>>::put(qe);
-			Ok(().into())
+			Ok(enclave_identity.to_quoting_enclave())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())
 		}
@@ -556,7 +558,7 @@ impl<T: Config> Pallet<T> {
 		tcb_info: Vec<u8>,
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
-	) -> DispatchResultWithPostInfo {
+	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
@@ -565,9 +567,7 @@ impl<T: Config> Pallet<T> {
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
-			let (fmspc, on_chain_info) = tcb_info.to_chain_tcb_info();
-			<TcbInfo<T>>::insert(fmspc, on_chain_info);
-			Ok(().into())
+			Ok(tcb_info.to_chain_tcb_info())
 		} else {
 			Err(<Error<T>>::CollateralInvalid.into())
 		}
