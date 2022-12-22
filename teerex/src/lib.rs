@@ -44,7 +44,6 @@ pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
 
 pub use pallet::*;
-use sgx_verify::extract_tcb_info;
 
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_DCAP_QUOTE_LEN: usize = 5000;
@@ -234,6 +233,8 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			// Quoting enclaves are registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
 			log::info!("register_quoting_enclave start");
 			Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
 			Ok(().into())
@@ -246,6 +247,8 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			// TCB info is registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
 			Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			Ok(().into())
 		}
@@ -254,9 +257,11 @@ pub mod pallet {
 		pub fn register_pck_crl(
 			origin: OriginFor<T>,
 			pck_crl: Vec<u8>,
-			certificate_chain: Vec<u8>,
+			_certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			let serials = parse_crl(&pck_crl);
+			// CRLs are registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
+			let _serial_numbers = parse_crl(&pck_crl);
 
 			Ok(().into())
 		}

@@ -19,7 +19,7 @@
 pub extern crate alloc;
 
 use crate::{
-	collateral::{EnclaveIdentity, EnclaveIdentitySigned, TcbInfo, TcbInfoSigned},
+	collateral::{EnclaveIdentity, TcbInfo},
 	netscape_comment::NetscapeComment,
 	utils::length_from_raw_data,
 };
@@ -35,9 +35,7 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
-use teerex_primitives::{
-	Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, TcbInfoOnChain, TcbVersionStatus,
-};
+use teerex_primitives::{Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus};
 use webpki::SignatureAlgorithm;
 use x509_cert::{crl::CertificateList, Certificate};
 

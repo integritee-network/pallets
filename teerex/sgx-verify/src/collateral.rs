@@ -18,7 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub extern crate alloc;
 
-use crate::{alloc::string::ToString, SgxReportBody};
+use crate::alloc::string::ToString;
 use alloc::{format, string::String};
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
@@ -256,7 +256,6 @@ fn separate_json_data_and_signature(data_name: &str, data: &[u8]) -> Option<(Str
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use hex_literal::hex;
 
 	#[test]
 	fn separate_json_data_and_signature_enclave_identity() {
