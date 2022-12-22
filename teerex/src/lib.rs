@@ -44,7 +44,7 @@ pub use pallet::*;
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_URL_LEN: usize = 256;
 
-#[frame_support::pallet]
+#[frame_support::pallet(dev_mode)]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;

@@ -2,6 +2,7 @@
 name = "pallet-claims"
 version = "0.9.12"
 authors = ["Parity Technologies <admin@parity.io>"]
+license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
