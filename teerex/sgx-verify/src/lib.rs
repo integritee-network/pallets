@@ -137,6 +137,8 @@ impl Decode for QeCertificationData {
 			return Result::Err(codec::Error::from("Certification data too long"))
 		}
 
+		// Safety: The try_into() can only fail due to overflow on a 16-bit system, but we anyway
+		// ensure the value is small enough above.
 		let mut certification_data = vec![0; size.try_into().unwrap()];
 		input.read(&mut certification_data)?;
 
@@ -322,20 +324,24 @@ pub static DCAP_SERVER_ROOTS: webpki::TLSServerTrustAnchors =
 /// Wrapper to implemented parsing and verification traits on it.
 pub struct CertDer<'a>(&'a [u8]);
 
-/// Encode two 32-byte values in ASN.1 format
+/// Encode two 32-byte values in DER format
 /// This is meant for 256 bit ECC signatures or public keys
-pub fn as_asn1(data: &[u8]) -> Vec<u8> {
+pub fn encode_as_der(data: &[u8]) -> Result<Vec<u8>, &'static str> {
 	if data.len() != 64 {
-		return vec![]
+		return Result::Err("Key must be 64 bytes long")
 	}
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
-	sequence.add(der::asn1::UIntRef::new(&data[0..32]).unwrap());
-	sequence.add(der::asn1::UIntRef::new(&data[32..]).unwrap());
+	sequence
+		.add(der::asn1::UIntRef::new(&data[0..32]).map_err(|_| "Invalid public key")?)
+		.map_err(|_| "Invalid public key")?;
+	sequence
+		.add(der::asn1::UIntRef::new(&data[32..]).map_err(|_| "Invalid public key")?)
+		.map_err(|_| "Invalid public key")?;
 	// 72 should be enough in all cases. 2 + 2 x (32 + 3)
 	let mut asn1 = vec![0u8; 72];
 	let mut writer = der::SliceWriter::new(&mut asn1);
-	writer.encode(&sequence).expect("Should not fail");
-	writer.finish().unwrap().to_vec()
+	writer.encode(&sequence).map_err(|_| "Could not encode public key to DER")?;
+	Ok(writer.finish().map_err(|_| "Could not convert public key to DER")?.to_vec())
 }
 
 /// Also verifies that the data matches the given signature and was produced by the given certificate
@@ -345,7 +351,7 @@ pub fn deserialize_enclave_identity(
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
 ) -> Result<EnclaveIdentity, &'static str> {
-	let signature = as_asn1(signature);
+	let signature = encode_as_der(signature)?;
 	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
@@ -357,7 +363,7 @@ pub fn deserialize_tcb_info(
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
 ) -> Result<TcbInfo, &'static str> {
-	let signature = as_asn1(signature);
+	let signature = encode_as_der(signature)?;
 	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
@@ -478,7 +484,7 @@ pub fn verify_dcap_quote(
 		.verify(isv_report_slice, &quote.quote_signature_data.isv_enclave_report_signature)
 		.map_err(|_| "Failed to verify report signature")?;
 
-	let asn1_signature = as_asn1(&quote.quote_signature_data.qe_report_signature);
+	let asn1_signature = encode_as_der(&quote.quote_signature_data.qe_report_signature)?;
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
 	ensure!(dcap_quote_clone.is_empty(), "There should be no bytes left over after decoding");
@@ -597,6 +603,7 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
 	}
 }
 
+/// * `signature` - Must be encoded in DER format.
 pub fn verify_signature(
 	entity_cert: &webpki::EndEntityCert,
 	data: &[u8],
