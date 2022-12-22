@@ -36,7 +36,7 @@ pub trait BuildRelayCall {
 	///
 	/// Params:
 	/// - RelayCall (Different depending on Kusama or Polkadot)
-	/// - execution to be purchased via BuyExecution Xcm Instruction
+	/// - execution to be purchased via BuyExecution XCM Instruction
 	/// - Weight required to execute this call.
 	///
 	/// Returns:
