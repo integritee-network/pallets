@@ -40,7 +40,7 @@ pub trait BuildRelayCall {
 	/// - Weight required to execute this call.
 	///
 	/// Returns:
-	/// - Corresponding Xcm Message for Transacting on this RelayCall
+	/// - Corresponding XCM Message for Transacting on this RelayCall
 	///
 	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()>;
 }
