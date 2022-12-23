@@ -8,7 +8,9 @@ accepted = [
     "MPL-2.0",
     "ISC",
     "OpenSSL",
-    "Unicode-DFS-2016"
+    "Unicode-DFS-2016",
+    # The xcm-transactor needs this because of the polkadot dependencies.
+    "GPL-3.0"
 ]
 ignore-dev-dependencies = true
 ignore-build-dependencies = true
