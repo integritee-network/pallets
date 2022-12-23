@@ -1,0 +1,68 @@
+[package]
+name = "pallet-xcm-transactor"
+description = "A pallet which can send various transact messages"
+version = "0.1.0"
+authors = ["Integritee AG <hello@integritee.network>"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "(GPL-3.0-only)"
+edition = "2021"
+
+[dependencies]
+codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+log = { version = "0.4.14", default-features = false }
+scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+
+# Local
+xcm-transactor-primitives = { path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
+
+# substrate
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+
+# xcm/polkadot
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.36", default-features = false }
+
+# cumulus
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.36", default-features = false }
+
+# benchmarking
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+hex-literal = { version = "0.3.2", optional = true }
+test-utils = { path = "../test-utils", optional = true, default-features = false }
+
+[dev-dependencies]
+externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+hex-literal = "0.3.2"
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+test-utils = { path = "../test-utils" }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
+subxt = { git = "https://github.com/paritytech/subxt.git", branch = "master" }
+
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "log/std",
+    "scale-info/std",
+    # substrate
+    "frame-support/std",
+    "frame-system/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "hex-literal",
+    "test-utils",
+]
+
+try-runtime = ["frame-support/try-runtime"]
