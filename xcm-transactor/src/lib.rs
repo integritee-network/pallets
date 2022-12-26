@@ -27,7 +27,7 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
 	use cumulus_primitives_core::ParaId;
-	use sp_std::vec;
+	use sp_std::vec::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use xcm::latest::{prelude::*, Weight as XcmWeight};
