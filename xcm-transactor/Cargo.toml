@@ -12,7 +12,6 @@ edition = "2021"
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-getrandom = {version = "0.2", default-features = false, features = ["custom"]}
 
 # Local
 xcm-transactor-primitives = { path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
@@ -49,6 +48,7 @@ subxt = { git = "https://github.com/paritytech/subxt.git", branch = "master" }
 default = ["std"]
 std = [
     "codec/std",
+    "cumulus-primitives-core/std",
     "log/std",
     "scale-info/std",
     # substrate
