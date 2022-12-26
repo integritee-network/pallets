@@ -32,7 +32,6 @@ cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branc
 
 # benchmarking
 frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
-hex-literal = { version = "0.3.2", optional = true }
 test-utils = { path = "../test-utils", optional = true, default-features = false }
 
 [dev-dependencies]
@@ -61,7 +60,6 @@ std = [
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
-    "hex-literal",
     "test-utils",
 ]
 
