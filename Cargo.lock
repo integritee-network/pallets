@@ -2175,6 +2175,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "getrandom 0.2.8",
  "hex-literal",
  "log",
  "pallet-balances",
