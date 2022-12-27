@@ -18,6 +18,7 @@
 use codec::{Decode, Encode, FullCodec};
 pub use cumulus_primitives_core::ParaId;
 use frame_support::RuntimeDebug;
+use sp_std::vec;
 use xcm::{latest::Weight as XcmWeight, prelude::*};
 
 pub trait BuildRelayCall {

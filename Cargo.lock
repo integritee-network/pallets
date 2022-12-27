@@ -482,7 +482,7 @@ dependencies = [
 [[package]]
 name = "cumulus-primitives-core"
 version = "0.1.0"
-source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.36#a4e825c9500acab6cc3deccffea7b01350f12ed1"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.36#afe528af891f464b318293f183f6d3eefbc979b0"
 dependencies = [
  "parity-scale-codec",
  "polkadot-core-primitives",
