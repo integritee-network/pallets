@@ -14,7 +14,7 @@ log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 
 # Local
-xcm-transactor-primitives = { path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
+xcm-transactor-primitives = { default-features = false, path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
 
 # substrate
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
@@ -30,11 +30,6 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.3
 # cumulus
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.36", default-features = false }
 
-# benchmarking
-frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
-hex-literal = { version = "0.3.2", optional = true }
-test-utils = { path = "../test-utils", optional = true, default-features = false }
-
 [dev-dependencies]
 externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.36" }
@@ -49,6 +44,7 @@ subxt = { git = "https://github.com/paritytech/subxt.git", branch = "master" }
 default = ["std"]
 std = [
     "codec/std",
+    "cumulus-primitives-core/std",
     "log/std",
     "scale-info/std",
     # substrate
@@ -58,11 +54,9 @@ std = [
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "xcm/std",
+    "xcm-transactor-primitives/std",
 ]
-runtime-benchmarks = [
-    "frame-benchmarking",
-    "hex-literal",
-    "test-utils",
-]
+runtime-benchmarks = []
 
 try-runtime = ["frame-support/try-runtime"]
