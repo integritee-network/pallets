@@ -17,8 +17,8 @@
 
 use crate as pallet_xcm_transactor;
 use frame_support::parameter_types;
-use frame_system::EnsureRoot;
 use frame_system as system;
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
