@@ -46,6 +46,8 @@ pub mod pallet {
 
 		type XcmSender: SendXcm;
 
+		type SwapOrigin: EnsureOrigin<Self::RuntimeOrigin>;
+
 		#[pallet::constant]
 		type ShellRuntimeParaId: Get<u32>;
 
@@ -83,7 +85,7 @@ pub mod pallet {
 			para_a: ParaId,
 			para_b: ParaId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			T::SwapOrigin::ensure_origin(origin)?;
 			ensure!(para_a != para_b, Error::<T>::SwapIdsEqual);
 
 			let shell_id = ParaId::from(T::ShellRuntimeParaId::get());
