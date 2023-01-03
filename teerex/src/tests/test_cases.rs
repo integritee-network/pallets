@@ -49,13 +49,13 @@ fn add_and_remove_dcap_enclave_works() {
 		];
 		let signer = get_signer(&pubkey);
 		assert_ok!(Teerex::register_dcap_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST1_DCAP_QUOTE.to_vec(),
 			URL.to_vec()
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 		assert_eq!(Teerex::enclave(1).unwrap().timestamp, now);
-		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer)));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer)));
 		assert_eq!(Teerex::enclave_count(), 0);
 		assert_eq!(list_enclaves(), vec![])
 	})
@@ -73,7 +73,7 @@ fn register_quoting_enclave() {
 	];
 	let signer = get_signer(&pubkey);
 	assert_ok!(Teerex::register_quoting_enclave(
-		Origin::signed(signer.clone()),
+		RuntimeOrigin::signed(signer.clone()),
 		quoting_enclave.to_vec(),
 		signature.to_vec(),
 		certificate_chain.to_vec(),
@@ -104,7 +104,7 @@ fn register_tcb_info() {
 	];
 	let signer = get_signer(&pubkey);
 	assert_ok!(Teerex::register_tcb_info(
-		Origin::signed(signer.clone()),
+		RuntimeOrigin::signed(signer.clone()),
 		tcb_info.to_vec(),
 		signature.to_vec(),
 		certificate_chain.to_vec(),
