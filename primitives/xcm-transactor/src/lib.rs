@@ -90,10 +90,21 @@ impl BuildRelayCall for RelayCallBuilder {
 	}
 
 	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {
-		Xcm(vec![Transact {
-			origin_type: OriginKind::Native,
-			require_weight_at_most: weight,
-			call: call.encode().into(),
-		}])
+		let asset = MultiAsset {
+			id: Concrete(Here.into()),
+			fun: Fungibility::Fungible(1000)
+		};
+		Xcm(vec![
+			WithdrawAsset(asset.clone().into()),
+			BuyExecution {
+				fees: asset,
+				weight_limit: Unlimited
+			},
+			Transact {
+				origin_type: OriginKind::Native,
+				require_weight_at_most: weight,
+				call: call.encode().into(),
+			},
+		])
 	}
 }
