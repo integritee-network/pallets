@@ -39,7 +39,7 @@ use teerex_primitives::{Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, Tcb
 use webpki::SignatureAlgorithm;
 use x509_cert::{crl::CertificateList, Certificate};
 
-mod collateral;
+pub mod collateral;
 mod ephemeral_key;
 mod netscape_comment;
 #[cfg(test)]

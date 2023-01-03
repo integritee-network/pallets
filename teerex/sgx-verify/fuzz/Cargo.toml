@@ -1,0 +1,44 @@
+[package]
+name = "sgx-verify-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+base64 = { version = "0.13", default-features = false, features = ["alloc"] }
+codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+hex-literal = "0.3.4"
+libfuzzer-sys = "0.4"
+serde_json = { version = "1.0" }
+webpki = { default-features = false, git = "https://github.com/scs/webpki-nostd.git", branch = "tn/use-ring-xous" }
+
+[dependencies.sgx-verify]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "decode_quote"
+path = "fuzz_targets/decode_quote.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "deserialize_json"
+path = "fuzz_targets/deserialize_json.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "signature_check"
+path = "fuzz_targets/signature_check.rs"
+test = false
+doc = false
