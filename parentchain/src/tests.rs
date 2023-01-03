@@ -41,7 +41,7 @@ fn verify_storage_works() {
 	let hash = header.hash();
 
 	new_test_ext().execute_with(|| {
-		assert_ok!(Parentchain::set_block(Origin::root(), header));
+		assert_ok!(Parentchain::set_block(RuntimeOrigin::root(), header));
 		assert_eq!(Parentchain::block_number(), block_number);
 		assert_eq!(Parentchain::parent_hash(), parent_hash);
 		assert_eq!(Parentchain::block_hash(), hash);
@@ -60,6 +60,6 @@ fn non_root_account_errs() {
 
 	new_test_ext().execute_with(|| {
 		let root = AccountKeyring::Ferdie.to_account_id();
-		assert_err!(Parentchain::set_block(Origin::signed(root), header), BadOrigin);
+		assert_err!(Parentchain::set_block(RuntimeOrigin::signed(root), header), BadOrigin);
 	})
 }

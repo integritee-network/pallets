@@ -22,7 +22,6 @@ use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	traits::{Currency, ExistenceRequirement, Get, OnTimestampSet},
-	weights::{DispatchClass, Pays},
 };
 use frame_system::{self, ensure_signed};
 use sp_core::H256;
@@ -65,7 +64,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config + timestamp::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
 		type MomentsPerDay: Get<Self::Moment>;
 		type WeightInfo: WeightInfo;
@@ -125,13 +124,14 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
-			AllowSGXDebugMode::<T>::put(&self.allow_sgx_debug_mode);
+			AllowSGXDebugMode::<T>::put(self.allow_sgx_debug_mode);
 		}
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		// the integritee-service wants to register his enclave
+		#[pallet::call_index(0)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_enclave(
 			origin: OriginFor<T>,
@@ -179,6 +179,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(6)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_dcap_enclave(
 			origin: OriginFor<T>,
@@ -226,6 +227,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(7)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_quoting_enclave(
 			origin: OriginFor<T>,
@@ -242,6 +244,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(8)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_tcb_info(
 			origin: OriginFor<T>,
@@ -258,6 +261,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(9)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_pck_crl(
 			origin: OriginFor<T>,
@@ -271,6 +275,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(1)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			log::info!("teerex: called into runtime call unregister_enclave()");
@@ -281,6 +286,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(2)]
 		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
 		pub fn call_worker(origin: OriginFor<T>, request: Request) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
@@ -290,6 +296,7 @@ pub mod pallet {
 		}
 
 		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
+		#[pallet::call_index(3)]
 		#[pallet::weight((<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes))]
 		pub fn confirm_processed_parentchain_block(
 			origin: OriginFor<T>,
@@ -316,6 +323,7 @@ pub mod pallet {
 		/// Sent by a client who requests to get shielded funds managed by an enclave. For this on-chain balance is sent to the bonding_account of the enclave.
 		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
 		/// Note: The bonding_account is bit-equivalent to the worker shard.
+		#[pallet::call_index(4)]
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn shield_funds(
 			origin: OriginFor<T>,
@@ -335,6 +343,7 @@ pub mod pallet {
 		}
 
 		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
+		#[pallet::call_index(5)]
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn unshield_funds(
 			origin: OriginFor<T>,
@@ -417,7 +426,7 @@ impl<T: Config> Pallet<T> {
 			enclaves_count
 		};
 
-		<EnclaveRegistry<T>>::insert(enclave_idx, &enclave);
+		<EnclaveRegistry<T>>::insert(enclave_idx, enclave);
 		Ok(().into())
 	}
 
@@ -441,7 +450,7 @@ impl<T: Config> Pallet<T> {
 	/// the registry.
 	fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> DispatchResultWithPostInfo {
 		if index_to_remove != new_enclaves_count {
-			let last_enclave = <EnclaveRegistry<T>>::get(&new_enclaves_count)
+			let last_enclave = <EnclaveRegistry<T>>::get(new_enclaves_count)
 				.ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			<EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
 			<EnclaveIndex<T>>::insert(last_enclave.pubkey, index_to_remove);
@@ -474,7 +483,7 @@ impl<T: Config> Pallet<T> {
 	pub fn is_registered_enclave(
 		account: &T::AccountId,
 	) -> Result<bool, DispatchErrorWithPostInfo> {
-		ensure!(<EnclaveIndex<T>>::contains_key(&account), <Error<T>>::EnclaveIsNotRegistered);
+		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
 		Ok(true)
 	}
 

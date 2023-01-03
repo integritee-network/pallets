@@ -38,6 +38,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		#[pallet::call_index(0)]
 		#[pallet::weight(<T as Config>::WeightInfo::set_block())]
 		pub fn set_block(origin: OriginFor<T>, header: T::Header) -> DispatchResult {
 			ensure_root(origin)?;

@@ -1,29 +1,33 @@
 /*
-	Copyright 2021 Integritee AG and Supercomputing Systems AG
+	Copyright 2021 Integritee AG & Parity Technologies (UK) Ltd.
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-	you may not use this file except in compliance with the License.
-	You may obtain a copy of the License at
+	Licenced under GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version. You may obtain a copy of the
+	License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+		<http://www.gnu.org/licenses/>.
 
 	Unless required by applicable law or agreed to in writing, software
 	distributed under the License is distributed on an "AS IS" BASIS,
 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 	See the License for the specific language governing permissions and
 	limitations under the License.
-
 */
-use crate as pallet_parentchain;
+
+use crate as pallet_xcm_transactor;
 use frame_support::parameter_types;
 use frame_system as system;
-use pallet_parentchain::Config;
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
+
+use xcm::latest::{prelude::*, Weight as XcmWeight};
+use xcm_transactor_primitives::*;
 
 pub type Signature = sp_runtime::MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
@@ -50,20 +54,15 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Parentchain: pallet_parentchain::{Pallet, Call, Storage},
+		System: frame_system,
+		Balances: pallet_balances,
+		XcmTransactor: pallet_xcm_transactor,
 	}
 );
-
-impl Config for Test {
-	type WeightInfo = ();
-}
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 }
-
 impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -109,8 +108,32 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = ();
 }
 
+parameter_types! {
+	pub const ShellRuntimeParaId: u32 = 2223u32;
+	pub const IntegriteeKsmParaId: u32 = 2015u32;
+	pub const WeightForParaSwap: XcmWeight = 10_000_000_000;
+}
+
+pub struct DummySendXcm;
+impl SendXcm for DummySendXcm {
+	fn send_xcm(_destination: impl Into<MultiLocation>, _message: Xcm<()>) -> SendResult {
+		Ok(())
+	}
+}
+
+impl pallet_xcm_transactor::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type RelayCallBuilder = RelayCallBuilder;
+	type XcmSender = DummySendXcm;
+	type SwapOrigin = EnsureRoot<AccountId>;
+	type ShellRuntimeParaId = ShellRuntimeParaId;
+	type IntegriteeKsmParaId = IntegriteeKsmParaId;
+	type WeightForParaSwap = WeightForParaSwap;
+	type WeightInfo = ();
+}
+
 // This function basically just builds a genesis storage key/value store according to
-// our desired mockup. RA from enclave compiled in debug mode is allowed
+// our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
@@ -118,6 +141,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
+
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext

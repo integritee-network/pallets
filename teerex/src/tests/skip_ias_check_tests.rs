@@ -37,7 +37,7 @@ fn test_enclave() -> Enclave<AccountId, Vec<u8>> {
 fn register_enclave_with_empty_mrenclave_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			Vec::new(),
 			URL.to_vec()
 		));
@@ -51,7 +51,7 @@ fn register_enclave_with_empty_mrenclave_works() {
 fn register_enclave_with_mrenclave_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			TEST4_MRENCLAVE.to_vec(),
 			URL.to_vec()
 		));
@@ -67,7 +67,7 @@ fn register_enclave_with_mrenclave_works() {
 fn register_enclave_with_faulty_mrenclave_inserts_default() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			[1u8, 2].to_vec(),
 			URL.to_vec()
 		));
@@ -81,7 +81,7 @@ fn register_enclave_with_faulty_mrenclave_inserts_default() {
 fn register_enclave_with_empty_url_inserts_default() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			Vec::new(),
 			Vec::new(),
 		));

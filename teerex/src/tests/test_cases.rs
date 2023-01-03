@@ -130,7 +130,7 @@ fn add_enclave_works() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer),
+			RuntimeOrigin::signed(signer),
 			TEST4_CERT.to_vec(),
 			URL.to_vec()
 		));
@@ -145,12 +145,12 @@ fn add_and_remove_enclave_works() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec()
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
-		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer)));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer)));
 		assert_eq!(Teerex::enclave_count(), 0);
 		assert_eq!(list_enclaves(), vec![])
 	})
@@ -169,7 +169,7 @@ fn list_enclaves_works() {
 			sgx_mode: SgxBuildMode::Debug,
 		};
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -216,7 +216,7 @@ fn remove_middle_enclave_works() {
 		};
 
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer5),
+			RuntimeOrigin::signed(signer5),
 			TEST5_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -225,7 +225,7 @@ fn remove_middle_enclave_works() {
 
 		// add enclave 2
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer6.clone()),
+			RuntimeOrigin::signed(signer6.clone()),
 			TEST6_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -236,7 +236,7 @@ fn remove_middle_enclave_works() {
 
 		// add enclave 3
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer7),
+			RuntimeOrigin::signed(signer7),
 			TEST7_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -247,7 +247,7 @@ fn remove_middle_enclave_works() {
 		assert!(enclaves.contains(&(3, e_3.clone())));
 
 		// remove enclave 2
-		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer6)));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer6)));
 		assert_eq!(Teerex::enclave_count(), 2);
 		let enclaves = list_enclaves();
 		assert!(enclaves.contains(&(1, e_1)));
@@ -260,7 +260,11 @@ fn register_enclave_with_different_signer_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_err!(
-			Teerex::register_enclave(Origin::signed(signer), TEST5_CERT.to_vec(), URL.to_vec()),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer),
+				TEST5_CERT.to_vec(),
+				URL.to_vec()
+			),
 			Error::<Test>::SenderIsNotAttestedEnclave
 		);
 	})
@@ -272,7 +276,11 @@ fn register_enclave_with_to_old_attestation_report_fails() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS + 1);
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_err!(
-			Teerex::register_enclave(Origin::signed(signer), TEST7_CERT.to_vec(), URL.to_vec(),),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer),
+				TEST7_CERT.to_vec(),
+				URL.to_vec(),
+			),
 			Error::<Test>::RemoteAttestationTooOld
 		);
 	})
@@ -284,7 +292,7 @@ fn register_enclave_with_almost_too_old_report_works() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS - 1);
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer),
+			RuntimeOrigin::signed(signer),
 			TEST7_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -307,14 +315,14 @@ fn update_enclave_url_works() {
 		};
 
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_eq!(Teerex::enclave(1).unwrap().url, URL.to_vec());
 
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			url2.to_vec(),
 		));
@@ -334,19 +342,19 @@ fn update_ipfs_hash_works() {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 		assert_ok!(Teerex::confirm_processed_parentchain_block(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			block_hash,
 			block_number,
 			merkle_root,
 		));
 
-		let expected_event = Event::Teerex(TeerexEvent::ProcessedParentchainBlock(
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::ProcessedParentchainBlock(
 			signer,
 			block_hash,
 			merkle_root,
@@ -362,7 +370,7 @@ fn ipfs_update_from_unregistered_enclave_fails() {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_err!(
 			Teerex::confirm_processed_parentchain_block(
-				Origin::signed(signer),
+				RuntimeOrigin::signed(signer),
 				H256::default(),
 				3,
 				H256::default(),
@@ -378,8 +386,8 @@ fn call_worker_works() {
 		let req = Request { shard: ShardIdentifier::default(), cyphertext: vec![0u8, 1, 2, 3, 4] };
 		// don't care who signs
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert!(Teerex::call_worker(Origin::signed(signer), req.clone()).is_ok());
-		let expected_event = Event::Teerex(TeerexEvent::Forwarded(req.shard));
+		assert!(Teerex::call_worker(RuntimeOrigin::signed(signer), req.clone()).is_ok());
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::Forwarded(req.shard));
 		println!("events:{:?}", System::events());
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
@@ -394,19 +402,19 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 		let bonding_account = get_signer(&TEST4_MRENCLAVE);
 
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
 
 		assert_ok!(Balances::transfer(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			bonding_account.clone(),
 			1 << 50
 		));
 
 		assert!(Teerex::unshield_funds(
-			Origin::signed(signer.clone()),
+			RuntimeOrigin::signed(signer.clone()),
 			AccountKeyring::Alice.to_account_id(),
 			50,
 			bonding_account.clone(),
@@ -415,7 +423,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 		.is_ok());
 
 		assert!(Teerex::unshield_funds(
-			Origin::signed(signer),
+			RuntimeOrigin::signed(signer),
 			AccountKeyring::Alice.to_account_id(),
 			50,
 			bonding_account,
@@ -454,17 +462,17 @@ fn timestamp_callback_works() {
 
 		//Register 3 enclaves: 5, 6 ,7
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer5.clone()),
+			RuntimeOrigin::signed(signer5.clone()),
 			TEST5_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer6.clone()),
+			RuntimeOrigin::signed(signer6.clone()),
 			TEST6_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer7.clone()),
+			RuntimeOrigin::signed(signer7.clone()),
 			TEST7_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -474,7 +482,7 @@ fn timestamp_callback_works() {
 		run_to_block(2);
 		set_timestamp(TEST5_TIMESTAMP + 2 * TWENTY_FOUR_HOURS + 1);
 
-		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer5));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::RemovedEnclave(signer5));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 2);
 		//2 and 3 are still there. 3 and 1 were swapped -> 3 and 2
@@ -488,15 +496,15 @@ fn timestamp_callback_works() {
 		assert_eq!(Teerex::enclave_count(), 2);
 
 		//unregister 6 to generate an error next call of callbakc
-		assert_ok!(Teerex::unregister_enclave(Origin::signed(signer6.clone())));
-		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer6));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer6.clone())));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::RemovedEnclave(signer6));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		//enclave 6 and 7 silent since TWENTY_FOUR_HOURS + 1 -> unregistered
 		run_to_block(4);
 		set_timestamp(TEST7_TIMESTAMP + 2 * TWENTY_FOUR_HOURS + 1);
-		let expected_event = Event::Teerex(TeerexEvent::RemovedEnclave(signer7));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::RemovedEnclave(signer7));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teerex::enclave_count(), 0);
 	})
@@ -517,7 +525,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 
 		//Register an enclave compiled in debug mode
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer4),
+			RuntimeOrigin::signed(signer4),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -543,7 +551,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 
 			//Register an enclave compiled in production mode
 			assert_ok!(Teerex::register_enclave(
-				Origin::signed(signer8),
+				RuntimeOrigin::signed(signer8),
 				TEST8_CERT.to_vec(),
 				URL.to_vec(),
 			));
@@ -561,7 +569,11 @@ fn debug_mode_enclave_attest_fails_when_sgx_debug_mode_not_allowed() {
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
 		//Try to register an enclave compiled in debug mode
 		assert_err!(
-			Teerex::register_enclave(Origin::signed(signer4), TEST4_CERT.to_vec(), URL.to_vec(),),
+			Teerex::register_enclave(
+				RuntimeOrigin::signed(signer4),
+				TEST4_CERT.to_vec(),
+				URL.to_vec(),
+			),
 			Error::<Test>::SgxModeNotAllowed
 		);
 		assert_eq!(Teerex::enclave_count(), 0);
@@ -582,7 +594,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 
 		//Register an enclave compiled in production mode
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer8),
+			RuntimeOrigin::signed(signer8),
 			TEST8_CERT.to_vec(),
 			URL.to_vec(),
 		));
@@ -603,14 +615,14 @@ fn verify_unshield_funds_works() {
 
 		//Register enclave
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer4.clone()),
+			RuntimeOrigin::signed(signer4.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		assert!(Teerex::shield_funds(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			incognito_account.clone(),
 			100,
 			bonding_account.clone(),
@@ -619,11 +631,11 @@ fn verify_unshield_funds_works() {
 
 		assert_eq!(Balances::free_balance(bonding_account.clone()), 100);
 
-		let expected_event = Event::Teerex(TeerexEvent::ShieldFunds(incognito_account));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::ShieldFunds(incognito_account));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert!(Teerex::unshield_funds(
-			Origin::signed(signer4),
+			RuntimeOrigin::signed(signer4),
 			AccountKeyring::Alice.to_account_id(),
 			50,
 			bonding_account.clone(),
@@ -632,8 +644,9 @@ fn verify_unshield_funds_works() {
 		.is_ok());
 		assert_eq!(Balances::free_balance(bonding_account), 50);
 
-		let expected_event =
-			Event::Teerex(TeerexEvent::UnshieldedFunds(AccountKeyring::Alice.to_account_id()));
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::UnshieldedFunds(
+			AccountKeyring::Alice.to_account_id(),
+		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -649,7 +662,7 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 
 		assert_err!(
 			Teerex::unshield_funds(
-				Origin::signed(signer4.clone()),
+				RuntimeOrigin::signed(signer4.clone()),
 				AccountKeyring::Alice.to_account_id(),
 				51,
 				signer4,
@@ -672,14 +685,14 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 
 		//Ensure that enclave is registered
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer4.clone()),
+			RuntimeOrigin::signed(signer4.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
 
 		//Ensure that bonding account has funds
 		assert!(Teerex::shield_funds(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			incognito_account.to_vec(),
 			100,
 			bonding_account.clone(),
@@ -687,7 +700,7 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 		.is_ok());
 
 		assert!(Teerex::shield_funds(
-			Origin::signed(AccountKeyring::Alice.to_account_id()),
+			RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
 			incognito_account.to_vec(),
 			50,
 			not_bonding_account.clone(),
@@ -696,7 +709,7 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 
 		assert_err!(
 			Teerex::unshield_funds(
-				Origin::signed(signer4),
+				RuntimeOrigin::signed(signer4),
 				AccountKeyring::Alice.to_account_id(),
 				50,
 				not_bonding_account.clone(),
@@ -721,20 +734,20 @@ fn confirm_processed_parentchain_block_works() {
 
 		//Ensure that enclave is registered
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer7.clone()),
+			RuntimeOrigin::signed(signer7.clone()),
 			TEST7_CERT.to_vec(),
 			URL.to_vec(),
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 
 		assert_ok!(Teerex::confirm_processed_parentchain_block(
-			Origin::signed(signer7.clone()),
+			RuntimeOrigin::signed(signer7.clone()),
 			block_hash,
 			block_number,
 			merkle_root,
 		));
 
-		let expected_event = Event::Teerex(TeerexEvent::ProcessedParentchainBlock(
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::ProcessedParentchainBlock(
 			signer7,
 			block_hash,
 			merkle_root,
@@ -753,7 +766,7 @@ fn verify_is_registered_enclave_works() {
 
 		//Ensure that enclave is registered
 		assert_ok!(Teerex::register_enclave(
-			Origin::signed(signer4.clone()),
+			RuntimeOrigin::signed(signer4.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
