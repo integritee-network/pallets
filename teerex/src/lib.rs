@@ -233,9 +233,9 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_quoting_enclave()");
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			log::info!("register_quoting_enclave start");
 			let quoting_enclave =
 				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
 			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
@@ -249,6 +249,7 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_tcb_info()");
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
 			let (fmspc, on_chain_info) =
@@ -272,6 +273,7 @@ pub mod pallet {
 
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_enclave()");
 			let sender = ensure_signed(origin)?;
 
 			Self::remove_enclave(&sender)?;
@@ -483,7 +485,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let report = verify_ias_report(&ra_report)
 			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-		log::info!("RA Report: {:?}", report);
+		log::info!("teerex: IAS report successfully verified");
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
@@ -506,7 +508,6 @@ impl<T: Config> Pallet<T> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 
 		let qe = <QuotingEnclaveRegistry<T>>::get();
-		log::info!("teerex: tcb_info_on_chain verified");
 		let (fmspc, tcb_info, report) =
 			verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe).map_err(
 				|e| {
@@ -515,11 +516,9 @@ impl<T: Config> Pallet<T> {
 				},
 			)?;
 
-		log::info!("teerex: tcb_info_on_chain: {:?}", fmspc);
+		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-		log::info!("teerex: tcb_info_getter: {:?}", tcb_info_on_chain.next_update);
 		ensure!(tcb_info_on_chain.is_valid(&tcb_info).is_some(), "tcb_info is outdated");
-		log::info!("RA Report: {:?}", report);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;

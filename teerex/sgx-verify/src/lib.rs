@@ -657,16 +657,11 @@ const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.11374
 const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
 
 pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
-	log::info!("teerex: extract_tcb_info start");
 	let extension_section = get_intel_extension(cert)?;
-	log::info!("teerex: Extension length: {}", extension_section.len());
 
 	let fmspc = get_fmspc(&extension_section)?;
-	log::info!("teerex: FMSPC: {:?}", fmspc);
 	let cpusvn = get_cpusvn(&extension_section)?;
-	log::info!("teerex: CPUSVN: {:?}", cpusvn);
 	let pcesvn = get_pcesvn(&extension_section)?;
-	log::info!("teerex: PCESVN: {:?}", pcesvn);
 
 	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn)))
 }
