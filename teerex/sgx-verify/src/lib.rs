@@ -396,10 +396,7 @@ pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	let certs_concat = certs_concat.replace("-----BEGIN CERTIFICATE-----", "");
 	// Use the end marker to split the string into certificates
 	let parts = certs_concat.split("-----END CERTIFICATE-----");
-	parts
-		.filter(|p| !p.is_empty())
-		.filter_map(|p| base64::decode(&p).ok())
-		.collect()
+	parts.filter(|p| !p.is_empty()).filter_map(|p| base64::decode(p).ok()).collect()
 }
 
 pub fn verify_certificate_chain<'a>(
@@ -567,7 +564,7 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
 	println!("verifyRA attestation status is: {:?}", ra_status);
 	// parse quote body
 	if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
-		let quote = match base64::decode(&quote_raw) {
+		let quote = match base64::decode(quote_raw) {
 			Ok(q) => q,
 			Err(_) => return Err("Quote Decoding Error"),
 		};

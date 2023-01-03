@@ -140,7 +140,7 @@ where
 	D: Deserializer<'de>,
 {
 	let s: &str = Deserialize::deserialize(deserializer)?;
-	let hex = hex::decode(&s).map_err(|_| D::Error::custom("Failed to deserialize hex string"))?;
+	let hex = hex::decode(s).map_err(|_| D::Error::custom("Failed to deserialize hex string"))?;
 	hex.try_into().map_err(|_| D::Error::custom("Invalid hex length"))
 }
 
@@ -238,6 +238,7 @@ pub struct EnclaveIdentitySigned {
 
 /// Separates the actual data part from the signature for an Intel collateral in JSON format
 /// Returns the data part and signature as a pair
+#[allow(dead_code)]
 fn separate_json_data_and_signature(data_name: &str, data: &[u8]) -> Option<(String, String)> {
 	let json = String::from_utf8_lossy(data);
 	// search pattern is something like `{"tcbInfo":`. Should be at the very beginning
