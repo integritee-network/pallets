@@ -105,6 +105,15 @@ impl BuildRelayCall for RelayCallBuilder {
 				require_weight_at_most: weight,
 				call: call.encode().into(),
 			},
+			RefundSurplus,
+			DepositAsset {
+				assets: All.into(),
+				max_assets: u32::max_value(),
+				beneficiary: MultiLocation {
+					parents: 0,
+					interior: X1(Parachain(2015u32.into())),
+				},
+			},
 		])
 	}
 }
