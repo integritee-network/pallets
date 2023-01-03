@@ -92,7 +92,7 @@ impl BuildRelayCall for RelayCallBuilder {
 	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {
 		let asset = MultiAsset {
 			id: Concrete(Here.into()),
-			fun: Fungibility::Fungible(1000)
+			fun: Fungibility::Fungible(1)
 		};
 		Xcm(vec![
 			WithdrawAsset(asset.clone().into()),
