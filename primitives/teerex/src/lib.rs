@@ -130,7 +130,7 @@ impl TcbVersionStatus {
 				return false
 			}
 		}
-		return self.pcesvn <= examinee.pcesvn
+		self.pcesvn <= examinee.pcesvn
 	}
 }
 
