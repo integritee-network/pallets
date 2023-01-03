@@ -124,8 +124,8 @@ pub struct EnclaveIdentity {
 	#[serde(deserialize_with = "deserialize_from_hex::<_, 32>")]
 	#[serde(serialize_with = "serialize_to_hex::<_, 32>")]
 	mrsigner: [u8; 32],
-	pub isvprodid: u16,
-	pub tcb_levels: Vec<TcbLevel>,
+	isvprodid: u16,
+	tcb_levels: Vec<TcbLevel>,
 }
 
 fn serialize_to_hex<S, const N: usize>(x: &[u8; N], s: S) -> Result<S::Ok, S::Error>
