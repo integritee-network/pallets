@@ -15,9 +15,13 @@
 
 */
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use codec::{Decode, Encode, FullCodec};
 pub use cumulus_primitives_core::ParaId;
-use frame_support::RuntimeDebug;
+use frame_support::{
+	RuntimeDebug,
+	pallet_prelude::{PhantomData, Get},
+};
 use sp_std::vec;
 use xcm::{latest::Weight as XcmWeight, prelude::*};
 
@@ -81,8 +85,8 @@ pub use ksm::*;
 #[cfg(feature = "dot")]
 pub use dot::*;
 
-pub struct RelayCallBuilder;
-impl BuildRelayCall for RelayCallBuilder {
+pub struct RelayCallBuilder<Id>(PhantomData<Id>);
+impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 	type RelayCall = RelayRuntimeCall;
 
 	fn swap_call(self_para_id: ParaId, other_para_id: ParaId) -> Self::RelayCall {
@@ -109,7 +113,7 @@ impl BuildRelayCall for RelayCallBuilder {
 			DepositAsset {
 				assets: All.into(),
 				max_assets: 1,
-				beneficiary: X1(Parachain(2015u32)).into()
+				beneficiary: X1(Parachain(Id::get().into())).into()
 			}
 		])
 	}
