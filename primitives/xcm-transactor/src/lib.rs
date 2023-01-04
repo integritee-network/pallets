@@ -103,8 +103,14 @@ impl BuildRelayCall for RelayCallBuilder {
 			Transact {
 				origin_type: OriginKind::Native,
 				require_weight_at_most: weight,
-				call: call.encode().into(),
+				call: call.encode().into()
 			},
+			RefundSurplus,
+			DepositAsset {
+				assets: All.into(),
+				max_assets: 1,
+				beneficiary: X1(Parachain(2015u32)).into()
+			}
 		])
 	}
 }
