@@ -19,8 +19,8 @@
 use codec::{Decode, Encode, FullCodec};
 pub use cumulus_primitives_core::ParaId;
 use frame_support::{
+	pallet_prelude::{Get, PhantomData},
 	RuntimeDebug,
-	pallet_prelude::{PhantomData, Get},
 };
 use sp_std::vec;
 use xcm::{latest::Weight as XcmWeight, prelude::*};
@@ -94,27 +94,22 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 	}
 
 	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {
-		let asset = MultiAsset {
-			id: Concrete(Here.into()),
-			fun: Fungibility::Fungible(500_000_000)
-		};
+		let asset =
+			MultiAsset { id: Concrete(Here.into()), fun: Fungibility::Fungible(500_000_000) };
 		Xcm(vec![
 			WithdrawAsset(asset.clone().into()),
-			BuyExecution {
-				fees: asset,
-				weight_limit: Unlimited
-			},
+			BuyExecution { fees: asset, weight_limit: Unlimited },
 			Transact {
 				origin_type: OriginKind::Native,
 				require_weight_at_most: weight,
-				call: call.encode().into()
+				call: call.encode().into(),
 			},
 			RefundSurplus,
 			DepositAsset {
 				assets: All.into(),
 				max_assets: 1,
-				beneficiary: X1(Parachain(Id::get().into())).into()
-			}
+				beneficiary: X1(Parachain(Id::get().into())).into(),
+			},
 		])
 	}
 }
