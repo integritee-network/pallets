@@ -18,6 +18,7 @@
 use crate as pallet_xcm_transactor;
 use frame_support::parameter_types;
 use frame_system as system;
+use frame_system::EnsureRoot;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -122,8 +123,9 @@ impl SendXcm for DummySendXcm {
 
 impl pallet_xcm_transactor::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type RelayCallBuilder = RelayCallBuilder;
+	type RelayCallBuilder = RelayCallBuilder<IntegriteeKsmParaId>;
 	type XcmSender = DummySendXcm;
+	type SwapOrigin = EnsureRoot<AccountId>;
 	type ShellRuntimeParaId = ShellRuntimeParaId;
 	type IntegriteeKsmParaId = IntegriteeKsmParaId;
 	type WeightForParaSwap = WeightForParaSwap;
