@@ -123,7 +123,7 @@ impl SendXcm for DummySendXcm {
 
 impl pallet_xcm_transactor::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type RelayCallBuilder = RelayCallBuilder;
+	type RelayCallBuilder = RelayCallBuilder<IntegriteeKsmParaId>;
 	type XcmSender = DummySendXcm;
 	type SwapOrigin = EnsureRoot<AccountId>;
 	type ShellRuntimeParaId = ShellRuntimeParaId;
