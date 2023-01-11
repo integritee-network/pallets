@@ -368,24 +368,6 @@ pub fn deserialize_tcb_info(
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
-pub fn parse_crl(crl_data: &[u8]) -> Result<usize, &'static str> {
-	let crl_decoded = hex::decode(crl_data).map_err(|_| "Deserialization failed")?;
-	let crl: CertificateList =
-		der::Decode::from_der(&crl_decoded).map_err(|_| "Deserialization failed")?;
-
-	log::warn!("{}", crl.signature.bit_len());
-	log::warn!("{}", crl.signature.unused_bits());
-	/*let mut serials = vec![];
-	if let Some(certs) = crl.tbs_cert_list.revoked_certificates {
-		for c in certs {
-			let serial = c.serial_number.as_bytes().to_vec();
-			serials.push(serial);
-		}
-	}
-	Ok(serials)*/
-	Ok(crl.tbs_cert_list.revoked_certificates.unwrap().len())
-}
-
 /// Extract a list of certificates from a byte vec. The certificates must be separated by
 /// `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` markers
 pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {

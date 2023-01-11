@@ -30,8 +30,8 @@ use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
 use sgx_verify::{
-	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, parse_crl,
-	verify_certificate_chain, verify_dcap_quote, verify_ias_report, SgxReport,
+	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
+	verify_dcap_quote, verify_ias_report, SgxReport,
 };
 
 pub use crate::weights::WeightInfo;
@@ -257,20 +257,6 @@ pub mod pallet {
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<TcbInfo<T>>::insert(fmspc, on_chain_info);
-			Ok(().into())
-		}
-
-		#[pallet::call_index(9)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_pck_crl(
-			origin: OriginFor<T>,
-			pck_crl: Vec<u8>,
-			_certificate_chain: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			// CRLs are registered globally and not for a specific sender
-			let _sender = ensure_signed(origin)?;
-			let _serial_numbers = parse_crl(&pck_crl);
-
 			Ok(().into())
 		}
 

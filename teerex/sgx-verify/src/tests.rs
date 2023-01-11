@@ -219,10 +219,21 @@ fn verify_tcb_info_signature() {
 	verify_signature(&cert, data, &signature, &webpki::ECDSA_P256_SHA256).unwrap();
 }
 
+/// This is demo code of how a CRL certificate can be parsed and how the revoked serials can be extracted
+/// The part that is missing/open is how to verify the certificate chain of the CRL
 #[test]
 fn parse_pck_crl() {
-	let crl = parse_crl(&PCK_CRL).unwrap();
-	assert_eq!(3, crl);
+	let crl_decoded = hex::decode(&PCK_CRL).unwrap();
+	let crl: CertificateList = der::Decode::from_der(&crl_decoded).unwrap();
+
+	let mut serials = vec![];
+	if let Some(certs) = crl.tbs_cert_list.revoked_certificates {
+		for c in certs {
+			let serial = c.serial_number.as_bytes().to_vec();
+			serials.push(serial);
+		}
+	}
+	assert_eq!(3, serials.len());
 }
 
 #[test]
