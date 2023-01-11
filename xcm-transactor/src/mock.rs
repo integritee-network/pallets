@@ -111,7 +111,6 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const ShellRuntimeParaId: u32 = 2223u32;
 	pub const IntegriteeKsmParaId: u32 = 2015u32;
-	pub const WeightForParaSwap: XcmWeight = 10_000_000_000;
 }
 
 pub struct DummySendXcm;
@@ -128,7 +127,6 @@ impl pallet_xcm_transactor::Config for Test {
 	type SwapOrigin = EnsureRoot<AccountId>;
 	type ShellRuntimeParaId = ShellRuntimeParaId;
 	type IntegriteeKsmParaId = IntegriteeKsmParaId;
-	type WeightForParaSwap = WeightForParaSwap;
 	type WeightInfo = ();
 }
 
