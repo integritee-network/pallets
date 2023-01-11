@@ -79,6 +79,13 @@ pub mod pallet {
 		///
 		/// This function should really only be called once via governance, on each chain that
 		/// performs the slot swap.
+		///
+		/// Sane weight values:
+		///  Rococo-Local as of 11.01.2022:
+		/// 	* xcm_weight: 10_000_000_000
+		///		* buy_execution_weight: 500_000_000
+		///  Kusama: do be defined, but the weights will be higher than on Rococo-Local
+		///
 		#[pallet::call_index(0)]
 		#[pallet::weight(46_200_000)] // Arbitrary weight.
 		pub fn send_swap_ump(
