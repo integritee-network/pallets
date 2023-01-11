@@ -298,6 +298,9 @@ pub static IAS_SERVER_ROOTS: webpki::TLSServerTrustAnchors = webpki::TLSServerTr
 		name_constraints: None
 	},
 ]);
+
+/// The needed code for a trust anchor can be extracted using `webpki` with something like this:
+/// println!("{:?}", webpki::TrustAnchor::try_from_cert_der(&root_cert));
 #[allow(clippy::zero_prefixed_literal)]
 pub static DCAP_SERVER_ROOTS: webpki::TLSServerTrustAnchors =
 	webpki::TLSServerTrustAnchors(&[webpki::TrustAnchor {
