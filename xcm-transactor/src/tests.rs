@@ -38,7 +38,9 @@ fn swap_ump_fails_not_privileged() {
 			XcmTransactor::send_swap_ump(
 				RuntimeOrigin::signed(alice),
 				ParaId::from(2015),
-				ParaId::from(2014)
+				ParaId::from(2014),
+				10_000_000_000,
+				10_000_000_000
 			),
 			sp_runtime::DispatchError::BadOrigin
 		);
@@ -52,7 +54,9 @@ fn swap_ump_fails_equal_para_ids() {
 			XcmTransactor::send_swap_ump(
 				RuntimeOrigin::root(),
 				ParaId::from(2015),
-				ParaId::from(2015)
+				ParaId::from(2015),
+				10_000_000_000,
+				10_000_000_000
 			),
 			Error::<Test>::SwapIdsEqual
 		);
@@ -67,7 +71,9 @@ fn swap_ump_fails_1_id_invalid() {
 			XcmTransactor::send_swap_ump(
 				RuntimeOrigin::root(),
 				shell_id.into(),
-				ParaId::from(20000)
+				ParaId::from(20000),
+				10_000_000_000,
+				10_000_000_000
 			),
 			Error::<Test>::InvalidSwapIds
 		);
@@ -82,7 +88,9 @@ fn swap_ump_fails_2_id_invalid() {
 			XcmTransactor::send_swap_ump(
 				RuntimeOrigin::root(),
 				integritee_id.into(),
-				ParaId::from(20000)
+				ParaId::from(20000),
+				10_000_000_000,
+				10_000_000_000
 			),
 			Error::<Test>::InvalidSwapIds
 		);
@@ -97,11 +105,13 @@ fn swap_ump_success() {
 		assert_ok!(XcmTransactor::send_swap_ump(
 			RuntimeOrigin::root(),
 			shell_id.into(),
-			integritee_id.into()
+			integritee_id.into(),
+			10_000_000_000,
+			10_000_000_000
 		));
 		assert!(System::events().iter().any(|swap| matches!(
 			swap.event,
-			RuntimeEvent::XcmTransactor(crate::Event::TransactSent { .. })
+			RuntimeEvent::XcmTransactor(crate::Event::SwapTransactSent { .. })
 		)));
 	})
 }

@@ -54,16 +54,13 @@ pub mod pallet {
 		#[pallet::constant]
 		type IntegriteeKsmParaId: Get<u32>;
 
-		#[pallet::constant]
-		type WeightForParaSwap: Get<XcmWeight>;
-
 		type WeightInfo;
 	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		TransactSent { para_a: ParaId, para_b: ParaId },
+		SwapTransactSent { para_a: ParaId, para_b: ParaId },
 	}
 
 	#[pallet::error]
@@ -75,35 +72,43 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		// This function should really only be called once via governance
-		// There is chance for it to be called another time or two in the future
-		// This weight is ARBITRARY.
+		/// Send swap instruction to the relay chain to swap the slot lease of our two parachains.
+		/// This needs to be done from within a pallet as the `XCM` origin must be the parachain
+		/// itself.
+		///
+		/// This function should really only be called once via governance, on each chain that
+		/// performs the slot swap.
+		///
+		/// Sane weight values:
+		///  Rococo-Local as of 11.01.2022:
+		///		* xcm_weight: 10_000_000_000
+		///		* buy_execution_weight: 500_000_000
+		///  Kusama: to be defined, but the weights will be higher than on Rococo-Local
+		///
 		#[pallet::call_index(0)]
-		#[pallet::weight(46_200_000)]
+		#[pallet::weight(46_200_000)] // Arbitrary weight.
 		pub fn send_swap_ump(
 			origin: OriginFor<T>,
-			para_a: ParaId,
-			para_b: ParaId,
+			self_id: ParaId,
+			other_id: ParaId,
+			xcm_weight: XcmWeight,
+			buy_execution_fee: u128,
 		) -> DispatchResult {
 			T::SwapOrigin::ensure_origin(origin)?;
-			ensure!(para_a != para_b, Error::<T>::SwapIdsEqual);
+			ensure!(self_id != other_id, Error::<T>::SwapIdsEqual);
 
-			let shell_id = ParaId::from(T::ShellRuntimeParaId::get());
-			let integritee_id = ParaId::from(T::IntegriteeKsmParaId::get());
-			let input_valid = vec![para_a, para_b]
-				.iter()
-				.filter(|&&id| id == shell_id || id == integritee_id)
-				.count() == 2;
-			if !input_valid {
-				return Err(Error::<T>::InvalidSwapIds.into())
-			}
+			let valid_ids =
+				[T::ShellRuntimeParaId::get().into(), T::IntegriteeKsmParaId::get().into()];
 
-			let call = T::RelayCallBuilder::swap_call(para_a, para_b);
+			ensure!(valid_ids.contains(&self_id), Error::<T>::InvalidSwapIds);
+			ensure!(valid_ids.contains(&other_id), Error::<T>::InvalidSwapIds);
+
+			let call = T::RelayCallBuilder::swap_call(self_id, other_id);
 			let xcm_message =
-				T::RelayCallBuilder::construct_transact_xcm(call, T::WeightForParaSwap::get());
+				T::RelayCallBuilder::construct_transact_xcm(call, xcm_weight, buy_execution_fee);
 			T::XcmSender::send_xcm(Parent, xcm_message).map_err(|_| Error::<T>::TransactFailed)?;
 
-			Self::deposit_event(Event::<T>::TransactSent { para_a, para_b });
+			Self::deposit_event(Event::<T>::SwapTransactSent { para_a: self_id, para_b: other_id });
 			Ok(())
 		}
 	}
