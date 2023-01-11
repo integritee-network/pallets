@@ -82,7 +82,7 @@ pub mod pallet {
 		///
 		/// Sane weight values:
 		///  Rococo-Local as of 11.01.2022:
-		/// 	* xcm_weight: 10_000_000_000
+		///		* xcm_weight: 10_000_000_000
 		///		* buy_execution_weight: 500_000_000
 		///  Kusama: do be defined, but the weights will be higher than on Rococo-Local
 		///
