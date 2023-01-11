@@ -128,7 +128,6 @@ impl pallet_xcm_transactor::Config for Test {
 	type SwapOrigin = EnsureRoot<AccountId>;
 	type ShellRuntimeParaId = ShellRuntimeParaId;
 	type IntegriteeKsmParaId = IntegriteeKsmParaId;
-	type WeightForParaSwap = WeightForParaSwap;
 	type WeightInfo = ();
 }
 

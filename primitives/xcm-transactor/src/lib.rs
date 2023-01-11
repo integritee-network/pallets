@@ -43,11 +43,18 @@ pub trait BuildRelayCall {
 	/// - RelayCall (Different depending on Kusama or Polkadot)
 	/// - execution to be purchased via BuyExecution XCM Instruction
 	/// - Weight required to execute this call.
+	/// - Amount of execution to buy on the relay chain. This parameter is exposed because it varies
+	/// depending on the relay chain.
+	///
 	///
 	/// Returns:
 	/// - Corresponding XCM Message for Transacting on this RelayCall
 	///
-	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()>;
+	fn construct_transact_xcm(
+		call: Self::RelayCall,
+		weight: XcmWeight,
+		buy_execution_fee: u128,
+	) -> Xcm<()>;
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -93,9 +100,13 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 		Self::RelayCall::Registrar(RegistrarCall::Swap { this: self_para_id, other: other_para_id })
 	}
 
-	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {
+	fn construct_transact_xcm(
+		call: Self::RelayCall,
+		weight: XcmWeight,
+		buy_execution_fee: u128,
+	) -> Xcm<()> {
 		let asset =
-			MultiAsset { id: Concrete(Here.into()), fun: Fungibility::Fungible(500_000_000) };
+			MultiAsset { id: Concrete(Here.into()), fun: Fungibility::Fungible(buy_execution_fee) };
 		Xcm(vec![
 			WithdrawAsset(asset.clone().into()),
 			BuyExecution { fees: asset, weight_limit: Unlimited },
