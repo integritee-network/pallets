@@ -111,7 +111,6 @@ impl pallet_balances::Config for Test {
 parameter_types! {
 	pub const ShellRuntimeParaId: u32 = 2223u32;
 	pub const IntegriteeKsmParaId: u32 = 2015u32;
-	pub const WeightForParaSwap: XcmWeight = 10_000_000_000;
 }
 
 pub struct DummySendXcm;
