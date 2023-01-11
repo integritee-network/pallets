@@ -37,7 +37,7 @@ use sp_std::{
 };
 use teerex_primitives::{Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus};
 use webpki::SignatureAlgorithm;
-use x509_cert::{crl::CertificateList, Certificate};
+use x509_cert::Certificate;
 
 pub mod collateral;
 mod ephemeral_key;
