@@ -46,10 +46,8 @@ pub trait BuildRelayCall {
 	/// - Amount of execution to buy on the relay chain. This parameter is exposed because it varies
 	/// depending on the relay chain.
 	///
-	///
 	/// Returns:
 	/// - Corresponding XCM Message for Transacting on this RelayCall
-	///
 	fn construct_transact_xcm(
 		call: Self::RelayCall,
 		weight: XcmWeight,

@@ -76,7 +76,6 @@ pub mod pallet {
 		/// This needs to be done from within a pallet as the `XCM` origin must be the parachain
 		/// itself.
 		///
-		///
 		/// This function should really only be called once via governance, on each chain that
 		/// performs the slot swap.
 		///
