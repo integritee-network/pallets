@@ -347,7 +347,8 @@ pub fn encode_as_der(data: &[u8]) -> Result<Vec<u8>, &'static str> {
 	Ok(writer.finish().map_err(|_| "Could not convert public key to DER")?.to_vec())
 }
 
-/// Also verifies that the data matches the given signature and was produced by the given certificate
+/// Extracts the specified data into a `EnclaveIdentity` instance.
+/// Also verifies that the data matches the given signature, was produced by the given certificate
 /// and matches the data
 pub fn deserialize_enclave_identity(
 	data: &[u8],
@@ -359,7 +360,8 @@ pub fn deserialize_enclave_identity(
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
-/// Also verifies that the data matches the given signature and was produced by the given certificate
+/// Extracts the specified data into a `TcbInfo` instance.
+/// Also verifies that the data matches the given signature, was produced by the given certificate
 /// and matches the data
 pub fn deserialize_tcb_info(
 	data: &[u8],
@@ -384,6 +386,8 @@ pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
 	parts.filter(|p| !p.is_empty()).filter_map(|p| base64::decode(p).ok()).collect()
 }
 
+/// Verifies that the `leaf_cert` in combination with the `intermediate_certs` establishes
+/// a valid certificate chain that is rooted in one of the trust anchors that was compiled into to the pallet
 pub fn verify_certificate_chain<'a>(
 	leaf_cert: &'a [u8],
 	intermediate_certs: &[&[u8]],

@@ -42,3 +42,9 @@ name = "signature_check"
 path = "fuzz_targets/signature_check.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "extract_tcb_info"
+path = "fuzz_targets/extract_tcb_info.rs"
+test = false
+doc = false
