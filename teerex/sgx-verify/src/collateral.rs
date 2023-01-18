@@ -200,17 +200,19 @@ pub struct TcbInfo {
 impl TcbInfo {
 	/// This extracts the necessary information into the struct that we actually store in the chain
 	pub fn to_chain_tcb_info(&self) -> (Fmspc, TcbInfoOnChain) {
-		let mut valid_tcbs: Vec<TcbVersionStatus> = Vec::new();
-		for tcb in &self.tcb_levels {
+		let valid_tcbs: Vec<TcbVersionStatus> = self
+			.tcb_levels
+			.iter()
 			// Only store TCB levels on chain that are currently valid
-			if tcb.is_valid() {
+			.filter(|tcb| tcb.is_valid())
+			.map(|tcb| {
 				let mut components = [0u8; 16];
 				for (i, t) in tcb.tcb.sgxtcbcomponents.iter().enumerate() {
 					components[i] = t.svn;
 				}
-				valid_tcbs.push(TcbVersionStatus::new(components, tcb.tcb.pcesvn));
-			}
-		}
+				TcbVersionStatus::new(components, tcb.tcb.pcesvn)
+			})
+			.collect();
 		(
 			self.fmspc,
 			TcbInfoOnChain::new(

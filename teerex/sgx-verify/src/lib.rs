@@ -668,18 +668,22 @@ pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'stat
 fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
 	let cert: Certificate =
 		der::Decode::from_der(der_encoded).map_err(|_| "Error parsing certificate")?;
-	// Quite inefficient as we copy the complete part here and then again in the end
-	let ext: Vec<Vec<u8>> = cert
+	let mut extension_iter = cert
 		.tbs_certificate
 		.extensions
 		.as_deref()
 		.unwrap_or(&[])
 		.iter()
 		.filter(|e| e.extn_id == INTEL_SGX_EXTENSION_OID)
-		.map(|e| e.extn_value.to_vec())
-		.collect();
-	ensure!(ext.len() == 1, "There should only be one section containing Intel extensions");
-	Ok(ext[0].clone())
+		.map(|e| e.extn_value);
+
+	let extension = extension_iter.next();
+	ensure!(
+		extension.is_some() && extension_iter.next().is_none(),
+		"There should only be one section containing Intel extensions"
+	);
+	// SAFETY: Ensured above that extension.is_some() == true
+	Ok(extension.unwrap().to_vec())
 }
 
 fn get_fmspc(der: &[u8]) -> Result<Fmspc, &'static str> {

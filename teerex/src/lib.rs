@@ -505,7 +505,7 @@ impl<T: Config> Pallet<T> {
 		let (fmspc, tcb_info, report) =
 			verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe).map_err(
 				|e| {
-					log::info!("verify_dcap_quote failed: {:?}", e);
+					log::warn!("verify_dcap_quote failed: {:?}", e);
 					<Error<T>>::RemoteAttestationVerificationFailed
 				},
 			)?;

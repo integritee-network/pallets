@@ -18,6 +18,7 @@ limitations under the License.
 use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
+use teerex_primitives::MrSigner;
 use test_utils::ias::consts::*;
 
 // give get_signer a concrete type
