@@ -22,7 +22,9 @@ use alloc::string::String;
 use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
-use teerex_primitives::{Fmspc, Pcesvn, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus};
+use teerex_primitives::{
+	Fmspc, MrSigner, Pcesvn, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus,
+};
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
 /// the "TCB info" and "enclave identity" collateral data in JSON format provided by intel
@@ -122,7 +124,7 @@ pub struct EnclaveIdentity {
 	attributes_mask: [u8; 16],
 	#[serde(deserialize_with = "deserialize_from_hex::<_, 32>")]
 	#[serde(serialize_with = "serialize_to_hex::<_, 32>")]
-	mrsigner: [u8; 32],
+	mrsigner: MrSigner,
 	pub isvprodid: u16,
 	pub tcb_levels: Vec<TcbLevel>,
 }

@@ -35,7 +35,9 @@ use sp_std::{
 	convert::{TryFrom, TryInto},
 	prelude::*,
 };
-use teerex_primitives::{Cpusvn, Fmspc, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus};
+use teerex_primitives::{
+	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus,
+};
 use webpki::SignatureAlgorithm;
 use x509_cert::Certificate;
 
@@ -163,9 +165,9 @@ pub struct SgxReportBody {
 	reserved1: [u8; SGX_REPORT_BODY_RESERVED1_BYTES], /* ( 20) */
 	isv_ext_prod_id: [u8; 16], /* ( 32) ISV assigned Extended Product ID */
 	attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
-	mr_enclave: [u8; 32], /* ( 64) The value of the enclave's ENCLAVE measurement */
+	mr_enclave: MrEnclave, /* ( 64) The value of the enclave's ENCLAVE measurement */
 	reserved2: [u8; SGX_REPORT_BODY_RESERVED2_BYTES], /* ( 96) */
-	mr_signer: [u8; 32],  /* (128) The value of the enclave's SIGNER measurement */
+	mr_signer: MrSigner,  /* (128) The value of the enclave's SIGNER measurement */
 	reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
 	config_id: [u8; 64],  /* (192) CONFIGID */
 	isv_prod_id: u16,     /* (256) Product ID of the Enclave */
@@ -239,7 +241,7 @@ impl Default for SgxStatus {
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct SgxReport {
-	pub mr_enclave: [u8; 32],
+	pub mr_enclave: MrEnclave,
 	pub pubkey: [u8; 32],
 	pub status: SgxStatus,
 	pub timestamp: u64, // unix timestamp in milliseconds

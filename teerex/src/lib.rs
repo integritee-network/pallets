@@ -167,7 +167,7 @@ pub mod pallet {
 			let enclave = Enclave::new(
 				sender.clone(),
 				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<[u8; 32]>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
+				<MrEnclave>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
 				worker_url.clone(),
 				SgxBuildMode::default(),
@@ -215,7 +215,7 @@ pub mod pallet {
 			let enclave = Enclave::new(
 				sender.clone(),
 				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<[u8; 32]>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
+				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
 				worker_url.clone(),
 				SgxBuildMode::default(),

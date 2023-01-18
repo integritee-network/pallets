@@ -37,7 +37,7 @@ impl Default for SgxBuildMode {
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Enclave<PubKey, Url> {
 	pub pubkey: PubKey, // FIXME: this is redundant information
-	pub mr_enclave: [u8; 32],
+	pub mr_enclave: MrEnclave,
 	// Todo: make timestamp: Moment
 	pub timestamp: u64, // unix epoch in milliseconds
 	pub url: Url,       // utf8 encoded url
@@ -47,7 +47,7 @@ pub struct Enclave<PubKey, Url> {
 impl<PubKey, Url> Enclave<PubKey, Url> {
 	pub fn new(
 		pubkey: PubKey,
-		mr_enclave: [u8; 32],
+		mr_enclave: MrEnclave,
 		timestamp: u64,
 		url: Url,
 		sgx_build_mode: SgxBuildMode,
@@ -80,7 +80,7 @@ pub struct QuotingEnclave {
 	pub miscselect_mask: [u8; 4],
 	pub attributes: [u8; 16],
 	pub attributes_mask: [u8; 16],
-	pub mrsigner: [u8; 32],
+	pub mrsigner: MrSigner,
 	pub isvprodid: u16,
 	/// Contains only the TCB versions that are considered UpToDate
 	pub tcb: Vec<QeTcb>,
@@ -95,7 +95,7 @@ impl QuotingEnclave {
 		miscselect_mask: [u8; 4],
 		attributes: [u8; 16],
 		attributes_mask: [u8; 16],
-		mrsigner: [u8; 32],
+		mrsigner: MrSigner,
 		isvprodid: u16,
 		tcb: Vec<QeTcb>,
 	) -> Self {
@@ -160,6 +160,8 @@ impl TcbInfoOnChain {
 	}
 }
 
+pub type MrSigner = [u8; 32];
+pub type MrEnclave = [u8; 32];
 pub type Fmspc = [u8; 6];
 pub type Cpusvn = [u8; 16];
 pub type Pcesvn = u16;
