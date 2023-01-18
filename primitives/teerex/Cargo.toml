@@ -25,6 +25,7 @@ hex-literal = "0.3.4"
 default = ["std"]
 std = [
     "codec/std",
+    "common-primitives/std",
     "scale-info/std",
     "serde/std",
     # substrate

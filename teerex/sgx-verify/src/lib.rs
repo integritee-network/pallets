@@ -134,7 +134,9 @@ impl Decode for QeCertificationData {
 		let size = u32::from_le_bytes(size_buf);
 		// This is an arbitrary limit to prevent out of memory issues. Intel does not specify a max value
 		if size > 65_000 {
-			return Result::Err(codec::Error::from("Certification data too long"))
+			return Result::Err(codec::Error::from(
+				"Certification data too long. Max 65000 bytes are allowed",
+			))
 		}
 
 		// Safety: The try_into() can only fail due to overflow on a 16-bit system, but we anyway
@@ -407,7 +409,7 @@ pub fn verify_dcap_quote(
 	dcap_quote_raw: &[u8],
 	verification_time: u64,
 	qe: &QuotingEnclave,
-) -> Result<([u8; 6], TcbVersionStatus, SgxReport), &'static str> {
+) -> Result<(Fmspc, TcbVersionStatus, SgxReport), &'static str> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
@@ -647,9 +649,9 @@ pub fn verify_server_cert(
 /// https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
 const INTEL_SGX_EXTENSION_OID: ObjectIdentifier =
 	ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1");
-const FMSPC_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.4");
-const PCESVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
-const CPUSVN_OID: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
+const OID_FMSPC: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.4");
+const OID_PCESVN: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
+const OID_CPUSVN: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
 
 pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
 	let extension_section = get_intel_extension(cert)?;
@@ -679,21 +681,20 @@ fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
 }
 
 fn get_fmspc(der: &[u8]) -> Result<Fmspc, &'static str> {
-	let bytes_oid = FMSPC_OID.as_bytes();
+	let bytes_oid = OID_FMSPC.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)
 		.ok_or("Certificate does not contain 'FMSPC_OID'")?;
 	offset += 12; // length oid (10) + asn1 tag (1) + asn1 length10 (1)
 
-	// FMSPC is specified to have length 6
-	let len = 6;
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
+	let fmspc_size = std::mem::size_of::<Fmspc>() / std::mem::size_of::<u8>();
+	let data = der.get(offset..offset + fmspc_size).ok_or("Index out of bounds")?;
 	data.try_into().map_err(|_| "FMSPC must be 6 bytes long")
 }
 
 fn get_cpusvn(der: &[u8]) -> Result<Cpusvn, &'static str> {
-	let bytes_oid = CPUSVN_OID.as_bytes();
+	let bytes_oid = OID_CPUSVN.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)
@@ -707,7 +708,7 @@ fn get_cpusvn(der: &[u8]) -> Result<Cpusvn, &'static str> {
 }
 
 fn get_pcesvn(der: &[u8]) -> Result<Pcesvn, &'static str> {
-	let bytes_oid = PCESVN_OID.as_bytes();
+	let bytes_oid = OID_PCESVN.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)

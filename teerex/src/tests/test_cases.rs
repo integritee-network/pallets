@@ -35,11 +35,13 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
+/// Timestamp for which the collateral data must be valid. Represents 2022-12-21 08:12:27
+const VALID_TIMESTAMP: Moment = 1671606747000;
+
 #[test]
 fn add_and_remove_dcap_enclave_works() {
 	new_test_ext().execute_with(|| {
-		let now = 1671606747000;
-		Timestamp::set_timestamp(now);
+		Timestamp::set_timestamp(VALID_TIMESTAMP);
 		register_quoting_enclave();
 		register_tcb_info();
 
@@ -54,7 +56,7 @@ fn add_and_remove_dcap_enclave_works() {
 			URL.to_vec()
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
-		assert_eq!(Teerex::enclave(1).unwrap().timestamp, now);
+		assert_eq!(Teerex::enclave(1).unwrap().timestamp, VALID_TIMESTAMP);
 		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer)));
 		assert_eq!(Teerex::enclave_count(), 0);
 		assert_eq!(list_enclaves(), vec![])
@@ -86,7 +88,7 @@ fn register_quoting_enclave_works() {
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.mrsigner, [0u8; 32]);
 		assert_eq!(qe.isvprodid, 0);
-		Timestamp::set_timestamp(1671606747000);
+		Timestamp::set_timestamp(VALID_TIMESTAMP);
 		register_quoting_enclave();
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.isvprodid, 1);
@@ -114,11 +116,12 @@ fn register_tcb_info() {
 #[test]
 fn register_tcb_info_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(1671606747000);
+		Timestamp::set_timestamp(VALID_TIMESTAMP);
 
 		register_tcb_info();
 		let fmspc = hex!("00906EA10000");
 		let tcb_info = Teerex::tcb_info(fmspc);
+		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
 		assert_eq!(tcb_info.next_update, 1681649132000);
 	})
 }

@@ -153,8 +153,14 @@ impl EnclaveIdentity {
 			}
 		}
 		QuotingEnclave::new(
-			self.issue_date.timestamp_millis().try_into().unwrap(),
-			self.next_update.timestamp_millis().try_into().unwrap(),
+			self.issue_date
+				.timestamp_millis()
+				.try_into()
+				.expect("no support for negative unix timestamps"),
+			self.next_update
+				.timestamp_millis()
+				.try_into()
+				.expect("no support for negative unix timestamps"),
 			self.miscselect,
 			self.miscselect_mask,
 			self.attributes,
@@ -206,8 +212,14 @@ impl TcbInfo {
 		(
 			self.fmspc,
 			TcbInfoOnChain::new(
-				self.issue_date.timestamp_millis().try_into().unwrap(),
-				self.next_update.timestamp_millis().try_into().unwrap(),
+				self.issue_date
+					.timestamp_millis()
+					.try_into()
+					.expect("no support for negative unix timestamps"),
+				self.next_update
+					.timestamp_millis()
+					.try_into()
+					.expect("no support for negative unix timestamps"),
 				valid_tcbs,
 			),
 		)

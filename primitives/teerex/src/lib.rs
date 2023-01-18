@@ -178,6 +178,7 @@ mod tests {
 
 	#[test]
 	fn tcb_full_is_valid() {
+		// The strings are the hex encodings of the 16-byte CPUSVN numbers
 		let reference = TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7);
 		assert!(reference.is_valid(&reference));
 		assert!(
