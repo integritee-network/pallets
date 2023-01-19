@@ -39,9 +39,14 @@ std = [
     "base64/std",
     "chrono/std",
     "codec/std",
+    "der/std",
+    "hex/std",
+    "ring/std",
     "scale-info/std",
+    "serde/std",
     "serde_json/std",
     "webpki/std",
+    "x509-cert/std",
     # local
     "teerex-primitives/std",
     # substrate
