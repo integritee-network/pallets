@@ -15,6 +15,19 @@
 
 */
 
+//! Contains all the logic for understanding and verifying SGX remote attestation reports.
+//!
+//! Intel's documentation is scattered across different documents:
+//!
+//! "Intel® Software Guard Extensions: PCK Certificate and Certificate Revocation List Profile
+//! Specification", further denoted as `PCK_Certificate_CRL_Spec-1.1`.
+//!
+//! 	https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
+//!
+//! Intel® SGX Developer Guide, further denoted as `SGX_Developer_Guide`:
+//!
+//!		https://download.01.org/intel-sgx/linux-1.5/docs/Intel_SGX_Developer_Guide.pdf
+
 #![cfg_attr(not(feature = "std"), no_std)]
 pub extern crate alloc;
 
@@ -157,24 +170,78 @@ const SGX_REPORT_BODY_RESERVED3_BYTES: usize = 32;
 const SGX_REPORT_BODY_RESERVED4_BYTES: usize = 42;
 const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 
+/// SGX report about an enclave.
+///
+/// We don't verify all of the fields, as some contain business logic specific data that is
+/// not related to the overall validity of an enclave. We only check security related stuff. The
+/// only exception to this is the quoting enclave, where we validate specific fields against know
+/// values.
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SgxReportBody {
-	cpu_svn: [u8; 16],    /* (  0) Security Version of the CPU */
+	/// Security version of the CPU.
+	///
+	/// Reflects the processors microcode update version.
+	cpu_svn: [u8; 16], /* (  0) Security Version of the CPU */
+	/// State Save Area extended feature set.
+	///
+	/// See: https://cdrdv2-public.intel.com/671544/exception-handling-in-intel-sgx.pdf.
 	misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
+	/// Unused reserved bytes.
 	reserved1: [u8; SGX_REPORT_BODY_RESERVED1_BYTES], /* ( 20) */
+	/// Extended Product ID of an enclave.
 	isv_ext_prod_id: [u8; 16], /* ( 32) ISV assigned Extended Product ID */
+	/// Attributes, defines features that should be enabled for an enclave.
+	///
+	/// Here, we only care if the Debug mode is enabled.
+	///
+	/// More details in `SGX_Developer_Guide` page 16.
 	attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
+	/// Enclave measurement.
+	///
+	/// A single 256-bit hash that identifies the code and initial data to
+	/// be placed inside the enclave, the expected order and position in which they are to be
+	/// placed, and the security properties of those pages. More details in `SGX_Developer_Guide`
+	/// page 6.
 	mr_enclave: MrEnclave, /* ( 64) The value of the enclave's ENCLAVE measurement */
+	/// Unused reserved bytes.
 	reserved2: [u8; SGX_REPORT_BODY_RESERVED2_BYTES], /* ( 96) */
-	mr_signer: MrSigner,  /* (128) The value of the enclave's SIGNER measurement */
+	/// The enclave author’s public key.
+	///
+	/// More details in `SGX_Developer_Guide` page 6.
+	mr_signer: MrSigner, /* (128) The value of the enclave's SIGNER measurement */
+	/// Unused reserved bytes.
 	reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
-	config_id: [u8; 64],  /* (192) CONFIGID */
-	isv_prod_id: u16,     /* (256) Product ID of the Enclave */
-	isv_svn: u16,         /* (258) Security Version of the Enclave */
-	config_svn: u16,      /* (260) CONFIGSVN */
+	/// Config Id of an enclave.
+	///
+	/// Todo: Investigate the relevancy of this value.
+	config_id: [u8; 64], /* (192) CONFIGID */
+	/// The Product ID of the enclave.
+	///
+	/// The Independent Software Vendor (ISV) should configure a unique ISVProdID for each product
+	/// that may want to share sealed data between enclaves signed with a specific `MRSIGNER`.
+	isv_prod_id: u16, /* (256) Product ID of the Enclave */
+	/// ISV security version of the enclave.
+	///
+	/// This is the enclave author's responsibility to increase it whenever a security related
+	/// update happened. Here, we will only check it for the `Quoting Enclave` to ensure that the
+	/// quoting enclave is recent enough.
+	///
+	/// More details in `SGX_Developer_Guide` page 6.
+	isv_svn: u16, /* (258) Security Version of the Enclave */
+	/// Config Security version of the enclave.
+	config_svn: u16, /* (260) CONFIGSVN */
+	/// Unused reserved bytes.
 	reserved4: [u8; SGX_REPORT_BODY_RESERVED4_BYTES], /* (262) */
+	/// Family ID assigned by the ISV.
+	///
+	/// Todo: Investigate the relevancy of this value.
 	isv_family_id: [u8; 16], /* (304) ISV assigned Family ID */
+	/// Custom data to be defined by the enclave author.
+	///
+	/// We use this to provide the public key of the enclave that is to be registered on the chain.
+	/// Doing this, will prove that the public key is from a legit SGX enclave when it is verified
+	/// together with the remote attestation.
 	report_data: SgxReportData, /* (320) Data provided by the user */
 }
 
