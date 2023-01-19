@@ -84,15 +84,30 @@ pub struct DcapQuote {
 	quote_signature_data: EcdsaQuoteSignature,
 }
 
+/// All the documentation about this can be found in the `PCK_Certificate_CRL_Spec-1.1` page 62.
 #[derive(Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct DcapQuoteHeader {
+	/// Version of the Quote data structure.
+	///
+	/// This is version 3 for the DCAP ECDSA attestation.
 	version: u16,
+	/// Type of the Attestation Key used by the Quoting Enclave.
+	/// • Supported values:
+	/// - 2 (ECDSA-256-with-P-256 curve)
+	/// - 3 (ECDSA-384-with-P-384 curve) (Note: currently not supported)
 	attestation_key_type: u16,
+	/// Reserved field, value 0.
 	reserved: u32,
+	/// Security Version of the Quoting Enclave currently loaded on the platform.
 	qe_svn: u16,
+	/// Security Version of the Provisioning Certification Enclave currently loaded on the platform.
 	pce_svn: u16,
+	/// Unique identifier of the QE Vendor.
+	///
+	/// This will usually Intel's Quoting enclave with the ID: 939A7233F79C4CA9940A0DB3957F0607.
 	qe_vendor_id: [u8; 16],
+	/// Custom user-defined data.
 	user_data: [u8; 20],
 }
 
