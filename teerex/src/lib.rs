@@ -485,7 +485,7 @@ impl<T: Config> Pallet<T> {
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
-		// TODO: activate state checks as soon as we've fixed our setup
+		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
 		// log::info!("teerex: status is acceptable");
@@ -518,7 +518,7 @@ impl<T: Config> Pallet<T> {
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
-		// TODO: activate state checks as soon as we've fixed our setup
+		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
 		// log::info!("teerex: status is acceptable");
@@ -533,7 +533,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<QuotingEnclave, DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
-		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
+		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
@@ -554,7 +554,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
-		ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
+		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
