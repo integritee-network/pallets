@@ -198,7 +198,8 @@ pub struct SgxReportBody {
 	///
 	/// Reflects the processors microcode update version.
 	cpu_svn: [u8; 16], /* (  0) Security Version of the CPU */
-	/// State Save Area extended feature set.
+	/// State Save Area extended feature set. Flags used for specific exception handling settings.
+	/// Unless, you know what you are doing these should all be 0.
 	///
 	/// See: https://cdrdv2-public.intel.com/671544/exception-handling-in-intel-sgx.pdf.
 	misc_select: [u8; 4], /* ( 16) Which fields defined in SSA.MISC */
