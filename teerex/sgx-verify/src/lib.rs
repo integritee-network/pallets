@@ -427,7 +427,7 @@ pub fn verify_dcap_quote(
 	xt_signer_array.copy_from_slice(&quote.body.report_data.d[..32]);
 
 	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
-	ensure!(3 == certs.len(), "Certificate chain must have 3 certificates");
+	ensure!(certs.len() >= 2, "Certificate chain must have at leas two certificates");
 	let intermediate_certificate_slices: Vec<&[u8]> =
 		certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
