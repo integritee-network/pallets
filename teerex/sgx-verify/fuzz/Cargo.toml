@@ -48,3 +48,9 @@ name = "extract_tcb_info"
 path = "fuzz_targets/extract_tcb_info.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "verify_ias_report"
+path = "fuzz_targets/verify_ias_report.rs"
+test = false
+doc = false
