@@ -124,7 +124,7 @@ impl TcbVersionStatus {
 		Self { cpusvn, pcesvn }
 	}
 
-	pub fn is_valid(&self, examinee: &TcbVersionStatus) -> bool {
+	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
 			if *v > *r {
 				return false
@@ -150,13 +150,13 @@ impl TcbInfoOnChain {
 		Self { issue_date, next_update, tcb_levels }
 	}
 
-	pub fn is_valid(&self, examinee: &TcbVersionStatus) -> Option<TcbVersionStatus> {
+	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
 		for tb in &self.tcb_levels {
-			if tb.is_valid(examinee) {
-				return Some(tb.clone())
+			if tb.verify_examinee(examinee) {
+				return true
 			}
 		}
-		None
+		false
 	}
 }
 
@@ -182,16 +182,14 @@ mod tests {
 	fn tcb_full_is_valid() {
 		// The strings are the hex encodings of the 16-byte CPUSVN numbers
 		let reference = TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7);
-		assert!(reference.is_valid(&reference));
-		assert!(
-			reference.is_valid(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7))
-		);
-		assert!(
-			reference.is_valid(&TcbVersionStatus::new(hex!("21110204018007000000000000000001"), 7))
-		);
+		assert!(reference.verify_examinee(&reference));
+		assert!(reference
+			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7)));
+		assert!(reference
+			.verify_examinee(&TcbVersionStatus::new(hex!("21110204018007000000000000000001"), 7)));
 		assert!(!reference
-			.is_valid(&TcbVersionStatus::new(hex!("10110204018007000000000000000000"), 6)));
+			.verify_examinee(&TcbVersionStatus::new(hex!("10110204018007000000000000000000"), 6)));
 		assert!(!reference
-			.is_valid(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 6)));
+			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 6)));
 	}
 }
