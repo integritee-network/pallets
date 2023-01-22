@@ -62,20 +62,21 @@ mod tests;
 mod utils;
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
-#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SgxReportData {
 	d: [u8; SGX_REPORT_DATA_SIZE],
 }
 
-#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SGXAttributes {
 	flags: u64,
 	xfrm: u64,
 }
 
-#[derive(Decode, Clone, TypeInfo)]
+/// This is produced by an SGX platform, when it wants to be attested.
+#[derive(Debug, Decode, Clone, TypeInfo)]
 #[repr(C)]
 pub struct DcapQuote {
 	header: DcapQuoteHeader,
@@ -105,7 +106,7 @@ pub struct DcapQuoteHeader {
 	pce_svn: u16,
 	/// Unique identifier of the QE Vendor.
 	///
-	/// This will usually Intel's Quoting enclave with the ID: 939A7233F79C4CA9940A0DB3957F0607.
+	/// This will usually be Intel's Quoting enclave with the ID: 939A7233F79C4CA9940A0DB3957F0607.
 	qe_vendor_id: [u8; 16],
 	/// Custom user-defined data.
 	user_data: [u8; 20],
@@ -114,7 +115,7 @@ pub struct DcapQuoteHeader {
 const ATTESTATION_KEY_SIZE: usize = 64;
 const REPORT_SIGNATURE_SIZE: usize = 64;
 
-#[derive(Decode, Clone, TypeInfo)]
+#[derive(Debug, Decode, Clone, TypeInfo)]
 #[repr(C)]
 pub struct EcdsaQuoteSignature {
 	isv_enclave_report_signature: [u8; REPORT_SIGNATURE_SIZE],
@@ -125,7 +126,7 @@ pub struct EcdsaQuoteSignature {
 	qe_certification_data: QeCertificationData,
 }
 
-#[derive(Clone, TypeInfo)]
+#[derive(Debug, Clone, TypeInfo)]
 #[repr(C)]
 pub struct QeAuthenticationData {
 	size: u16,
@@ -145,7 +146,7 @@ impl Decode for QeAuthenticationData {
 	}
 }
 
-#[derive(Clone, TypeInfo)]
+#[derive(Debug, Clone, TypeInfo)]
 #[repr(C)]
 pub struct QeCertificationData {
 	certification_data_type: u16,
@@ -189,9 +190,9 @@ const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 ///
 /// We don't verify all of the fields, as some contain business logic specific data that is
 /// not related to the overall validity of an enclave. We only check security related stuff. The
-/// only exception to this is the quoting enclave, where we validate specific fields against know
+/// only exception to this is the quoting enclave, where we validate specific fields against known
 /// values.
-#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SgxReportBody {
 	/// Security version of the CPU.
@@ -256,8 +257,8 @@ pub struct SgxReportBody {
 	/// Custom data to be defined by the enclave author.
 	///
 	/// We use this to provide the public key of the enclave that is to be registered on the chain.
-	/// Doing this, will prove that the public key is from a legit SGX enclave when it is verified
-	/// together with the remote attestation.
+	/// Doing this, will prove that the public key is from a legitimate SGX enclave when it is
+	/// verified together with the remote attestation.
 	report_data: SgxReportData, /* (320) Data provided by the user */
 }
 
@@ -498,6 +499,8 @@ pub fn verify_dcap_quote(
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
+
+	println!("{:?}", quote);
 
 	ensure!(quote.header.version == 3, "Only support for version 3");
 	ensure!(quote.header.attestation_key_type == 2, "Only support for ECDSA-256");
