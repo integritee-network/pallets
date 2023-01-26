@@ -160,6 +160,21 @@ fn add_and_remove_enclave_works() {
 }
 
 #[test]
+fn add_enclave_without_timestamp() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(0);
+		let signer = get_signer(TEST4_SIGNER_PUB);
+		assert!(Teerex::register_enclave(
+			RuntimeOrigin::signed(signer.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		)
+		.is_err());
+		assert_eq!(Teerex::enclave_count(), 0);
+	})
+}
+
+#[test]
 fn list_enclaves_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
