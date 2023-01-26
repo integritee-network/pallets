@@ -29,11 +29,13 @@ use sp_runtime::traits::SaturatedConversion;
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
-#[cfg(not(feature = "skip-ias-check"))]
-use ias_verify::{verify_ias_report, SgxReport};
+use sgx_verify::{
+	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
+	verify_dcap_quote, verify_ias_report, SgxReport,
+};
 
 pub use crate::weights::WeightInfo;
-use ias_verify::SgxBuildMode;
+use teerex_primitives::SgxBuildMode;
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
@@ -42,6 +44,7 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Bal
 pub use pallet::*;
 
 const MAX_RA_REPORT_LEN: usize = 4096;
+const MAX_DCAP_QUOTE_LEN: usize = 5000;
 const MAX_URL_LEN: usize = 256;
 
 #[frame_support::pallet]
@@ -90,6 +93,15 @@ pub mod pallet {
 	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn quoting_enclave)]
+	pub type QuotingEnclaveRegistry<T: Config> = StorageValue<_, QuotingEnclave, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn tcb_info)]
+	pub type TcbInfo<T: Config> =
+		StorageMap<_, Blake2_128Concat, Fmspc, TcbInfoOnChain, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
 	pub type EnclaveIndex<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
@@ -129,7 +141,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter lenght ok");
+			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
@@ -155,7 +167,7 @@ pub mod pallet {
 			let enclave = Enclave::new(
 				sender.clone(),
 				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<[u8; 32]>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
+				<MrEnclave>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
 				worker_url.clone(),
 				SgxBuildMode::default(),
@@ -166,9 +178,92 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::call_index(6)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_dcap_enclave(
+			origin: OriginFor<T>,
+			dcap_quote: Vec<u8>,
+			worker_url: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_dcap_enclave()");
+			let sender = ensure_signed(origin)?;
+			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
+			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+			log::info!("teerex: parameter length ok");
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
+				Enclave::new(
+					sender.clone(),
+					report.mr_enclave,
+					report.timestamp,
+					worker_url.clone(),
+					report.build_mode,
+				)
+			})?;
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			if !<AllowSGXDebugMode<T>>::get() && enclave.sgx_mode == SgxBuildMode::Debug {
+				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
+				return Err(<Error<T>>::SgxModeNotAllowed.into())
+			}
+
+			#[cfg(feature = "skip-ias-check")]
+			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
+
+			#[cfg(feature = "skip-ias-check")]
+			let enclave = Enclave::new(
+				sender.clone(),
+				// insert mrenclave if the ra_report represents one, otherwise insert default
+				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
+				<timestamp::Pallet<T>>::get().saturated_into(),
+				worker_url.clone(),
+				SgxBuildMode::default(),
+			);
+
+			Self::add_enclave(&sender, &enclave)?;
+			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_quoting_enclave(
+			origin: OriginFor<T>,
+			enclave_identity: Vec<u8>,
+			signature: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_quoting_enclave()");
+			// Quoting enclaves are registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
+			let quoting_enclave =
+				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
+			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
+			Ok(().into())
+		}
+
+		#[pallet::call_index(8)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_tcb_info(
+			origin: OriginFor<T>,
+			tcb_info: Vec<u8>,
+			signature: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_tcb_info()");
+			// TCB info is registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
+			let (fmspc, on_chain_info) =
+				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
+			<TcbInfo<T>>::insert(fmspc, on_chain_info);
+			Ok(().into())
+		}
+
 		#[pallet::call_index(1)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_enclave()");
 			let sender = ensure_signed(origin)?;
 
 			Self::remove_enclave(&sender)?;
@@ -294,6 +389,8 @@ pub mod pallet {
 		RaReportTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
+		/// The provided collateral data is invalid
+		CollateralInvalid,
 	}
 }
 
@@ -382,19 +479,91 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
 		let report = verify_ias_report(&ra_report)
 			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-		log::info!("RA Report: {:?}", report);
+		log::info!("teerex: IAS report successfully verified");
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
-		// TODO: activate state checks as soon as we've fixed our setup
+		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
 		// log::info!("teerex: status is acceptable");
 
 		Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 		Ok(report)
+	}
+
+	#[cfg(not(feature = "skip-ias-check"))]
+	fn verify_dcap_quote(
+		sender: &T::AccountId,
+		dcap_quote: Vec<u8>,
+	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
+		let verification_time = <timestamp::Pallet<T>>::get();
+
+		let qe = <QuotingEnclaveRegistry<T>>::get();
+		let (fmspc, tcb_info, report) =
+			verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe).map_err(
+				|e| {
+					log::warn!("verify_dcap_quote failed: {:?}", e);
+					<Error<T>>::RemoteAttestationVerificationFailed
+				},
+			)?;
+
+		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
+		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
+		ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
+
+		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
+			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
+		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
+
+		// TODO: activate state checks as soon as we've fixed our setup #83
+		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+		//     "RA status is insufficient");
+		// log::info!("teerex: status is acceptable");
+
+		Ok(report)
+	}
+
+	fn verify_quoting_enclave(
+		enclave_identity: Vec<u8>,
+		signature: Vec<u8>,
+		certificate_chain: Vec<u8>,
+	) -> Result<QuotingEnclave, DispatchErrorWithPostInfo> {
+		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let certs = extract_certs(&certificate_chain);
+		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+		let leaf_cert =
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+		let enclave_identity =
+			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
+
+		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
+			Ok(enclave_identity.to_quoting_enclave())
+		} else {
+			Err(<Error<T>>::CollateralInvalid.into())
+		}
+	}
+
+	pub fn verify_tcb_info(
+		tcb_info: Vec<u8>,
+		signature: Vec<u8>,
+		certificate_chain: Vec<u8>,
+	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
+		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let certs = extract_certs(&certificate_chain);
+		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
+		let leaf_cert =
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
+			Ok(tcb_info.to_chain_tcb_info())
+		} else {
+			Err(<Error<T>>::CollateralInvalid.into())
+		}
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]
