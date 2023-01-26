@@ -453,7 +453,6 @@ impl<T: Config> Pallet<T> {
 		if minimum == 0 {
 			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?")
 		}
-		let minimum = (now - T::MaxSilenceTime::get()).saturated_into::<u64>();
 		let silent_workers = <EnclaveRegistry<T>>::iter()
 			.filter(|e| e.1.timestamp < minimum)
 			.map(|e| e.1.pubkey);
