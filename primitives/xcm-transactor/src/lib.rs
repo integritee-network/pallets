@@ -15,9 +15,13 @@
 
 */
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use codec::{Decode, Encode, FullCodec};
 pub use cumulus_primitives_core::ParaId;
-use frame_support::RuntimeDebug;
+use frame_support::{
+	pallet_prelude::{Get, PhantomData},
+	RuntimeDebug,
+};
 use sp_std::vec;
 use xcm::{latest::Weight as XcmWeight, prelude::*};
 
@@ -39,11 +43,16 @@ pub trait BuildRelayCall {
 	/// - RelayCall (Different depending on Kusama or Polkadot)
 	/// - execution to be purchased via BuyExecution XCM Instruction
 	/// - Weight required to execute this call.
+	/// - Amount of execution to buy on the relay chain. This parameter is exposed because it varies
+	/// depending on the relay chain.
 	///
 	/// Returns:
 	/// - Corresponding XCM Message for Transacting on this RelayCall
-	///
-	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()>;
+	fn construct_transact_xcm(
+		call: Self::RelayCall,
+		weight: XcmWeight,
+		buy_execution_fee: u128,
+	) -> Xcm<()>;
 }
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -81,19 +90,35 @@ pub use ksm::*;
 #[cfg(feature = "dot")]
 pub use dot::*;
 
-pub struct RelayCallBuilder;
-impl BuildRelayCall for RelayCallBuilder {
+pub struct RelayCallBuilder<Id>(PhantomData<Id>);
+impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 	type RelayCall = RelayRuntimeCall;
 
 	fn swap_call(self_para_id: ParaId, other_para_id: ParaId) -> Self::RelayCall {
 		Self::RelayCall::Registrar(RegistrarCall::Swap { this: self_para_id, other: other_para_id })
 	}
 
-	fn construct_transact_xcm(call: Self::RelayCall, weight: XcmWeight) -> Xcm<()> {
-		Xcm(vec![Transact {
-			origin_type: OriginKind::Native,
-			require_weight_at_most: weight,
-			call: call.encode().into(),
-		}])
+	fn construct_transact_xcm(
+		call: Self::RelayCall,
+		weight: XcmWeight,
+		buy_execution_fee: u128,
+	) -> Xcm<()> {
+		let asset =
+			MultiAsset { id: Concrete(Here.into()), fun: Fungibility::Fungible(buy_execution_fee) };
+		Xcm(vec![
+			WithdrawAsset(asset.clone().into()),
+			BuyExecution { fees: asset, weight_limit: Unlimited },
+			Transact {
+				origin_type: OriginKind::Native,
+				require_weight_at_most: weight,
+				call: call.encode().into(),
+			},
+			RefundSurplus,
+			DepositAsset {
+				assets: All.into(),
+				max_assets: 1,
+				beneficiary: X1(Parachain(Id::get().into())).into(),
+			},
+		])
 	}
 }
