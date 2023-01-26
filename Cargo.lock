@@ -4847,7 +4847,7 @@ dependencies = [
 [[package]]
 name = "webpki"
 version = "0.21.0"
-source = "git+https://github.com/scs/webpki-nostd.git?branch=tn/use-ring-xous#921d737c08a5d2ba3ba0a53f91d98410c2a29d8d"
+source = "git+https://github.com/scs/webpki-nostd.git?branch=master#22d1772c39ed9081c2815aadb30e7973f3c4e93f"
 dependencies = [
  "ring 0.16.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "ring 0.16.20 (git+https://github.com/Niederb/ring-xous.git?branch=0.16.20-cleanup)",
