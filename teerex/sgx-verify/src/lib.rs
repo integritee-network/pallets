@@ -694,7 +694,7 @@ fn get_fmspc(der: &[u8]) -> Result<Fmspc, &'static str> {
 		.ok_or("Certificate does not contain 'FMSPC_OID'")?;
 	offset += 12; // length oid (10) + asn1 tag (1) + asn1 length10 (1)
 
-	let fmspc_size = std::mem::size_of::<Fmspc>() / std::mem::size_of::<u8>();
+	let fmspc_size = core::mem::size_of::<Fmspc>() / core::mem::size_of::<u8>();
 	let data = der.get(offset..offset + fmspc_size).ok_or("Index out of bounds")?;
 	data.try_into().map_err(|_| "FMSPC must be 6 bytes long")
 }
