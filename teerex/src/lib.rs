@@ -25,7 +25,10 @@ use frame_support::{
 };
 use frame_system::{self, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::{CheckedSub, SaturatedConversion};
+use sp_runtime::{
+	traits::{CheckedSub, SaturatedConversion},
+	Saturating,
+};
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
@@ -446,12 +449,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn unregister_silent_workers(now: T::Moment) {
-		let minimum = now
-			.checked_sub(&T::MaxSilenceTime::get())
-			.unwrap_or_default()
-			.saturated_into::<u64>();
+		let minimum = now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
 		if minimum == 0 {
-			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?")
+			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?");
+			return
 		}
 		let silent_workers = <EnclaveRegistry<T>>::iter()
 			.filter(|e| e.1.timestamp < minimum)

@@ -160,7 +160,7 @@ fn add_and_remove_enclave_works() {
 }
 
 #[test]
-fn add_enclave_without_timestamp() {
+fn add_enclave_without_timestamp_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(0);
 		let signer = get_signer(TEST4_SIGNER_PUB);
