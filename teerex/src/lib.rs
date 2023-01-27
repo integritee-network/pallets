@@ -25,7 +25,10 @@ use frame_support::{
 };
 use frame_system::{self, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::{
+	traits::{CheckedSub, SaturatedConversion},
+	Saturating,
+};
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
@@ -446,7 +449,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn unregister_silent_workers(now: T::Moment) {
-		let minimum = (now - T::MaxSilenceTime::get()).saturated_into::<u64>();
+		let minimum = now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+		if minimum == 0 {
+			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?");
+			return
+		}
 		let silent_workers = <EnclaveRegistry<T>>::iter()
 			.filter(|e| e.1.timestamp < minimum)
 			.map(|e| e.1.pubkey);
@@ -568,8 +575,6 @@ impl<T: Config> Pallet<T> {
 
 	#[cfg(not(feature = "skip-ias-check"))]
 	fn ensure_timestamp_within_24_hours(report_timestamp: u64) -> DispatchResultWithPostInfo {
-		use sp_runtime::traits::CheckedSub;
-
 		let elapsed_time = <timestamp::Pallet<T>>::get()
 			.checked_sub(&T::Moment::saturated_from(report_timestamp))
 			.ok_or("Underflow while calculating elapsed time since report creation")?;
