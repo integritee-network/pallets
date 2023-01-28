@@ -500,6 +500,7 @@ pub fn verify_dcap_quote(
 	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
 
+	#[cfg(test)]
 	println!("{:?}", quote);
 
 	ensure!(quote.header.version == 3, "Only support for version 3");
