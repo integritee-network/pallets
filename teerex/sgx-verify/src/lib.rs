@@ -22,11 +22,11 @@
 //! "Intel® Software Guard Extensions: PCK Certificate and Certificate Revocation List Profile
 //! Specification", further denoted as `PCK_Certificate_CRL_Spec-1.1`.
 //!
-//! 	https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
+//! * https://download.01.org/intel-sgx/dcap-1.2/linux/docs/Intel_SGX_PCK_Certificate_CRL_Spec-1.1.pdf
 //!
 //! Intel® SGX Developer Guide, further denoted as `SGX_Developer_Guide`:
 //!
-//!		https://download.01.org/intel-sgx/linux-1.5/docs/Intel_SGX_Developer_Guide.pdf
+//! * https://download.01.org/intel-sgx/linux-1.5/docs/Intel_SGX_Developer_Guide.pdf
 
 #![cfg_attr(not(feature = "std"), no_std)]
 pub extern crate alloc;
