@@ -86,7 +86,7 @@ pub struct DcapQuote {
 }
 
 /// All the documentation about this can be found in the `PCK_Certificate_CRL_Spec-1.1` page 62.
-#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct DcapQuoteHeader {
 	/// Version of the Quote data structure.
