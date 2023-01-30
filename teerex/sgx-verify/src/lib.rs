@@ -189,7 +189,7 @@ const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 /// SGX report about an enclave.
 ///
 /// We don't verify all of the fields, as some contain business logic specific data that is
-/// not related to the overall validity of an enclave. We only check security related stuff. The
+/// not related to the overall validity of an enclave. We only check security related fields. The
 /// only exception to this is the quoting enclave, where we validate specific fields against known
 /// values.
 #[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
@@ -199,7 +199,7 @@ pub struct SgxReportBody {
 	///
 	/// Reflects the processors microcode update version.
 	cpu_svn: [u8; 16], /* (  0) Security Version of the CPU */
-	/// State Save Area extended feature set. Flags used for specific exception handling settings.
+	/// State Save Area (SSA) extended feature set. Flags used for specific exception handling settings.
 	/// Unless, you know what you are doing these should all be 0.
 	///
 	/// See: https://cdrdv2-public.intel.com/671544/exception-handling-in-intel-sgx.pdf.
@@ -210,7 +210,7 @@ pub struct SgxReportBody {
 	isv_ext_prod_id: [u8; 16], /* ( 32) ISV assigned Extended Product ID */
 	/// Attributes, defines features that should be enabled for an enclave.
 	///
-	/// Here, we only care if the Debug mode is enabled.
+	/// Here, we only check if the Debug mode is enabled.
 	///
 	/// More details in `SGX_Developer_Guide` page 16.
 	attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
@@ -229,7 +229,7 @@ pub struct SgxReportBody {
 	mr_signer: MrSigner, /* (128) The value of the enclave's SIGNER measurement */
 	/// Unused reserved bytes.
 	reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
-	/// Config Id of an enclave.
+	/// Config ID of an enclave.
 	///
 	/// Todo: Investigate the relevancy of this value.
 	config_id: [u8; 64], /* (192) CONFIGID */
