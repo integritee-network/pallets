@@ -212,7 +212,8 @@ pub struct SgxReportBody {
 	///
 	/// Here, we only check if the Debug mode is enabled.
 	///
-	/// More details in `SGX_Developer_Guide` page 16.
+	/// More details in `SGX_Developer_Guide` under `Debug (Opt-in) Enclave Consideration` on page
+	/// 24.
 	attributes: SGXAttributes, /* ( 48) Any special Capabilities the Enclave possess */
 	/// Enclave measurement.
 	///
