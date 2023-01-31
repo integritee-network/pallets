@@ -232,7 +232,7 @@ pub struct SgxReportBody {
 	reserved3: [u8; SGX_REPORT_BODY_RESERVED3_BYTES], /* (160) */
 	/// Config ID of an enclave.
 	///
-	/// Todo: Investigate the relevancy of this value.
+	/// Todo: #142 - Investigate the relevancy of this value.
 	config_id: [u8; 64], /* (192) CONFIGID */
 	/// The Product ID of the enclave.
 	///
@@ -253,7 +253,7 @@ pub struct SgxReportBody {
 	reserved4: [u8; SGX_REPORT_BODY_RESERVED4_BYTES], /* (262) */
 	/// Family ID assigned by the ISV.
 	///
-	/// Todo: Investigate the relevancy of this value.
+	/// Todo: #142 - Investigate the relevancy of this value.
 	isv_family_id: [u8; 16], /* (304) ISV assigned Family ID */
 	/// Custom data to be defined by the enclave author.
 	///
