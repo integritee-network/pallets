@@ -492,6 +492,27 @@ pub fn verify_certificate_chain<'a>(
 	Ok(leaf_cert)
 }
 
+pub fn extract_tcb_info_from_raw_dcap_quote(
+	dcap_quote_raw: &[u8],
+) -> Result<([u8; 6], TcbVersionStatus), &'static str> {
+	let mut dcap_quote_clone = dcap_quote_raw;
+	let quote: DcapQuote =
+		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
+
+	ensure!(quote.header.version == 3, "Only support for version 3");
+	ensure!(quote.header.attestation_key_type == 2, "Only support for ECDSA-256");
+	ensure!(
+		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
+		"Only support for PEM formatted PCK Cert Chain"
+	);
+
+	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
+
+	let (fmspc, tcb_info) = extract_tcb_info(&certs[0])?;
+
+	Ok((fmspc, tcb_info))
+}
+
 pub fn verify_dcap_quote(
 	dcap_quote_raw: &[u8],
 	verification_time: u64,
