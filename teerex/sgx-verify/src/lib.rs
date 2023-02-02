@@ -494,7 +494,7 @@ pub fn verify_certificate_chain<'a>(
 
 pub fn extract_tcb_info_from_raw_dcap_quote(
 	dcap_quote_raw: &[u8],
-) -> Result<([u8; 6], TcbVersionStatus), &'static str> {
+) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
