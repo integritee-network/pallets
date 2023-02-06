@@ -181,88 +181,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(6)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_dcap_enclave(
-			origin: OriginFor<T>,
-			dcap_quote: Vec<u8>,
-			worker_url: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_dcap_enclave()");
-			let sender = ensure_signed(origin)?;
-			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
-			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter length ok");
-
-			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
-				Enclave::new(
-					sender.clone(),
-					report.mr_enclave,
-					report.timestamp,
-					worker_url.clone(),
-					report.build_mode,
-				)
-			})?;
-
-			#[cfg(not(feature = "skip-ias-check"))]
-			if !<AllowSGXDebugMode<T>>::get() && enclave.sgx_mode == SgxBuildMode::Debug {
-				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
-				return Err(<Error<T>>::SgxModeNotAllowed.into())
-			}
-
-			#[cfg(feature = "skip-ias-check")]
-			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
-
-			#[cfg(feature = "skip-ias-check")]
-			let enclave = Enclave::new(
-				sender.clone(),
-				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
-				<timestamp::Pallet<T>>::get().saturated_into(),
-				worker_url.clone(),
-				SgxBuildMode::default(),
-			);
-
-			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
-			Ok(().into())
-		}
-
-		#[pallet::call_index(7)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_quoting_enclave(
-			origin: OriginFor<T>,
-			enclave_identity: Vec<u8>,
-			signature: Vec<u8>,
-			certificate_chain: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_quoting_enclave()");
-			// Quoting enclaves are registered globally and not for a specific sender
-			let _sender = ensure_signed(origin)?;
-			let quoting_enclave =
-				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
-			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
-			Ok(().into())
-		}
-
-		#[pallet::call_index(8)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_tcb_info(
-			origin: OriginFor<T>,
-			tcb_info: Vec<u8>,
-			signature: Vec<u8>,
-			certificate_chain: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_tcb_info()");
-			// TCB info is registered globally and not for a specific sender
-			let _sender = ensure_signed(origin)?;
-			let (fmspc, on_chain_info) =
-				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
-			<TcbInfo<T>>::insert(fmspc, on_chain_info);
-			Ok(().into())
-		}
-
 		#[pallet::call_index(1)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -365,6 +283,88 @@ pub mod pallet {
 			}
 
 			<ExecutedCalls<T>>::mutate(call_hash, |confirmations| *confirmations += 1);
+			Ok(().into())
+		}
+
+		#[pallet::call_index(6)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_dcap_enclave(
+			origin: OriginFor<T>,
+			dcap_quote: Vec<u8>,
+			worker_url: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_dcap_enclave()");
+			let sender = ensure_signed(origin)?;
+			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
+			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+			log::info!("teerex: parameter length ok");
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
+				Enclave::new(
+					sender.clone(),
+					report.mr_enclave,
+					report.timestamp,
+					worker_url.clone(),
+					report.build_mode,
+				)
+			})?;
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			if !<AllowSGXDebugMode<T>>::get() && enclave.sgx_mode == SgxBuildMode::Debug {
+				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
+				return Err(<Error<T>>::SgxModeNotAllowed.into())
+			}
+
+			#[cfg(feature = "skip-ias-check")]
+			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
+
+			#[cfg(feature = "skip-ias-check")]
+			let enclave = Enclave::new(
+				sender.clone(),
+				// insert mrenclave if the ra_report represents one, otherwise insert default
+				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
+				<timestamp::Pallet<T>>::get().saturated_into(),
+				worker_url.clone(),
+				SgxBuildMode::default(),
+			);
+
+			Self::add_enclave(&sender, &enclave)?;
+			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_quoting_enclave(
+			origin: OriginFor<T>,
+			enclave_identity: Vec<u8>,
+			signature: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_quoting_enclave()");
+			// Quoting enclaves are registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
+			let quoting_enclave =
+				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
+			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
+			Ok(().into())
+		}
+
+		#[pallet::call_index(8)]
+		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_tcb_info(
+			origin: OriginFor<T>,
+			tcb_info: Vec<u8>,
+			signature: Vec<u8>,
+			certificate_chain: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call register_tcb_info()");
+			// TCB info is registered globally and not for a specific sender
+			let _sender = ensure_signed(origin)?;
+			let (fmspc, on_chain_info) =
+				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
+			<TcbInfo<T>>::insert(fmspc, on_chain_info);
 			Ok(().into())
 		}
 	}
