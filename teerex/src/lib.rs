@@ -293,7 +293,7 @@ pub mod pallet {
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::is_registered_enclave(&sender)?;
+			Self::ensure_registered_enclave(&sender)?;
 			log::debug!(
 				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
 				sender,
@@ -341,7 +341,7 @@ pub mod pallet {
 			call_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::is_registered_enclave(&sender)?;
+			Self::ensure_registered_enclave(&sender)?;
 			let sender_index = <EnclaveIndex<T>>::get(sender);
 			let sender_enclave =
 				<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)?;
@@ -472,11 +472,11 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Check if the sender is a registered enclave
-	pub fn is_registered_enclave(
+	pub fn ensure_registered_enclave(
 		account: &T::AccountId,
-	) -> Result<bool, DispatchErrorWithPostInfo> {
+	) -> Result<(), DispatchErrorWithPostInfo> {
 		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
-		Ok(true)
+		Ok(())
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]
