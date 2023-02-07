@@ -776,7 +776,7 @@ fn confirm_processed_parentchain_block_works() {
 }
 
 #[test]
-fn verify_is_registered_enclave_works() {
+fn verify_ensure_registered_enclave_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
@@ -788,7 +788,10 @@ fn verify_is_registered_enclave_works() {
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
-		assert_ok!(Teerex::is_registered_enclave(&signer4));
-		assert_err!(Teerex::is_registered_enclave(&signer6), Error::<Test>::EnclaveIsNotRegistered);
+		assert_ok!(Teerex::ensure_registered_enclave(&signer4));
+		assert_err!(
+			Teerex::ensure_registered_enclave(&signer6),
+			Error::<Test>::EnclaveIsNotRegistered
+		);
 	})
 }

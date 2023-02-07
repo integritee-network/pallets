@@ -62,7 +62,7 @@ benchmarks! {
 	// Benchmark `register_enclave` with the worst possible conditions:
 	// * remote attestation is valid
 	// * enclave already exists
-	where_clause {  where T::AccountId: From<[u8; 32]> }
+	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
 	register_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
