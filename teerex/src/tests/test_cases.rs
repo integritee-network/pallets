@@ -861,16 +861,10 @@ fn publish_hash_works() {
 #[test]
 fn publish_hash_with_unregistered_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
 
 		assert_err!(
-			Teerex::publish_hash(
-				RuntimeOrigin::signed(signer4.clone()),
-				[1u8; 32].into(),
-				vec![],
-				vec![]
-			),
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), [1u8; 32].into(), vec![], vec![]),
 			Error::<Test>::EnclaveIsNotRegistered
 		);
 	})
@@ -899,14 +893,8 @@ fn publish_hash_with_too_many_topics_fails() {
 			H256::from([5u8; 32]),
 		];
 
-		// publish with extra topics and data
 		assert_err!(
-			Teerex::publish_hash(
-				RuntimeOrigin::signed(signer4.clone()),
-				hash,
-				extra_topics,
-				vec![]
-			),
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), hash, extra_topics, vec![]),
 			Error::<Test>::TooManyTopics
 		);
 	})
@@ -928,9 +916,8 @@ fn publish_hash_with_too_much_data_fails() {
 		let hash = H256::from([1u8; 32]);
 		let data = vec![0u8; DATA_LENGTH_LIMIT + 1];
 
-		// publish with extra topics and data
 		assert_err!(
-			Teerex::publish_hash(RuntimeOrigin::signed(signer4.clone()), hash, vec![], data),
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), hash, vec![], data),
 			Error::<Test>::DataTooLong
 		);
 	})
