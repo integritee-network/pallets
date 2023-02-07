@@ -390,7 +390,7 @@ pub mod pallet {
 		/// `data` can be anything worthwhile publishing related to the hash. If it is a
 		/// utf8-encoded string, the UIs will usually even render the text.
 		#[pallet::call_index(9)]
-		#[pallet::weight((1000, DispatchClass::Normal))]
+		#[pallet::weight((<T as Config>::WeightInfo::publish_hash(), DispatchClass::Normal, Pays::Yes))]
 		pub fn publish_hash(
 			origin: OriginFor<T>,
 			hash: H256,

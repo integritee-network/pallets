@@ -24,7 +24,7 @@ use super::*;
 use crate::Pallet as Teerex;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-use sp_runtime::traits::CheckedConversion;
+use sp_runtime::traits::{CheckedConversion, Hash};
 use sp_std::vec;
 use test_utils::{
 	get_signer,
@@ -58,11 +58,11 @@ benchmarks! {
 	//
 	// Hence, it does not matter how many other enclaves are registered for the benchmark.
 
+	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]>,}
 
 	// Benchmark `register_enclave` with the worst possible conditions:
 	// * remote attestation is valid
 	// * enclave already exists
-	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
 	register_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
@@ -113,6 +113,39 @@ benchmarks! {
 		let block_number: u32 = 0;
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, block_number.into(), merkle_root)
+
+	publish_hash {
+		let l in 0 .. DATA_LENGTH_LIMIT as u32;
+
+		// There are no events emitted at the genesis block.
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+		frame_system::Pallet::<T>::reset_events();
+
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
+		add_enclaves_to_registry::<T>(&accounts);
+		let account = accounts[0].clone();
+
+	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(), get_data(l))
+	verify {
+		// Event comparison in an actual node is way too cumbersome as event does not
+		// implement `PartialEq`. We test this in the regular tests anyhow.
+		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
+	}
+}
+
+fn get_data(x: u32) -> Vec<u8> {
+	vec![0u8; x.try_into().unwrap()]
+}
+
+/// Returns the maximum allowed unique topics.
+fn topics<T: frame_system::Config>() -> Vec<T::Hash> {
+	vec![
+		T::Hashing::hash(&[0u8; 32]),
+		T::Hashing::hash(&[1u8; 32]),
+		T::Hashing::hash(&[2u8; 32]),
+		T::Hashing::hash(&[3u8; 32]),
+		T::Hashing::hash(&[4u8; 32]),
+	]
 }
 
 #[cfg(test)]

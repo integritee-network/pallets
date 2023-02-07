@@ -56,6 +56,7 @@ pub trait WeightInfo {
 	fn unregister_enclave() -> Weight;
 	fn call_worker() -> Weight;
 	fn confirm_processed_parentchain_block() -> Weight;
+	fn publish_hash() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
@@ -91,6 +92,11 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	fn publish_hash() -> Weight {
+		Weight::from_ref_time(1_969_500_000)
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 // For tests
@@ -122,5 +128,10 @@ impl WeightInfo for () {
 		Weight::from_ref_time(46_900_000)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	fn publish_hash() -> Weight {
+		Weight::from_ref_time(1_969_500_000)
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }
