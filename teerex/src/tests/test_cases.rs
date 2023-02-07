@@ -889,10 +889,6 @@ fn publish_hash_with_too_many_topics_fails() {
 			URL.to_vec(),
 		));
 
-		// There are no events emitted at the genesis block.
-		System::set_block_number(1);
-		System::reset_events();
-
 		let hash = H256::from([1u8; 32]);
 		let extra_topics = vec![
 			H256::from([0u8; 32]),
@@ -928,10 +924,6 @@ fn publish_hash_with_too_much_data_fails() {
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
-
-		// There are no events emitted at the genesis block.
-		System::set_block_number(1);
-		System::reset_events();
 
 		let hash = H256::from([1u8; 32]);
 		let data = vec![0u8; DATA_LENGTH_LIMIT + 1];
