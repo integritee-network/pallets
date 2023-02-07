@@ -82,6 +82,12 @@ pub mod pallet {
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(T::AccountId),
 		ProcessedParentchainBlock(T::AccountId, H256, H256, T::BlockNumber),
+		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
+		PublishedHash {
+			mr_enclave: MrEnclave,
+			hash: H256,
+			data: Vec<u8>,
+		},
 	}
 
 	// Watch out: we start indexing with 1 instead of zero in order to
@@ -131,7 +137,11 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		// No known chain so far, where this does not hold.
+		<T as frame_system::Config>::Hash: From<[u8; 32]>,
+	{
 		// the integritee-service wants to register his enclave
 		#[pallet::call_index(0)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -367,6 +377,36 @@ pub mod pallet {
 			<TcbInfo<T>>::insert(fmspc, on_chain_info);
 			Ok(().into())
 		}
+
+		/// Public a hash as a result of an arbitrary enclave operation.
+		///
+		/// The `mrenclave` of the origin will be used as an event topic a client can subscribe to.
+		/// `extra_topics`, if any, will be used as additional event topics.
+		///
+		/// `data` can be anything worthwhile publishing related to the hash. If it is a
+		/// utf8-encoded string, the UIs will usually even render the text.
+		#[pallet::call_index(9)]
+		#[pallet::weight((1000, DispatchClass::Normal))]
+		pub fn publish_hash(
+			origin: OriginFor<T>,
+			hash: H256,
+			extra_topics: Vec<T::Hash>,
+			data: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Self::ensure_registered_enclave(&sender)?;
+			let enclave = Self::get_enclave(&sender)?;
+
+			let mut topics = extra_topics;
+			topics.push(enclave.mr_enclave.into());
+
+			Self::deposit_event_indexed(
+				&topics,
+				Event::PublishedHash { mr_enclave: enclave.mr_enclave, hash, data },
+			);
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::error]
@@ -433,6 +473,11 @@ impl<T: Config> Pallet<T> {
 		Ok(().into())
 	}
 
+	fn get_enclave(sender: &T::AccountId) -> Result<Enclave<T::AccountId, Vec<u8>>, Error<T>> {
+		let sender_index = <EnclaveIndex<T>>::get(sender);
+		<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)
+	}
+
 	/// Our list implementation would introduce holes in out list if if we try to remove elements from the middle.
 	/// As the order of the enclave entries is not important, we use the swap and pop method to remove elements from
 	/// the registry.
@@ -477,6 +522,16 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), DispatchErrorWithPostInfo> {
 		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
 		Ok(())
+	}
+
+	/// Deposit a pallets teerex event with the corresponding topics.
+	///
+	/// Handles the conversion to the overarching event type.
+	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
+		<frame_system::Pallet<T>>::deposit_event_indexed(
+			&topics,
+			<T as Config>::RuntimeEvent::from(event).into(),
+		)
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]
