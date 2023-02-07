@@ -41,7 +41,7 @@ fn ensure_not_skipping_ra_check() {
 	};
 }
 benchmarks! {
-	where_clause {  where T::AccountId: From<[u8; 32]> }
+	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
 	update_exchange_rate {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
