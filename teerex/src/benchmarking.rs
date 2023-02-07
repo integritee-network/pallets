@@ -127,8 +127,9 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(), get_data(l))
 	verify {
-		// Event comparison in an actual node is way too cumbersome as event does not
-		// implement `PartialEq`. We test this in the regular tests anyhow.
+		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
+		// does not implement `PartialEq`. So we only verify that the event is emitted here,
+		// and we do more thorough checks are in the normal cargo tests.
 		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
 	}
 }
@@ -137,7 +138,7 @@ fn get_data(x: u32) -> Vec<u8> {
 	vec![0u8; x.try_into().unwrap()]
 }
 
-/// Returns the maximum allowed unique topics.
+/// Returns the maximum number of unique topics.
 fn topics<T: frame_system::Config>() -> Vec<T::Hash> {
 	vec![
 		T::Hashing::hash(&[0u8; 32]),

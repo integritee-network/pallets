@@ -49,9 +49,9 @@ pub use pallet::*;
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_DCAP_QUOTE_LEN: usize = 5000;
 const MAX_URL_LEN: usize = 256;
-/// Maximum number of topics for the `publish_hash`.
+/// Maximum number of topics for the `publish_hash` call.
 const TOPICS_LIMIT: usize = 5;
-/// Maximum number of bytes for the `data` in `publish_hash`.
+/// Maximum number of bytes for the `data` in the `publish_hash` call.
 const DATA_LENGTH_LIMIT: usize = 100;
 
 #[frame_support::pallet]
