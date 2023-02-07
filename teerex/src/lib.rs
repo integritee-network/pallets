@@ -473,7 +473,9 @@ impl<T: Config> Pallet<T> {
 		Ok(().into())
 	}
 
-	fn get_enclave(sender: &T::AccountId) -> Result<Enclave<T::AccountId, Vec<u8>>, Error<T>> {
+	pub(crate) fn get_enclave(
+		sender: &T::AccountId,
+	) -> Result<Enclave<T::AccountId, Vec<u8>>, Error<T>> {
 		let sender_index = <EnclaveIndex<T>>::get(sender);
 		<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)
 	}

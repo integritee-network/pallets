@@ -795,3 +795,82 @@ fn verify_ensure_registered_enclave_works() {
 		);
 	})
 }
+
+#[test]
+fn publish_hash_works() {
+	use frame_system::{EventRecord, Phase};
+
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			RuntimeOrigin::signed(signer4.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		));
+
+		System::set_block_number(1);
+		System::reset_events();
+
+		let hash = H256::from([1u8; 32]);
+		let extra_topics = vec![H256::from([2u8; 32]), H256::from([3u8; 32])];
+		let data = b"hello world".to_vec();
+
+		// publish with extra topics and data
+		assert_ok!(Teerex::publish_hash(
+			RuntimeOrigin::signed(signer4.clone()),
+			hash,
+			extra_topics.clone(),
+			data.clone()
+		));
+
+		// publish without extra topics and data
+		assert_ok!(Teerex::publish_hash(
+			RuntimeOrigin::signed(signer4.clone()),
+			hash,
+			vec![],
+			vec![]
+		));
+
+		let mr_enclave = Teerex::get_enclave(&signer4).unwrap().mr_enclave;
+		let mut topics = extra_topics;
+		topics.push(mr_enclave.into());
+
+		// Check that topics are reflected in the event record.
+		assert_eq!(
+			System::events(),
+			vec![
+				EventRecord {
+					phase: Phase::Initialization,
+					event: TeerexEvent::PublishedHash { mr_enclave, hash, data }.into(),
+					topics,
+				},
+				EventRecord {
+					phase: Phase::Initialization,
+					event: TeerexEvent::PublishedHash { mr_enclave, hash, data: vec![] }.into(),
+					topics: vec![mr_enclave.into()],
+				},
+			]
+		);
+	})
+}
+
+#[test]
+fn publish_hash_with_unregistered_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		assert_err!(
+			Teerex::publish_hash(
+				RuntimeOrigin::signed(signer4.clone()),
+				[1u8; 32].into(),
+				vec![],
+				vec![]
+			),
+			Error::<Test>::EnclaveIsNotRegistered
+		);
+	})
+}
