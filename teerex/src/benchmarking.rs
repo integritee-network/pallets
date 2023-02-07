@@ -114,8 +114,14 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, block_number.into(), merkle_root)
 
+	// Benchmark `publish_hash` with the worst possible conditions:
+	// * sender enclave is registered
+	//
+	// and parametrize the benchmark with the variably sized parameters. Note: The initialization
+	// of `l`/`t` includes the upper borders.
 	publish_hash {
 		let l in 0 .. DATA_LENGTH_LIMIT as u32;
+		let t in 1 .. TOPICS_LIMIT as u32;
 
 		// There are no events emitted at the genesis block.
 		frame_system::Pallet::<T>::set_block_number(1u32.into());
@@ -125,7 +131,7 @@ benchmarks! {
 		add_enclaves_to_registry::<T>(&accounts);
 		let account = accounts[0].clone();
 
-	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(), get_data(l))
+	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(t), get_data(l))
 	verify {
 		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
 		// does not implement `PartialEq`. So we only verify that the event is emitted here,
@@ -138,15 +144,17 @@ fn get_data(x: u32) -> Vec<u8> {
 	vec![0u8; x.try_into().unwrap()]
 }
 
-/// Returns the maximum number of unique topics.
-fn topics<T: frame_system::Config>() -> Vec<T::Hash> {
-	vec![
+/// Returns [amount] unique topics.
+fn topics<T: frame_system::Config>(amount: u32) -> Vec<T::Hash> {
+	let vec = vec![
 		T::Hashing::hash(&[0u8; 32]),
 		T::Hashing::hash(&[1u8; 32]),
 		T::Hashing::hash(&[2u8; 32]),
 		T::Hashing::hash(&[3u8; 32]),
 		T::Hashing::hash(&[4u8; 32]),
-	]
+	];
+
+	vec[..amount.try_into().unwrap()].to_vec()
 }
 
 #[cfg(test)]
