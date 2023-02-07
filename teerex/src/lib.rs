@@ -382,7 +382,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Public a hash as a result of an arbitrary enclave operation.
+		/// Publish a hash as a result of an arbitrary enclave operation.
 		///
 		/// The `mrenclave` of the origin will be used as an event topic a client can subscribe to.
 		/// `extra_topics`, if any, will be used as additional event topics.
