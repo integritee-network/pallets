@@ -49,6 +49,10 @@ pub use pallet::*;
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_DCAP_QUOTE_LEN: usize = 5000;
 const MAX_URL_LEN: usize = 256;
+/// Maximum number of topics for the `publish_hash`.
+const TOPICS_LIMIT: usize = 5;
+/// Maximum number of bytes for the `data` in `publish_hash`.
+const DATA_LENGTH_LIMIT: usize = 100;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -397,6 +401,9 @@ pub mod pallet {
 			Self::ensure_registered_enclave(&sender)?;
 			let enclave = Self::get_enclave(&sender)?;
 
+			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
+			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
+
 			let mut topics = extra_topics;
 			topics.push(enclave.mr_enclave.into());
 
@@ -434,6 +441,10 @@ pub mod pallet {
 		EmptyEnclaveRegistry,
 		/// The provided collateral data is invalid
 		CollateralInvalid,
+		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
+		TooManyTopics,
+		/// The length of the `data` passed to `publish_hash` exceeds the limit.
+		DataTooLong,
 	}
 }
 
