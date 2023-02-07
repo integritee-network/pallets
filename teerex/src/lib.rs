@@ -139,8 +139,8 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T>
 	where
-		// Needed for the conversion of `mr_enclave` to a Hash.
-		// Holds for all known chains.
+		// Needed for the conversion of `mr_enclave` to a `Hash`.
+		// The condition holds for all known chains.
 		<T as frame_system::Config>::Hash: From<[u8; 32]>,
 	{
 		// the integritee-service wants to register his enclave
