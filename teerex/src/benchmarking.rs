@@ -129,7 +129,7 @@ benchmarks! {
 	verify {
 		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
 		// does not implement `PartialEq`. So we only verify that the event is emitted here,
-		// and we do more thorough checks are in the normal cargo tests.
+		// and we do more thorough checks in the normal cargo tests.
 		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
 	}
 }
