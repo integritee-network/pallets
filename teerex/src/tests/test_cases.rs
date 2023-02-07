@@ -811,6 +811,7 @@ fn publish_hash_works() {
 			URL.to_vec(),
 		));
 
+		// There are no events emitted at the genesis block.
 		System::set_block_number(1);
 		System::reset_events();
 
