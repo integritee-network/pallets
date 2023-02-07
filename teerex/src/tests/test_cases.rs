@@ -17,7 +17,7 @@
 
 use crate::{
 	mock::*, Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request,
-	ShardIdentifier,
+	ShardIdentifier, DATA_LENGTH_LIMIT,
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
@@ -776,7 +776,7 @@ fn confirm_processed_parentchain_block_works() {
 }
 
 #[test]
-fn verify_is_registered_enclave_works() {
+fn ensure_registered_enclave_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
@@ -788,7 +788,137 @@ fn verify_is_registered_enclave_works() {
 			TEST4_CERT.to_vec(),
 			URL.to_vec(),
 		));
-		assert_ok!(Teerex::is_registered_enclave(&signer4));
-		assert_err!(Teerex::is_registered_enclave(&signer6), Error::<Test>::EnclaveIsNotRegistered);
+		assert_ok!(Teerex::ensure_registered_enclave(&signer4));
+		assert_err!(
+			Teerex::ensure_registered_enclave(&signer6),
+			Error::<Test>::EnclaveIsNotRegistered
+		);
+	})
+}
+
+#[test]
+fn publish_hash_works() {
+	use frame_system::{EventRecord, Phase};
+
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			RuntimeOrigin::signed(signer4.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		));
+
+		// There are no events emitted at the genesis block.
+		System::set_block_number(1);
+		System::reset_events();
+
+		let hash = H256::from([1u8; 32]);
+		let extra_topics = vec![H256::from([2u8; 32]), H256::from([3u8; 32])];
+		let data = b"hello world".to_vec();
+
+		// publish with extra topics and data
+		assert_ok!(Teerex::publish_hash(
+			RuntimeOrigin::signed(signer4.clone()),
+			hash,
+			extra_topics.clone(),
+			data.clone()
+		));
+
+		// publish without extra topics and data
+		assert_ok!(Teerex::publish_hash(
+			RuntimeOrigin::signed(signer4.clone()),
+			hash,
+			vec![],
+			vec![]
+		));
+
+		let mr_enclave = Teerex::get_enclave(&signer4).unwrap().mr_enclave;
+		let mut topics = extra_topics;
+		topics.push(mr_enclave.into());
+
+		// Check that topics are reflected in the event record.
+		assert_eq!(
+			System::events(),
+			vec![
+				EventRecord {
+					phase: Phase::Initialization,
+					event: TeerexEvent::PublishedHash { mr_enclave, hash, data }.into(),
+					topics,
+				},
+				EventRecord {
+					phase: Phase::Initialization,
+					event: TeerexEvent::PublishedHash { mr_enclave, hash, data: vec![] }.into(),
+					topics: vec![mr_enclave.into()],
+				},
+			]
+		);
+	})
+}
+
+#[test]
+fn publish_hash_with_unregistered_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		assert_err!(
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), [1u8; 32].into(), vec![], vec![]),
+			Error::<Test>::EnclaveIsNotRegistered
+		);
+	})
+}
+
+#[test]
+fn publish_hash_with_too_many_topics_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			RuntimeOrigin::signed(signer4.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		));
+
+		let hash = H256::from([1u8; 32]);
+		let extra_topics = vec![
+			H256::from([0u8; 32]),
+			H256::from([1u8; 32]),
+			H256::from([2u8; 32]),
+			H256::from([3u8; 32]),
+			H256::from([4u8; 32]),
+			H256::from([5u8; 32]),
+		];
+
+		assert_err!(
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), hash, extra_topics, vec![]),
+			Error::<Test>::TooManyTopics
+		);
+	})
+}
+
+#[test]
+fn publish_hash_with_too_much_data_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let signer4 = get_signer(TEST4_SIGNER_PUB);
+
+		//Ensure that enclave is registered
+		assert_ok!(Teerex::register_enclave(
+			RuntimeOrigin::signed(signer4.clone()),
+			TEST4_CERT.to_vec(),
+			URL.to_vec(),
+		));
+
+		let hash = H256::from([1u8; 32]);
+		let data = vec![0u8; DATA_LENGTH_LIMIT + 1];
+
+		assert_err!(
+			Teerex::publish_hash(RuntimeOrigin::signed(signer4), hash, vec![], data),
+			Error::<Test>::DataTooLong
+		);
 	})
 }

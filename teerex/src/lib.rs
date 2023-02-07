@@ -49,6 +49,10 @@ pub use pallet::*;
 const MAX_RA_REPORT_LEN: usize = 4096;
 const MAX_DCAP_QUOTE_LEN: usize = 5000;
 const MAX_URL_LEN: usize = 256;
+/// Maximum number of topics for the `publish_hash` call.
+const TOPICS_LIMIT: usize = 5;
+/// Maximum number of bytes for the `data` in the `publish_hash` call.
+const DATA_LENGTH_LIMIT: usize = 100;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -82,6 +86,12 @@ pub mod pallet {
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(T::AccountId),
 		ProcessedParentchainBlock(T::AccountId, H256, H256, T::BlockNumber),
+		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
+		PublishedHash {
+			mr_enclave: MrEnclave,
+			hash: H256,
+			data: Vec<u8>,
+		},
 	}
 
 	// Watch out: we start indexing with 1 instead of zero in order to
@@ -131,7 +141,12 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {
+	impl<T: Config> Pallet<T>
+	where
+		// Needed for the conversion of `mr_enclave` to a `Hash`.
+		// The condition holds for all known chains.
+		<T as frame_system::Config>::Hash: From<[u8; 32]>,
+	{
 		// the integritee-service wants to register his enclave
 		#[pallet::call_index(0)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes))]
@@ -178,6 +193,110 @@ pub mod pallet {
 
 			Self::add_enclave(&sender, &enclave)?;
 			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_enclave()");
+			let sender = ensure_signed(origin)?;
+
+			Self::remove_enclave(&sender)?;
+			Self::deposit_event(Event::RemovedEnclave(sender));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
+		pub fn call_worker(origin: OriginFor<T>, request: Request) -> DispatchResult {
+			let _sender = ensure_signed(origin)?;
+			log::info!("call_worker with {:?}", request);
+			Self::deposit_event(Event::Forwarded(request.shard));
+			Ok(())
+		}
+
+		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
+		#[pallet::call_index(3)]
+		#[pallet::weight((<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes))]
+		pub fn confirm_processed_parentchain_block(
+			origin: OriginFor<T>,
+			block_hash: H256,
+			block_number: T::BlockNumber,
+			trusted_calls_merkle_root: H256,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Self::ensure_registered_enclave(&sender)?;
+			log::debug!(
+				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
+				sender,
+				block_hash
+			);
+			Self::deposit_event(Event::ProcessedParentchainBlock(
+				sender,
+				block_hash,
+				trusted_calls_merkle_root,
+				block_number,
+			));
+			Ok(().into())
+		}
+
+		/// Sent by a client who requests to get shielded funds managed by an enclave. For this on-chain balance is sent to the bonding_account of the enclave.
+		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
+		/// Note: The bonding_account is bit-equivalent to the worker shard.
+		#[pallet::call_index(4)]
+		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		pub fn shield_funds(
+			origin: OriginFor<T>,
+			incognito_account_encrypted: Vec<u8>,
+			amount: BalanceOf<T>,
+			bonding_account: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			T::Currency::transfer(
+				&sender,
+				&bonding_account,
+				amount,
+				ExistenceRequirement::AllowDeath,
+			)?;
+			Self::deposit_event(Event::ShieldFunds(incognito_account_encrypted));
+			Ok(().into())
+		}
+
+		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
+		#[pallet::call_index(5)]
+		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		pub fn unshield_funds(
+			origin: OriginFor<T>,
+			public_account: T::AccountId,
+			amount: BalanceOf<T>,
+			bonding_account: T::AccountId,
+			call_hash: H256,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			Self::ensure_registered_enclave(&sender)?;
+			let sender_enclave = Self::get_enclave(&sender)?;
+
+			ensure!(
+				sender_enclave.mr_enclave.encode() == bonding_account.encode(),
+				<Error<T>>::WrongMrenclaveForBondingAccount
+			);
+
+			if !<ExecutedCalls<T>>::contains_key(call_hash) {
+				log::info!("Executing unshielding call: {:?}", call_hash);
+				T::Currency::transfer(
+					&bonding_account,
+					&public_account,
+					amount,
+					ExistenceRequirement::AllowDeath,
+				)?;
+				<ExecutedCalls<T>>::insert(call_hash, 0);
+				Self::deposit_event(Event::UnshieldedFunds(public_account));
+			} else {
+				log::info!("Already executed unshielding call: {:?}", call_hash);
+			}
+
+			<ExecutedCalls<T>>::mutate(call_hash, |confirmations| *confirmations += 1);
 			Ok(().into())
 		}
 
@@ -263,108 +382,36 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(1)]
-		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call unregister_enclave()");
-			let sender = ensure_signed(origin)?;
-
-			Self::remove_enclave(&sender)?;
-			Self::deposit_event(Event::RemovedEnclave(sender));
-			Ok(().into())
-		}
-
-		#[pallet::call_index(2)]
-		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
-		pub fn call_worker(origin: OriginFor<T>, request: Request) -> DispatchResult {
-			let _sender = ensure_signed(origin)?;
-			log::info!("call_worker with {:?}", request);
-			Self::deposit_event(Event::Forwarded(request.shard));
-			Ok(())
-		}
-
-		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
-		#[pallet::call_index(3)]
-		#[pallet::weight((<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes))]
-		pub fn confirm_processed_parentchain_block(
+		/// Publish a hash as a result of an arbitrary enclave operation.
+		///
+		/// The `mrenclave` of the origin will be used as an event topic a client can subscribe to.
+		/// `extra_topics`, if any, will be used as additional event topics.
+		///
+		/// `data` can be anything worthwhile publishing related to the hash. If it is a
+		/// utf8-encoded string, the UIs will usually even render the text.
+		#[pallet::call_index(9)]
+		#[pallet::weight((<T as Config>::WeightInfo::publish_hash(), DispatchClass::Normal, Pays::Yes))]
+		pub fn publish_hash(
 			origin: OriginFor<T>,
-			block_hash: H256,
-			block_number: T::BlockNumber,
-			trusted_calls_merkle_root: H256,
+			hash: H256,
+			extra_topics: Vec<T::Hash>,
+			data: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::is_registered_enclave(&sender)?;
-			log::debug!(
-				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
-				sender,
-				block_hash
-			);
-			Self::deposit_event(Event::ProcessedParentchainBlock(
-				sender,
-				block_hash,
-				trusted_calls_merkle_root,
-				block_number,
-			));
-			Ok(().into())
-		}
+			Self::ensure_registered_enclave(&sender)?;
+			let enclave = Self::get_enclave(&sender)?;
 
-		/// Sent by a client who requests to get shielded funds managed by an enclave. For this on-chain balance is sent to the bonding_account of the enclave.
-		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
-		/// Note: The bonding_account is bit-equivalent to the worker shard.
-		#[pallet::call_index(4)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
-		pub fn shield_funds(
-			origin: OriginFor<T>,
-			incognito_account_encrypted: Vec<u8>,
-			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			T::Currency::transfer(
-				&sender,
-				&bonding_account,
-				amount,
-				ExistenceRequirement::AllowDeath,
-			)?;
-			Self::deposit_event(Event::ShieldFunds(incognito_account_encrypted));
-			Ok(().into())
-		}
+			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
+			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
 
-		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
-		#[pallet::call_index(5)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
-		pub fn unshield_funds(
-			origin: OriginFor<T>,
-			public_account: T::AccountId,
-			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
-			call_hash: H256,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			Self::is_registered_enclave(&sender)?;
-			let sender_index = <EnclaveIndex<T>>::get(sender);
-			let sender_enclave =
-				<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)?;
-			ensure!(
-				sender_enclave.mr_enclave.encode() == bonding_account.encode(),
-				<Error<T>>::WrongMrenclaveForBondingAccount
+			let mut topics = extra_topics;
+			topics.push(enclave.mr_enclave.into());
+
+			Self::deposit_event_indexed(
+				&topics,
+				Event::PublishedHash { mr_enclave: enclave.mr_enclave, hash, data },
 			);
 
-			if !<ExecutedCalls<T>>::contains_key(call_hash) {
-				log::info!("Executing unshielding call: {:?}", call_hash);
-				T::Currency::transfer(
-					&bonding_account,
-					&public_account,
-					amount,
-					ExistenceRequirement::AllowDeath,
-				)?;
-				<ExecutedCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(public_account));
-			} else {
-				log::info!("Already executed unshielding call: {:?}", call_hash);
-			}
-
-			<ExecutedCalls<T>>::mutate(call_hash, |confirmations| *confirmations += 1);
 			Ok(().into())
 		}
 	}
@@ -394,6 +441,10 @@ pub mod pallet {
 		EmptyEnclaveRegistry,
 		/// The provided collateral data is invalid
 		CollateralInvalid,
+		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
+		TooManyTopics,
+		/// The length of the `data` passed to `publish_hash` exceeds the limit.
+		DataTooLong,
 	}
 }
 
@@ -431,6 +482,13 @@ impl<T: Config> Pallet<T> {
 		<EnclaveCount<T>>::put(new_enclaves_count);
 
 		Ok(().into())
+	}
+
+	pub(crate) fn get_enclave(
+		sender: &T::AccountId,
+	) -> Result<Enclave<T::AccountId, Vec<u8>>, Error<T>> {
+		let sender_index = <EnclaveIndex<T>>::get(sender);
+		<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)
 	}
 
 	/// Our list implementation would introduce holes in out list if if we try to remove elements from the middle.
@@ -472,11 +530,21 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Check if the sender is a registered enclave
-	pub fn is_registered_enclave(
+	pub fn ensure_registered_enclave(
 		account: &T::AccountId,
-	) -> Result<bool, DispatchErrorWithPostInfo> {
+	) -> Result<(), DispatchErrorWithPostInfo> {
 		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
-		Ok(true)
+		Ok(())
+	}
+
+	/// Deposit a pallets teerex event with the corresponding topics.
+	///
+	/// Handles the conversion to the overarching event type.
+	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
+		<frame_system::Pallet<T>>::deposit_event_indexed(
+			topics,
+			<T as Config>::RuntimeEvent::from(event).into(),
+		)
 	}
 
 	#[cfg(not(feature = "skip-ias-check"))]
