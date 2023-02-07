@@ -531,7 +531,7 @@ impl<T: Config> Pallet<T> {
 	/// Handles the conversion to the overarching event type.
 	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
 		<frame_system::Pallet<T>>::deposit_event_indexed(
-			&topics,
+			topics,
 			<T as Config>::RuntimeEvent::from(event).into(),
 		)
 	}
