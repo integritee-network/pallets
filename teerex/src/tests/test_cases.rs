@@ -776,7 +776,7 @@ fn confirm_processed_parentchain_block_works() {
 }
 
 #[test]
-fn verify_ensure_registered_enclave_works() {
+fn ensure_registered_enclave_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
