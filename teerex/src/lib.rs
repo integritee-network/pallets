@@ -271,9 +271,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::ensure_registered_enclave(&sender)?;
-			let sender_index = <EnclaveIndex<T>>::get(sender);
-			let sender_enclave =
-				<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)?;
+			let sender_enclave = Self::get_enclave(&sender)?;
+
 			ensure!(
 				sender_enclave.mr_enclave.encode() == bonding_account.encode(),
 				<Error<T>>::WrongMrenclaveForBondingAccount
