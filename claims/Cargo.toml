@@ -14,12 +14,12 @@ serde = { version = "1.0.13", default-features = false }
 serde_derive = { version = "1.0.13", optional = true }
 
 # substrate dependencies
-frame-benchmarking = { optional = true, default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+frame-benchmarking = { optional = true, default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 
 # local
 claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false }
@@ -27,10 +27,10 @@ claims-primitives = { package = "claims-primitives", path = "../primitives/claim
 [dev-dependencies]
 hex-literal = "0.3.3"
 libsecp256k1 = "0.7.0"
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
-pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 serde_json = { version = "1.0" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.37" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 
 [features]
 default = ["std"]
