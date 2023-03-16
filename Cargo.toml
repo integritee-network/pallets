@@ -3,6 +3,7 @@ members = [
     "claims",
     "teerex",
     "parentchain",
+    "privacy-sidechain",
     "sidechain",
     "teerex/sgx-verify",
     "teeracle",
