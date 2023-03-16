@@ -274,16 +274,23 @@ impl SgxReportBody {
 		}
 	}
 
-	pub fn verify(&self, o: &QuotingEnclave) -> bool {
-		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
-			return false
-		}
+	fn verify_misc_select_field(&self, o: QuotingEnclave) -> bool {
 		for i in 0..self.misc_select.len() {
 			if (self.misc_select[i] & o.miscselect_mask[i]) !=
 				(o.miscselect[i] & o.miscselect_mask[i])
 			{
 				return false
 			}
+		}
+		true
+	}
+
+	pub fn verify(&self, o: &QuotingEnclave) -> bool {
+		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
+			return false
+		}
+		if !self.verify_misc_select_field(&o) {
+			return false
 		}
 		for tcb in &o.tcb {
 			// If the enclave isvsvn is bigger than one of the
