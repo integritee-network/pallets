@@ -108,7 +108,8 @@ pub mod pallet {
 			let call = T::RelayCallBuilder::swap_call(self_id, other_id);
 			let xcm_message =
 				T::RelayCallBuilder::construct_transact_xcm(call, xcm_weight, buy_execution_fee);
-			T::XcmSender::validate(&mut Some(Parent.into()), &mut Some(xcm_message)).map_err(|_| Error::<T>::TransactFailed)?;
+			T::XcmSender::validate(&mut Some(Parent.into()), &mut Some(xcm_message))
+				.map_err(|_| Error::<T>::TransactFailed)?;
 
 			Self::deposit_event(Event::<T>::SwapTransactSent { para_a: self_id, para_b: other_id });
 			Ok(())
