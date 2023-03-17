@@ -108,7 +108,11 @@ pub mod pallet {
 			let call = T::RelayCallBuilder::swap_call(self_id, other_id);
 			let xcm_message =
 				T::RelayCallBuilder::construct_transact_xcm(call, xcm_weight, buy_execution_fee);
-			T::XcmSender::send_xcm(Parent, xcm_message).map_err(|_| Error::<T>::TransactFailed)?;
+
+			// Todo: If we ever do this in the future again, we should also put the xcm-hash and
+			// the price in the deposited event.
+			let (_hash, _price) = send_xcm::<T::XcmSender>(Parent.into(), xcm_message)
+				.map_err(|_| Error::<T>::TransactFailed)?;
 
 			Self::deposit_event(Event::<T>::SwapTransactSent { para_a: self_id, para_b: other_id });
 			Ok(())

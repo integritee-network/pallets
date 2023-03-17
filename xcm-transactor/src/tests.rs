@@ -39,8 +39,8 @@ fn swap_ump_fails_not_privileged() {
 				RuntimeOrigin::signed(alice),
 				ParaId::from(2015),
 				ParaId::from(2014),
-				10_000_000_000,
-				10_000_000_000
+				10_000_000_000u64.into(),
+				10_000_000_000u64.into()
 			),
 			sp_runtime::DispatchError::BadOrigin
 		);
@@ -55,8 +55,8 @@ fn swap_ump_fails_equal_para_ids() {
 				RuntimeOrigin::root(),
 				ParaId::from(2015),
 				ParaId::from(2015),
-				10_000_000_000,
-				10_000_000_000
+				10_000_000_000u64.into(),
+				10_000_000_000u64.into()
 			),
 			Error::<Test>::SwapIdsEqual
 		);
@@ -72,8 +72,8 @@ fn swap_ump_fails_1_id_invalid() {
 				RuntimeOrigin::root(),
 				shell_id.into(),
 				ParaId::from(20000),
-				10_000_000_000,
-				10_000_000_000
+				10_000_000_000u64.into(),
+				10_000_000_000u64.into()
 			),
 			Error::<Test>::InvalidSwapIds
 		);
@@ -89,8 +89,8 @@ fn swap_ump_fails_2_id_invalid() {
 				RuntimeOrigin::root(),
 				integritee_id.into(),
 				ParaId::from(20000),
-				10_000_000_000,
-				10_000_000_000
+				10_000_000_000u64.into(),
+				10_000_000_000u64.into()
 			),
 			Error::<Test>::InvalidSwapIds
 		);
@@ -106,8 +106,8 @@ fn swap_ump_success() {
 			RuntimeOrigin::root(),
 			shell_id.into(),
 			integritee_id.into(),
-			10_000_000_000,
-			10_000_000_000
+			10_000_000_000u64.into(),
+			10_000_000_000u64.into()
 		));
 		assert!(System::events().iter().any(|swap| matches!(
 			swap.event,

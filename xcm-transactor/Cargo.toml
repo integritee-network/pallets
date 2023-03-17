@@ -17,27 +17,29 @@ scale-info = { version = "2.0.1", default-features = false, features = ["derive"
 xcm-transactor-primitives = { default-features = false, path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
 
 # substrate
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 
 # xcm/polkadot
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.37", default-features = false }
+xcm = { default-features = false, git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38" }
 
 # cumulus
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.37", default-features = false }
+cumulus-primitives-core = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.38" }
 
 [dev-dependencies]
-externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
+externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 hex-literal = "0.3.2"
-pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 test-utils = { path = "../test-utils" }
-sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.37" }
-subxt = { git = "https://github.com/paritytech/subxt.git", branch = "master" }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+# Remove unnecessary wasm stuff by disabling default features, also it lead
+# to a linker issue once: https://github.com/integritee-network/pallets/pull/159.
+subxt = { default-features = false, git = "https://github.com/paritytech/subxt.git", branch = "master" }
 
 
 [features]
