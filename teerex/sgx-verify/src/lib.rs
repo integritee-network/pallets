@@ -274,7 +274,7 @@ impl SgxReportBody {
 		}
 	}
 
-	fn verify_misc_select_field(&self, o: QuotingEnclave) -> bool {
+	fn verify_misc_select_field(&self, o: &QuotingEnclave) -> bool {
 		for i in 0..self.misc_select.len() {
 			if (self.misc_select[i] & o.miscselect_mask[i]) !=
 				(o.miscselect[i] & o.miscselect_mask[i])
@@ -285,11 +285,23 @@ impl SgxReportBody {
 		true
 	}
 
+	fn verify_attributes_field(&self, o: &QuotingEnclave) -> bool {
+		let attributes_flags = self.attributes.flags;
+
+		let quoting_enclave_attributes_mask = o.attributes_flags_mask_as_u64();
+		let quoting_enclave_attributes_flags = o.attributes_flags_as_u64();
+
+		(attributes_flags & quoting_enclave_attributes_mask) == quoting_enclave_attributes_flags
+	}
+
 	pub fn verify(&self, o: &QuotingEnclave) -> bool {
 		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
 			return false
 		}
 		if !self.verify_misc_select_field(&o) {
+			return false
+		}
+		if !self.verify_attributes_field(&o) {
 			return false
 		}
 		for tcb in &o.tcb {
