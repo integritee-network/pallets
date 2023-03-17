@@ -298,10 +298,10 @@ impl SgxReportBody {
 		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
 			return false
 		}
-		if !self.verify_misc_select_field(&o) {
+		if !self.verify_misc_select_field(o) {
 			return false
 		}
-		if !self.verify_attributes_field(&o) {
+		if !self.verify_attributes_field(o) {
 			return false
 		}
 		for tcb in &o.tcb {
