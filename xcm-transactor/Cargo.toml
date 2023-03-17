@@ -37,7 +37,8 @@ hex-literal = "0.3.2"
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 test-utils = { path = "../test-utils" }
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
-# remove wasm stuff by disabling default features.
+# Remove unnecessary wasm stuff by disabling default features, also it lead
+# to a linker issue once: https://github.com/integritee-network/pallets/pull/159.
 subxt = { default-features = false, git = "https://github.com/paritytech/subxt.git", branch = "master" }
 
 
