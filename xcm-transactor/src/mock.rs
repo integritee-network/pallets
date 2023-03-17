@@ -16,6 +16,7 @@
 */
 
 use crate as pallet_xcm_transactor;
+use core::default::Default;
 use frame_support::parameter_types;
 use frame_system as system;
 use frame_system::EnsureRoot;
@@ -26,7 +27,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
 
-use xcm::latest::{prelude::*, Weight as XcmWeight};
+use xcm::latest::prelude::*;
 use xcm_transactor_primitives::*;
 
 pub type Signature = sp_runtime::MultiSignature;
@@ -115,8 +116,17 @@ parameter_types! {
 
 pub struct DummySendXcm;
 impl SendXcm for DummySendXcm {
-	fn send_xcm(_destination: impl Into<MultiLocation>, _message: Xcm<()>) -> SendResult {
-		Ok(())
+	type Ticket = ();
+
+	fn validate(
+		_destination: &mut Option<MultiLocation>,
+		_message: &mut Option<Xcm<()>>,
+	) -> SendResult<Self::Ticket> {
+		Ok(((), MultiAssets::new()))
+	}
+
+	fn deliver(_ticket: Self::Ticket) -> Result<XcmHash, SendError> {
+		Ok([0; 32])
 	}
 }
 
