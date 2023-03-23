@@ -109,14 +109,13 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 			WithdrawAsset(asset.clone().into()),
 			BuyExecution { fees: asset, weight_limit: Unlimited },
 			Transact {
-				origin_type: OriginKind::Native,
+				origin_kind: OriginKind::Native,
 				require_weight_at_most: weight,
 				call: call.encode().into(),
 			},
 			RefundSurplus,
 			DepositAsset {
 				assets: All.into(),
-				max_assets: 1,
 				beneficiary: X1(Parachain(Id::get().into())).into(),
 			},
 		])
