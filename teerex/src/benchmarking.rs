@@ -60,17 +60,17 @@ benchmarks! {
 
 	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]>,}
 
-	// Benchmark `register_enclave` with the worst possible conditions:
+	// Benchmark `register_ias_enclave` with the worst possible conditions:
 	// * remote attestation is valid
 	// * enclave already exists
-	register_enclave {
+	register_ias_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_enclave(
+		Teerex::<T>::register_ias_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
