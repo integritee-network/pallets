@@ -50,7 +50,7 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_teerex.
 pub trait WeightInfo {
-	fn register_enclave() -> Weight;
+	fn register_ias_enclave() -> Weight;
 	fn register_dcap_enclave() -> Weight;
 	fn register_quoting_enclave() -> Weight;
 	fn unregister_enclave() -> Weight;
@@ -62,7 +62,7 @@ pub trait WeightInfo {
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
-	fn register_enclave() -> Weight {
+	fn register_ias_enclave() -> Weight {
 		Weight::from_ref_time(1_969_500_000)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
@@ -101,7 +101,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 
 // For tests
 impl WeightInfo for () {
-	fn register_enclave() -> Weight {
+	fn register_ias_enclave() -> Weight {
 		Weight::from_ref_time(1_969_500_000)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))

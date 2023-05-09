@@ -36,10 +36,10 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn register_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
+fn register_ias_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_enclave(
+	assert_ok!(Teerex::register_ias_enclave(
 		RuntimeOrigin::signed(signer),
 		TEST4_CERT.to_vec(),
 		URL.to_vec()
@@ -61,7 +61,7 @@ fn update_exchange_rate_dot_dollars_ok(src: &str, rate: Option<U32F32>) {
 #[test]
 fn update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 
 		let rate = U32F32::from_num(43.65);
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
@@ -89,7 +89,7 @@ fn update_exchange_rate_works() {
 fn update_oracle_works() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		register_enclave_and_add_oracle_to_whitelist_ok(&DataSource::from("Test_Source_Name"));
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(&DataSource::from("Test_Source_Name"));
 		let oracle_blob: crate::OracleDataBlob<Test> =
 			vec![1].try_into().expect("Can Convert to BoundedVec; QED");
 		assert_ok!(Teeracle::update_oracle(
@@ -118,7 +118,7 @@ fn update_oracle_works() {
 fn get_existing_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
 		let rate = U32F32::from_num(43.65);
-		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
 		assert_eq!(
 			Teeracle::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
@@ -144,7 +144,7 @@ fn get_inexisting_exchange_rate_is_zero() {
 #[test]
 fn update_exchange_rate_to_none_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 		let rate = U32F32::from_num(43.65);
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
 
@@ -165,7 +165,7 @@ fn update_exchange_rate_to_none_delete_exchange_rate() {
 #[test]
 fn update_exchange_rate_to_zero_delete_exchange_rate() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 		let rate = Some(U32F32::from_num(43.65));
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, rate);
 
@@ -222,7 +222,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Teerex::register_enclave(
+		assert_ok!(Teerex::register_ias_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec()
@@ -246,7 +246,7 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Teerex::register_enclave(
+		assert_ok!(Teerex::register_ias_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			URL.to_vec()
@@ -267,7 +267,7 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 #[test]
 fn update_exchange_rate_with_too_long_trading_pair_fails() {
 	new_test_ext().execute_with(|| {
-		register_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
+		register_ias_enclave_and_add_oracle_to_whitelist_ok(COINGECKO_SRC);
 
 		let rate = Some(U32F32::from_num(43.65));
 		let signer = get_signer(TEST4_SIGNER_PUB);

@@ -149,13 +149,13 @@ pub mod pallet {
 	{
 		// the integritee-service wants to register his enclave
 		#[pallet::call_index(0)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_enclave(
+		#[pallet::weight((<T as Config>::WeightInfo::register_ias_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn register_ias_enclave(
 			origin: OriginFor<T>,
 			ra_report: Vec<u8>,
 			worker_url: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_enclave()");
+			log::info!("teerex: called into runtime call register_ias_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);

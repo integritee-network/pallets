@@ -36,7 +36,7 @@ fn confirm_imported_sidechain_block_invalid_next_finalization_candidate() {
 
 		let block_number = 1;
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
@@ -62,7 +62,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 		let block_number = 1;
 		let next_finalization_block_candidate = 20;
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(signer7.clone()),
@@ -86,7 +86,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		let block_number = 1;
 
@@ -109,7 +109,7 @@ fn confirm_imported_sidechain_block_correct_order() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
@@ -135,7 +135,7 @@ fn confirm_imported_sidechain_block_wrong_next() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
@@ -161,7 +161,7 @@ fn confirm_imported_sidechain_block_outdated() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave7();
+		register_ias_enclave7();
 
 		assert_ok!(confirm_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
@@ -187,23 +187,23 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
-		register_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
+		register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+		register_ias_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
 
 		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
 	})
 }
 
-fn register_enclave7() {
-	register_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+fn register_ias_enclave7() {
+	register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
 }
 
-fn register_enclave(signer_pub_key: &MrSigner, cert: &[u8], expected_enclave_count: u64) {
+fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8], expected_enclave_count: u64) {
 	let signer7 = get_signer(signer_pub_key);
 
 	//Ensure that enclave is registered
-	assert_ok!(Teerex::<Test>::register_enclave(
+	assert_ok!(Teerex::<Test>::register_ias_enclave(
 		RuntimeOrigin::signed(signer7),
 		cert.to_vec(),
 		URL.to_vec(),

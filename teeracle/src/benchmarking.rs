@@ -51,7 +51,7 @@ benchmarks! {
 		let data_source: DataSource = "https://api.coingecko.com".into();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_enclave(
+		Teerex::<T>::register_ias_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
@@ -74,7 +74,7 @@ benchmarks! {
 			vec![1].try_into().expect("Can Convert to OracleDataBlob<T>; QED");
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_enclave(
+		Teerex::<T>::register_ias_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
 			URL.to_vec()
