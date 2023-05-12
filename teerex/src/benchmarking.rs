@@ -28,7 +28,7 @@ use sp_runtime::traits::{CheckedConversion, Hash};
 use sp_std::vec;
 use test_utils::{
 	get_signer,
-	ias::{consts::*, setups::*},
+	test_data::{consts::*, ias::*},
 };
 
 fn ensure_not_skipping_ra_check() {
@@ -162,7 +162,7 @@ use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use test_utils::ias::TestEnclave;
+use test_utils::TestEnclave;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);

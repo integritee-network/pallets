@@ -24,7 +24,7 @@ use super::*;
 use crate::Pallet as Sidechain;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-use test_utils::ias::setups::*;
+use test_utils::test_data::ias::*;
 
 fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
 	assert_eq!(Sidechain::<T>::worker_for_shard(shard), Teerex::<T>::enclave_index(sender));
@@ -67,7 +67,7 @@ use crate::{Config, Pallet as PalletModule};
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
 use teerex_primitives::Enclave;
-use test_utils::ias::TestEnclave;
+use test_utils::TestEnclave;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);

@@ -9,18 +9,15 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-hex-literal = { version = "0.3.2" }
 log = { version = "0.4.14", default-features = false }
 
-[dependencies.teerex-primitives]
-default-features = false
-package = "teerex-primitives"
-path = "../primitives/teerex"
-
+sgx-verify = { default-features = false, features = ["test-data"], path = "../teerex/sgx-verify"}
+teerex-primitives = { default-features = false, path = "../primitives/teerex" }
 
 [features]
 default = ['std']
 std = [
     "log/std",
+    "sgx-verify/std",
     "teerex-primitives/std",
 ]

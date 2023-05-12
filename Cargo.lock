@@ -3991,8 +3991,8 @@ dependencies = [
 name = "test-utils"
 version = "0.1.0"
 dependencies = [
- "hex-literal",
  "log",
+ "sgx-verify",
  "teerex-primitives",
 ]
 

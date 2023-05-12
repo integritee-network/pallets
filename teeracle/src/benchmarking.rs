@@ -31,7 +31,7 @@ use teeracle_primitives::{DataSource, OracleDataName, TradingPairString};
 
 use test_utils::{
 	get_signer,
-	ias::{consts::*, setups::*},
+	test_data::{consts::*, ias::*},
 };
 
 fn ensure_not_skipping_ra_check() {

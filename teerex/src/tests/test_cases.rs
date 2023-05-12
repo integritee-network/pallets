@@ -24,7 +24,7 @@ use hex_literal::hex;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use teerex_primitives::SgxBuildMode;
-use test_utils::ias::consts::*;
+use test_utils::test_data::consts::*;
 
 fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, Enclave<AccountId, Vec<u8>>)>>()
