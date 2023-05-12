@@ -1,18 +1,11 @@
 use super::*;
-use crate::collateral::{EnclaveIdentitySigned, TcbInfoSigned};
+use crate::{
+	collateral::{EnclaveIdentitySigned, TcbInfoSigned},
+	test_data::consts::{TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST8_CERT},
+};
 use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
-
-// reproduce with "integritee_service dump_ra"
-const TEST1_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER1_MRENCLAVE1.der");
-const TEST2_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER2_MRENCLAVE2.der");
-const TEST3_CERT: &[u8] = include_bytes!("../test/test_ra_cert_MRSIGNER3_MRENCLAVE2.der");
-const TEST4_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST4.der");
-const TEST5_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST5.der");
-const TEST6_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST6.der");
-const TEST7_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST7.der");
-const TEST8_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST8_PRODUCTION.der");
 
 const TEST1_SIGNER_ATTN: &[u8] =
 	include_bytes!("../test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
@@ -28,11 +21,7 @@ const TEST2_SIGNER_PUB: &[u8] =
 	include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
 const TEST3_SIGNER_PUB: &[u8] =
 	include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
-const TEST4_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST4.bin");
-// equal to TEST4!
-const TEST5_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST5.bin");
-const TEST6_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST6.bin");
-const TEST7_SIGNER_PUB: &[u8] = include_bytes!("../test/enclave-signing-pubkey-TEST7.bin");
+
 const QE_IDENTITY_CERT: &str = include_str!("../test/dcap/qe_identity_cert.pem");
 const DCAP_QUOTE_CERT: &str = include_str!("../test/dcap/dcap_quote_cert.der");
 const PCK_CRL: &[u8] = include_bytes!("../test/dcap/pck_crl.der");
@@ -50,23 +39,6 @@ const TEST3_MRENCLAVE: &[u8] = &[
 	4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 81,
 	139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
 ];
-
-// MRSIGNER is 83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e
-const TEST4_MRENCLAVE: MrEnclave =
-	hex!("7a3454ec8f42e265cb5be7dfd111e1d95ac6076ed82a0948b2e2a45cf17b62a0");
-const TEST5_MRENCLAVE: MrEnclave =
-	hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d1");
-// equal to TEST5!
-const TEST6_MRENCLAVE: MrEnclave =
-	hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d1");
-// equal to TEST6!
-const TEST7_MRENCLAVE: MrEnclave =
-	hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d1");
-
-// production mode
-// MRSIGNER is 117f95f65f06afb5764b572156b8b525c6230db7d6b1c94e8ebdb7fba068f4e8
-const TEST8_MRENCLAVE: MrEnclave =
-	hex!("bcf66abfc6b3ef259e9ecfe4cf8df667a7f5a546525dee16822741b38f6e6050");
 
 // unix epoch. must be later than this
 const TEST1_TIMESTAMP: i64 = 1580587262i64;
@@ -87,7 +59,7 @@ fn verify_ias_report_should_work() {
 	let report = report.unwrap();
 	assert_eq!(report.mr_enclave, TEST4_MRENCLAVE);
 	assert!(report.timestamp >= TEST1_TIMESTAMP.try_into().unwrap());
-	assert_eq!(report.pubkey, TEST4_SIGNER_PUB);
+	assert_eq!(&report.pubkey, TEST4_SIGNER_PUB);
 	//assert_eq!(report.status, SgxStatus::GroupOutOfDate);
 	assert_eq!(report.status, SgxStatus::ConfigurationNeeded);
 	assert_eq!(report.build_mode, SgxBuildMode::Debug);
