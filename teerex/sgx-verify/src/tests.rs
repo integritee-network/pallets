@@ -1,7 +1,9 @@
 use super::*;
 use crate::{
 	collateral::{EnclaveIdentitySigned, TcbInfoSigned},
-	test_data::consts::{TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST8_CERT},
+	test_data::consts::{
+		TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT,
+	},
 };
 use codec::Decode;
 use frame_support::assert_err;
@@ -26,7 +28,7 @@ fn verify_ias_report_should_work() {
 	let report = verify_ias_report(TEST4_CERT);
 	let report = report.unwrap();
 	assert_eq!(report.mr_enclave, TEST4_MRENCLAVE);
-	assert!(report.timestamp >= TEST1_TIMESTAMP.try_into().unwrap());
+	assert_eq!(report.timestamp, TEST4_TIMESTAMP);
 	assert_eq!(&report.pubkey, TEST4_SIGNER_PUB);
 	//assert_eq!(report.status, SgxStatus::GroupOutOfDate);
 	assert_eq!(report.status, SgxStatus::ConfigurationNeeded);
