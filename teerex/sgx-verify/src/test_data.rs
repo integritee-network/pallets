@@ -66,26 +66,26 @@ pub mod consts {
 	];
 
 	// reproduce with "integritee_service dump_ra"
-	pub const TEST4_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST4.der");
-	pub const TEST5_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST5.der");
-	pub const TEST6_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST6.der");
-	pub const TEST7_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST7.der");
-	pub const TEST8_CERT: &[u8] = include_bytes!("../test/ra_dump_cert_TEST8_PRODUCTION.der");
+	pub const TEST4_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST4.der");
+	pub const TEST5_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST5.der");
+	pub const TEST6_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST6.der");
+	pub const TEST7_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST7.der");
+	pub const TEST8_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST8_PRODUCTION.der");
 
-	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test/ra_dcap_dump_quote.ra");
+	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test-data/ra_dcap_dump_quote.ra");
 
 	// reproduce with integritee-service signing-key
 	pub const TEST4_SIGNER_PUB: &MrSigner =
-		include_bytes!("../test/enclave-signing-pubkey-TEST4.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST4.bin");
 	// equal to TEST4! because of MRSIGNER policy it was possible to change the MRENCLAVE but keep the secret
 	pub const TEST5_SIGNER_PUB: &MrSigner =
-		include_bytes!("../test/enclave-signing-pubkey-TEST5.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST5.bin");
 	pub const TEST6_SIGNER_PUB: &MrSigner =
-		include_bytes!("../test/enclave-signing-pubkey-TEST6.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST6.bin");
 	pub const TEST7_SIGNER_PUB: &MrSigner =
-		include_bytes!("../test/enclave-signing-pubkey-TEST7.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST7.bin");
 	pub const TEST8_SIGNER_PUB: &MrSigner =
-		include_bytes!("../test/enclave-signing-pubkey-TEST8-PRODUCTION.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST8-PRODUCTION.bin");
 
 	// reproduce with "make mrenclave" in worker repo root
 	// MRSIGNER is always 83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e
