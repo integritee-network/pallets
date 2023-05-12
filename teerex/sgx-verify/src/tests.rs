@@ -186,7 +186,7 @@ fn deserialize_tcb_info_works() {
 	let json_data = serde_json::to_vec(&json.tcb_info).unwrap();
 	let signature = hex::decode(json.signature).unwrap();
 
-	let e = deserialize_tcb_info(&json_data, &signature, &leaf_cert).unwrap();
+	let _e = deserialize_tcb_info(&json_data, &signature, &leaf_cert).unwrap();
 	assert_eq!(hex!("00906EA10000"), json.tcb_info.fmspc);
 }
 
