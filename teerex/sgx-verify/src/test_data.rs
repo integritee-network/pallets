@@ -15,7 +15,7 @@
 
 */
 
-pub mod setups {
+pub mod ias {
 	use super::consts::*;
 	use teerex_primitives::MrEnclave;
 
