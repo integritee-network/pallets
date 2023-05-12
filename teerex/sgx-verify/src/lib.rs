@@ -57,6 +57,8 @@ use x509_cert::Certificate;
 pub mod collateral;
 mod ephemeral_key;
 mod netscape_comment;
+#[cfg(any(test, feature = "test-data"))]
+mod test_data;
 #[cfg(test)]
 mod tests;
 mod utils;
