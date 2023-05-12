@@ -7,41 +7,10 @@ use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
 
-const TEST1_SIGNER_ATTN: &[u8] =
-	include_bytes!("../test/test_ra_signer_attn_MRSIGNER1_MRENCLAVE1.bin");
-const TEST2_SIGNER_ATTN: &[u8] =
-	include_bytes!("../test/test_ra_signer_attn_MRSIGNER2_MRENCLAVE2.bin");
-const TEST3_SIGNER_ATTN: &[u8] =
-	include_bytes!("../test/test_ra_signer_attn_MRSIGNER3_MRENCLAVE2.bin");
-
-// reproduce with "integritee_service signing-key"
-const TEST1_SIGNER_PUB: &[u8] =
-	include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER1_MRENCLAVE1.bin");
-const TEST2_SIGNER_PUB: &[u8] =
-	include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER2_MRENCLAVE2.bin");
-const TEST3_SIGNER_PUB: &[u8] =
-	include_bytes!("../test/test_ra_signer_pubkey_MRSIGNER3_MRENCLAVE2.bin");
-
 const QE_IDENTITY_CERT: &str = include_str!("../test/dcap/qe_identity_cert.pem");
 const DCAP_QUOTE_CERT: &str = include_str!("../test/dcap/dcap_quote_cert.der");
 const PCK_CRL: &[u8] = include_bytes!("../test/dcap/pck_crl.der");
 
-// reproduce with "make mrenclave" in worker repo root
-const TEST1_MRENCLAVE: &[u8] = &[
-	62, 252, 187, 232, 60, 135, 108, 204, 87, 78, 35, 169, 241, 237, 106, 217, 251, 241, 99, 189,
-	138, 157, 86, 136, 77, 91, 93, 23, 192, 104, 140, 167,
-];
-const TEST2_MRENCLAVE: &[u8] = &[
-	4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 81,
-	139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
-];
-const TEST3_MRENCLAVE: &[u8] = &[
-	4, 190, 230, 132, 211, 129, 59, 237, 101, 78, 55, 174, 144, 177, 91, 134, 1, 240, 27, 174, 81,
-	139, 8, 22, 32, 241, 228, 103, 189, 43, 44, 102,
-];
-
-// unix epoch. must be later than this
-const TEST1_TIMESTAMP: i64 = 1580587262i64;
 /// Collateral test data mus be valid at this time (2022-10-11 14:01:02) for the tests to work
 const COLLATERAL_VERIFICATION_TIMESTAMP: u64 = 1665489662000;
 
@@ -54,7 +23,6 @@ const CERT_TOO_SHORT2: &[u8] = b"0\x82\x0c\x8c0";
 
 #[test]
 fn verify_ias_report_should_work() {
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	let report = verify_ias_report(TEST4_CERT);
 	let report = report.unwrap();
 	assert_eq!(report.mr_enclave, TEST4_MRENCLAVE);
@@ -67,35 +35,26 @@ fn verify_ias_report_should_work() {
 
 #[test]
 fn verify_zero_length_cert_returns_err() {
-	// CERT empty, argument 2 and 3 are wrong too!
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(&Vec::new()[..]).is_err())
 }
 
 #[test]
 fn verify_wrong_cert_is_err() {
-	// CERT wrong, argument 2 and 3 are wrong too!
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_WRONG_PLATFORM_BLOB).is_err())
 }
 
 #[test]
 fn verify_wrong_fake_enclave_quote_is_err() {
-	// quote wrong, argument 2 and 3 are wrong too!
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_FAKE_QUOTE_STATUS).is_err())
 }
 
 #[test]
 fn verify_wrong_sig_is_err() {
-	// sig wrong, argument 2 and 3 are wrong too!
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_WRONG_SIG).is_err())
 }
 
 #[test]
 fn verify_short_cert_is_err() {
-	let _signer_attn: [u32; 16] = Decode::decode(&mut TEST1_SIGNER_ATTN).unwrap();
 	assert!(verify_ias_report(CERT_TOO_SHORT1).is_err());
 	assert!(verify_ias_report(CERT_TOO_SHORT2).is_err());
 }
