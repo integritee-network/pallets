@@ -15,7 +15,6 @@
 
 */
 
-
 //! Teerex pallet benchmarking
 
 #![cfg(any(test, feature = "runtime-benchmarks"))]
