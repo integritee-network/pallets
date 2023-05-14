@@ -17,7 +17,7 @@
 
 use crate::{
 	mock::*,
-	test_helpers::{register_quoting_enclave, register_test_tcb_info},
+	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
 	Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request, ShardIdentifier,
 	DATA_LENGTH_LIMIT,
 };
@@ -47,7 +47,7 @@ fn add_and_remove_dcap_enclave_works() {
 		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
 		let alice = AccountKeyring::Alice.to_account_id();
-		register_quoting_enclave::<Test>(alice.clone());
+		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice);
 
 		let signer = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
@@ -72,7 +72,7 @@ fn register_quoting_enclave_works() {
 		assert_eq!(qe.mrsigner, [0u8; 32]);
 		assert_eq!(qe.isvprodid, 0);
 		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
-		register_quoting_enclave::<Test>(alice);
+		register_test_quoting_enclave::<Test>(alice);
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.isvprodid, 1);
 	})

@@ -11,7 +11,7 @@ use teerex_primitives::TcbInfoOnChain;
 /// Registers a predefined quoting enclave.
 ///
 /// This can be done by any account.
-pub fn register_quoting_enclave<T>(account: T::AccountId)
+pub fn register_test_quoting_enclave<T>(account: T::AccountId)
 where
 	T: Config,
 	<T as frame_system::Config>::Hash: From<[u8; 32]>,
