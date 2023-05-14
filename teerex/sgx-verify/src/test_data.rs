@@ -81,6 +81,8 @@ pub mod dcap {
 		quoting_enclave_signature: QUOTING_ENCLAVE_SIGNATURE,
 	};
 
+	pub const PCK_CRL: &[u8] = include_bytes!("../test-data/dcap/pck_crl.der");
+
 	pub const QE_IDENTITY_CERT: &str = include_str!("../test-data/dcap/qe_identity_cert.pem");
 	pub const QE_IDENTITY_ISSUER_CHAIN: &[u8] =
 		include_bytes!("../test-data/dcap/qe_identity_issuer_chain.pem");
