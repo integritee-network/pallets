@@ -103,6 +103,9 @@ pub mod dcap {
 
 	/// Collateral test data must be valid at this time (2022-10-11 14:01:02) for the tests to work
 	pub const COLLATERAL_VERIFICATION_TIMESTAMP: u64 = 1665489662000;
+
+	/// Timestamp for which the collateral data must be valid. Represents 2022-12-21 08:12:27
+	pub const TEST_VALID_COLLATERAL_TIMESTAMP: u64 = 1671606747000;
 }
 
 pub mod consts {

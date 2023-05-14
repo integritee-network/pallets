@@ -657,9 +657,12 @@ impl<T: Config> OnTimestampSet<T::Moment> for Pallet<T> {
 	}
 }
 
+#[cfg(any(test, feature = "runtime-benchmarks"))]
 mod benchmarking;
 #[cfg(test)]
 mod mock;
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+mod test_helpers;
 #[cfg(test)]
 mod tests;
 pub mod weights;
