@@ -662,7 +662,7 @@ mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(any(test, feature = "runtime-benchmarks"))]
-mod test_helpers;
+pub mod test_helpers;
 #[cfg(test)]
 mod tests;
 pub mod weights;
