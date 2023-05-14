@@ -24,18 +24,13 @@ use frame_support::{
 	traits::{Currency, ExistenceRequirement, Get, OnTimestampSet},
 };
 use frame_system::{self, ensure_signed};
-use sp_core::H256;
-use sp_runtime::{
-	traits::{CheckedSub, SaturatedConversion},
-	Saturating,
-};
-use sp_std::{prelude::*, str};
-use teerex_primitives::*;
-
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
-	verify_dcap_quote, verify_ias_report, SgxReport,
 };
+use sp_core::H256;
+use sp_runtime::{traits::SaturatedConversion, Saturating};
+use sp_std::{prelude::*, str};
+use teerex_primitives::*;
 
 pub use crate::weights::WeightInfo;
 use teerex_primitives::SgxBuildMode;
@@ -551,8 +546,8 @@ impl<T: Config> Pallet<T> {
 	fn verify_report(
 		sender: &T::AccountId,
 		ra_report: Vec<u8>,
-	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
-		let report = verify_ias_report(&ra_report)
+	) -> Result<sgx_verify::SgxReport, DispatchErrorWithPostInfo> {
+		let report = sgx_verify::verify_ias_report(&ra_report)
 			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
 		log::info!("teerex: IAS report successfully verified");
 
@@ -573,17 +568,16 @@ impl<T: Config> Pallet<T> {
 	fn verify_dcap_quote(
 		sender: &T::AccountId,
 		dcap_quote: Vec<u8>,
-	) -> Result<SgxReport, DispatchErrorWithPostInfo> {
+	) -> Result<sgx_verify::SgxReport, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 
 		let qe = <QuotingEnclaveRegistry<T>>::get();
 		let (fmspc, tcb_info, report) =
-			verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe).map_err(
-				|e| {
+			sgx_verify::verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe)
+				.map_err(|e| {
 					log::warn!("verify_dcap_quote failed: {:?}", e);
 					<Error<T>>::RemoteAttestationVerificationFailed
-				},
-			)?;
+				})?;
 
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
@@ -643,6 +637,8 @@ impl<T: Config> Pallet<T> {
 
 	#[cfg(not(feature = "skip-ias-check"))]
 	fn ensure_timestamp_within_24_hours(report_timestamp: u64) -> DispatchResultWithPostInfo {
+		use sp_runtime::traits::CheckedSub;
+
 		let elapsed_time = <timestamp::Pallet<T>>::get()
 			.checked_sub(&T::Moment::saturated_from(report_timestamp))
 			.ok_or("Underflow while calculating elapsed time since report creation")?;
