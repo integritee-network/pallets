@@ -61,6 +61,10 @@ pub mod dcap {
 
 	pub const DCAP_QUOTE_CERT: &str = include_str!("../test-data/dcap/dcap_quote_cert.der");
 	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test-data/ra_dcap_dump_quote.ra");
+	pub const TEST1_DCAP_QUOTE_SIGNER: [u8; 32] = [
+		65, 89, 193, 118, 86, 172, 17, 149, 206, 160, 174, 75, 219, 151, 51, 235, 110, 135, 20, 55,
+		147, 162, 106, 110, 143, 207, 57, 64, 67, 63, 203, 95,
+	];
 
 	#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 	pub struct QuotingEnclave {

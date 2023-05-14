@@ -23,6 +23,7 @@ use crate::{
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
+use sgx_verify::test_data::dcap::TEST1_DCAP_QUOTE_SIGNER;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use teerex_primitives::SgxBuildMode;
@@ -49,11 +50,7 @@ fn add_and_remove_dcap_enclave_works() {
 		register_quoting_enclave::<Test>(alice.clone());
 		register_tcb_info::<Test>(alice);
 
-		let pubkey: [u8; 32] = [
-			65, 89, 193, 118, 86, 172, 17, 149, 206, 160, 174, 75, 219, 151, 51, 235, 110, 135, 20,
-			55, 147, 162, 106, 110, 143, 207, 57, 64, 67, 63, 203, 95,
-		];
-		let signer = get_signer(&pubkey);
+		let signer = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		assert_ok!(Teerex::register_dcap_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST1_DCAP_QUOTE.to_vec(),
