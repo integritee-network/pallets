@@ -20,7 +20,7 @@ use crate::{
 	collateral::{EnclaveIdentitySigned, TcbInfoSigned},
 	test_data::{
 		consts::{TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT},
-		dcap::{COLLATERAL_VERIFICATION_TIMESTAMP, DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT},
+		dcap::{DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT, TEST_VALID_COLLATERAL_TIMESTAMP},
 	},
 };
 use codec::Decode;
@@ -124,12 +124,9 @@ fn decode_qe_certification_data() {
 fn deserialize_qe_identity_works() {
 	let certs = extract_certs(include_bytes!("../test-data/dcap/qe_identity_issuer_chain.pem"));
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert = verify_certificate_chain(
-		&certs[0],
-		&intermediate_slices,
-		COLLATERAL_VERIFICATION_TIMESTAMP,
-	)
-	.unwrap();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
+			.unwrap();
 	let json: EnclaveIdentitySigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/qe_identity.json")).unwrap();
 	let json_data = serde_json::to_vec(&json.enclave_identity).unwrap();
@@ -144,12 +141,9 @@ fn deserialize_qe_identity_works() {
 fn deserialize_tcb_info_works() {
 	let certs = extract_certs(include_bytes!("../test-data/dcap/tcb_info_issuer_chain.pem"));
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert = verify_certificate_chain(
-		&certs[0],
-		&intermediate_slices,
-		COLLATERAL_VERIFICATION_TIMESTAMP,
-	)
-	.unwrap();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
+			.unwrap();
 	let json: TcbInfoSigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/tcb_info.json")).unwrap();
 
