@@ -21,14 +21,17 @@
 
 use super::*;
 
-use crate::Pallet as Teerex;
+use crate::{
+	test_helpers::{register_quoting_enclave, register_tcb_info},
+	Pallet as Teerex,
+};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::{CheckedConversion, Hash};
 use sp_std::vec;
 use test_utils::{
 	get_signer,
-	test_data::{consts::*, ias::*},
+	test_data::{consts::*, dcap::*, ias::*},
 };
 
 fn ensure_not_skipping_ra_check() {
@@ -77,6 +80,21 @@ benchmarks! {
 		).unwrap();
 
 	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), URL.to_vec())
+	verify {
+		assert_eq!(Teerex::<T>::enclave_count(), 1);
+	}
+
+	// Benchmark `register_dcap_enclave` with the worst possible conditions:
+	// * dcap registration succeeds
+	register_dcap_enclave {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+
+		register_quoting_enclave::<T>(signer.clone());
+		register_tcb_info::<T>(signer.clone());
+
+	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), URL.to_vec())
 	verify {
 		assert_eq!(Teerex::<T>::enclave_count(), 1);
 	}
