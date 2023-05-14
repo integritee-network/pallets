@@ -22,7 +22,7 @@
 use super::*;
 
 use crate::{
-	test_helpers::{register_quoting_enclave, register_tcb_info},
+	test_helpers::{get_test_tcb_info, register_quoting_enclave, register_test_tcb_info},
 	Pallet as Teerex,
 };
 use frame_benchmarking::{account, benchmarks};
@@ -84,6 +84,20 @@ benchmarks! {
 		assert_eq!(Teerex::<T>::enclave_count(), 1);
 	}
 
+	// Benchmark `register_tcb_info` with the worst possible conditions:
+	// * tcb registration succeeds
+	register_tcb_info {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+		register_quoting_enclave::<T>(signer.clone());
+
+	}: _(RawOrigin::Signed(signer), TCB_INFO.to_vec(), TCB_INFO_SIGNATURE.to_vec(), TCB_INFO_CERTIFICATE_CHAIN.to_vec())
+	verify {
+		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
+		assert_eq!(get_test_tcb_info::<T>().next_update, 1681649132000);
+	}
+
 	// Benchmark `register_dcap_enclave` with the worst possible conditions:
 	// * dcap registration succeeds
 	register_dcap_enclave {
@@ -92,7 +106,7 @@ benchmarks! {
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
 		register_quoting_enclave::<T>(signer.clone());
-		register_tcb_info::<T>(signer.clone());
+		register_test_tcb_info::<T>(signer.clone());
 
 	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), URL.to_vec())
 	verify {

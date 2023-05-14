@@ -1,10 +1,12 @@
-use crate::{Config, Pallet};
+use crate::{Config, Pallet, TcbInfo};
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
+use hex_literal::hex;
 use sgx_verify::test_data::dcap::{
 	QE_IDENTITY_ISSUER_CHAIN, QUOTING_ENCLAVE, QUOTING_ENCLAVE_SIGNATURE, TCB_INFO,
 	TCB_INFO_CERTIFICATE_CHAIN, TCB_INFO_SIGNATURE,
 };
+use teerex_primitives::TcbInfoOnChain;
 
 /// Registers a predefined quoting enclave.
 ///
@@ -29,7 +31,7 @@ where
 /// Registers a predefined TCB-Info.
 ///
 /// This can be done by any account.
-pub fn register_tcb_info<T>(account: T::AccountId)
+pub fn register_test_tcb_info<T>(account: T::AccountId)
 where
 	T: Config,
 	<T as frame_system::Config>::Hash: From<[u8; 32]>,
@@ -44,4 +46,14 @@ where
 		signature.to_vec(),
 		certificate_chain.to_vec(),
 	));
+}
+
+/// Gets the above tcb info.
+pub fn get_test_tcb_info<T>() -> TcbInfoOnChain
+where
+	T: Config,
+	<T as frame_system::Config>::Hash: From<[u8; 32]>,
+{
+	let fmspc = hex!("00906EA10000");
+	TcbInfo::<T>::get(fmspc)
 }

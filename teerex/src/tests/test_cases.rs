@@ -17,7 +17,7 @@
 
 use crate::{
 	mock::*,
-	test_helpers::{register_quoting_enclave, register_tcb_info},
+	test_helpers::{register_quoting_enclave, register_test_tcb_info},
 	Enclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request, ShardIdentifier,
 	DATA_LENGTH_LIMIT,
 };
@@ -48,7 +48,7 @@ fn add_and_remove_dcap_enclave_works() {
 
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_quoting_enclave::<Test>(alice.clone());
-		register_tcb_info::<Test>(alice);
+		register_test_tcb_info::<Test>(alice);
 
 		let signer = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		assert_ok!(Teerex::register_dcap_enclave(
@@ -83,7 +83,7 @@ fn register_tcb_info_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
-		register_tcb_info::<Test>(AccountKeyring::Alice.to_account_id());
+		register_test_tcb_info::<Test>(AccountKeyring::Alice.to_account_id());
 		let fmspc = hex!("00906EA10000");
 		let tcb_info = Teerex::tcb_info(fmspc);
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
