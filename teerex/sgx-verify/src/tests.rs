@@ -19,19 +19,13 @@ use super::*;
 use crate::{
 	collateral::{EnclaveIdentitySigned, TcbInfoSigned},
 	test_data::consts::{
-		TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT,
+		COLLATERAL_VERIFICATION_TIMESTAMP, DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT, TEST4_CERT,
+		TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT,
 	},
 };
 use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
-
-const QE_IDENTITY_CERT: &str = include_str!("../test-data/dcap/qe_identity_cert.pem");
-const DCAP_QUOTE_CERT: &str = include_str!("../test-data/dcap/dcap_quote_cert.der");
-const PCK_CRL: &[u8] = include_bytes!("../test-data/dcap/pck_crl.der");
-
-/// Collateral test data mus be valid at this time (2022-10-11 14:01:02) for the tests to work
-const COLLATERAL_VERIFICATION_TIMESTAMP: u64 = 1665489662000;
 
 #[test]
 fn verify_ias_report_should_work() {

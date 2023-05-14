@@ -73,6 +73,12 @@ pub mod consts {
 	pub const TEST8_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST8_PRODUCTION.der");
 
 	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test-data/ra_dcap_dump_quote.ra");
+	pub const QE_IDENTITY_CERT: &str = include_str!("../test-data/dcap/qe_identity_cert.pem");
+	pub const DCAP_QUOTE_CERT: &str = include_str!("../test-data/dcap/dcap_quote_cert.der");
+	pub const PCK_CRL: &[u8] = include_bytes!("../test-data/dcap/pck_crl.der");
+
+	/// Collateral test data must be valid at this time (2022-10-11 14:01:02) for the tests to work
+	pub const COLLATERAL_VERIFICATION_TIMESTAMP: u64 = 1665489662000;
 
 	// reproduce with integritee-service signing-key
 	pub const TEST4_SIGNER_PUB: &MrSigner =
