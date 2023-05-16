@@ -61,6 +61,8 @@ pub trait WeightInfo {
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
+///
+/// Todo: tests were run with the integritee-node instead of the parachain.
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	/// Storage: Timestamp Now (r:1 w:0)
@@ -194,7 +196,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	}
 }
 
-// For tests
+/// For tests, weights have been generated with the integritee-node.
 impl WeightInfo for () {
 	/// Storage: Timestamp Now (r:1 w:0)
 	/// Proof: Timestamp Now (max_values: Some(1), max_size: Some(8), added: 503, mode: MaxEncodedLen)
