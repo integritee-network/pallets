@@ -106,7 +106,7 @@ pub mod dcap {
 	pub const TCB_INFO_SIGNATURE: [u8; 64] =  hex!("71746f2148ecba04e35cf1ac77a7e6267ce99f6781c1031f724bb5bd94b8c1b6e4c07c01dc151692aa75be80dfba7350bb80c58314a6975189597e28e9bbc75c");
 	pub const TCB_INFO_CERTIFICATE_CHAIN: &[u8] =
 		include_bytes!("../test-data/dcap/tcb_info_issuer_chain.pem");
-	pub const TCB_INFO_FMSPC: &str = hex!("00906EA10000");
+	pub const TCB_INFO_FMSPC: [u8; 6] = hex!("00906EA10000");
 
 	/// Timestamp for which the collateral data must be valid. Represents 2022-12-21 08:12:27
 	pub const TEST_VALID_COLLATERAL_TIMESTAMP: u64 = 1671606747000;
