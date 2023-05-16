@@ -21,14 +21,17 @@
 
 use super::*;
 
-use crate::Pallet as Teerex;
+use crate::{
+	test_helpers::{get_test_tcb_info, register_test_quoting_enclave, register_test_tcb_info},
+	Pallet as Teerex,
+};
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::{CheckedConversion, Hash};
 use sp_std::vec;
 use test_utils::{
 	get_signer,
-	test_data::{consts::*, ias::*},
+	test_data::{consts::*, dcap::*, ias::*},
 };
 
 fn ensure_not_skipping_ra_check() {
@@ -40,16 +43,6 @@ fn ensure_not_skipping_ra_check() {
 
 fn generate_accounts<T: Config>(amount: u32) -> Vec<T::AccountId> {
 	(0..amount).map(|n| account("dummy name", n, n)).collect()
-}
-
-fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
-	for a in accounts.iter() {
-		Teerex::<T>::add_enclave(
-			a,
-			&Enclave::test_enclave(a.clone()).with_mr_enclave(TEST4_SETUP.mrenclave),
-		)
-		.unwrap();
-	}
 }
 
 benchmarks! {
@@ -77,6 +70,48 @@ benchmarks! {
 		).unwrap();
 
 	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), URL.to_vec())
+	verify {
+		assert_eq!(Teerex::<T>::enclave_count(), 1);
+	}
+
+	// Benchmark `register_quoting_enclave` with the worst possible conditions:
+	// * quoting enclave registration succeeds
+	register_quoting_enclave {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+
+	}: _(RawOrigin::Signed(signer), QUOTING_ENCLAVE.to_vec(), QUOTING_ENCLAVE_SIGNATURE.to_vec(), QE_IDENTITY_ISSUER_CHAIN.to_vec())
+	verify {
+		let qe = Pallet::<T>::quoting_enclave();
+		assert_eq!(qe.isvprodid, 1);
+	}
+
+	// Benchmark `register_tcb_info` with the worst possible conditions:
+	// * tcb registration succeeds
+	register_tcb_info {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+		register_test_quoting_enclave::<T>(signer.clone());
+
+	}: _(RawOrigin::Signed(signer), TCB_INFO.to_vec(), TCB_INFO_SIGNATURE.to_vec(), TCB_INFO_CERTIFICATE_CHAIN.to_vec())
+	verify {
+		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
+		assert_eq!(get_test_tcb_info::<T>().next_update, 1681649132000);
+	}
+
+	// Benchmark `register_dcap_enclave` with the worst possible conditions:
+	// * dcap registration succeeds
+	register_dcap_enclave {
+		ensure_not_skipping_ra_check();
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+
+		register_test_quoting_enclave::<T>(signer.clone());
+		register_test_tcb_info::<T>(signer.clone());
+
+	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), URL.to_vec())
 	verify {
 		assert_eq!(Teerex::<T>::enclave_count(), 1);
 	}
@@ -137,6 +172,16 @@ benchmarks! {
 		// does not implement `PartialEq`. So we only verify that the event is emitted here,
 		// and we do more thorough checks in the normal cargo tests.
 		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
+	}
+}
+
+fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
+	for a in accounts.iter() {
+		Teerex::<T>::add_enclave(
+			a,
+			&Enclave::test_enclave(a.clone()).with_mr_enclave(TEST4_SETUP.mrenclave),
+		)
+		.unwrap();
 	}
 }
 

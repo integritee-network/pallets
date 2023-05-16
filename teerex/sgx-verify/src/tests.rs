@@ -18,20 +18,14 @@
 use super::*;
 use crate::{
 	collateral::{EnclaveIdentitySigned, TcbInfoSigned},
-	test_data::consts::{
-		TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT,
+	test_data::{
+		consts::{TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT},
+		dcap::{DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT, TEST_VALID_COLLATERAL_TIMESTAMP},
 	},
 };
 use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
-
-const QE_IDENTITY_CERT: &str = include_str!("../test-data/dcap/qe_identity_cert.pem");
-const DCAP_QUOTE_CERT: &str = include_str!("../test-data/dcap/dcap_quote_cert.der");
-const PCK_CRL: &[u8] = include_bytes!("../test-data/dcap/pck_crl.der");
-
-/// Collateral test data mus be valid at this time (2022-10-11 14:01:02) for the tests to work
-const COLLATERAL_VERIFICATION_TIMESTAMP: u64 = 1665489662000;
 
 #[test]
 fn verify_ias_report_should_work() {
@@ -130,12 +124,9 @@ fn decode_qe_certification_data() {
 fn deserialize_qe_identity_works() {
 	let certs = extract_certs(include_bytes!("../test-data/dcap/qe_identity_issuer_chain.pem"));
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert = verify_certificate_chain(
-		&certs[0],
-		&intermediate_slices,
-		COLLATERAL_VERIFICATION_TIMESTAMP,
-	)
-	.unwrap();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
+			.unwrap();
 	let json: EnclaveIdentitySigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/qe_identity.json")).unwrap();
 	let json_data = serde_json::to_vec(&json.enclave_identity).unwrap();
@@ -150,12 +141,9 @@ fn deserialize_qe_identity_works() {
 fn deserialize_tcb_info_works() {
 	let certs = extract_certs(include_bytes!("../test-data/dcap/tcb_info_issuer_chain.pem"));
 	let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-	let leaf_cert = verify_certificate_chain(
-		&certs[0],
-		&intermediate_slices,
-		COLLATERAL_VERIFICATION_TIMESTAMP,
-	)
-	.unwrap();
+	let leaf_cert =
+		verify_certificate_chain(&certs[0], &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
+			.unwrap();
 	let json: TcbInfoSigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/tcb_info.json")).unwrap();
 
