@@ -21,7 +21,7 @@ use frame_system::RawOrigin;
 use hex_literal::hex;
 use sgx_verify::test_data::dcap::{
 	QE_IDENTITY_ISSUER_CHAIN, QUOTING_ENCLAVE, QUOTING_ENCLAVE_SIGNATURE, TCB_INFO,
-	TCB_INFO_CERTIFICATE_CHAIN, TCB_INFO_SIGNATURE,
+	TCB_INFO_CERTIFICATE_CHAIN, TCB_INFO_FMSPC, TCB_INFO_SIGNATURE,
 };
 use teerex_primitives::TcbInfoOnChain;
 
@@ -71,6 +71,5 @@ where
 	T: Config,
 	<T as frame_system::Config>::Hash: From<[u8; 32]>,
 {
-	let fmspc = hex!("00906EA10000");
-	TcbInfo::<T>::get(fmspc)
+	TcbInfo::<T>::get(TCB_INFO_FMSPC)
 }
