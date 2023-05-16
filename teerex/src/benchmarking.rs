@@ -75,7 +75,7 @@ benchmarks! {
 	}
 
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
-	// * tcb registration succeeds
+	// * quoting enclave registration succeeds
 	register_quoting_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
