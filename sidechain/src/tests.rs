@@ -19,7 +19,7 @@ use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
 use teerex_primitives::MrSigner;
-use test_utils::ias::consts::*;
+use test_utils::test_data::consts::*;
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {

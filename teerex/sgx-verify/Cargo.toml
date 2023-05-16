@@ -14,6 +14,7 @@ chrono = { version = "0.4", default-features = false, features = ["serde"] }
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 der = { default-features = false, version = "0.6.0" }
 hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
+hex-literal = { version = "0.3.2" }
 ring = { git = "https://github.com/Niederb/ring-xous.git", branch = "0.16.20-cleanup", default-features = false, features = ["alloc"] }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
 serde = { default-features = false, version = "1.0.140", features = ["derive"] }
@@ -55,3 +56,6 @@ std = [
     "sp-io/std",
     "sp-std/std",
 ]
+# Export ias/dcap data when we want to use them
+# in tests/benchmarks in the pallets.
+test-data = []

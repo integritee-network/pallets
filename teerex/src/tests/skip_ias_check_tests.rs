@@ -18,8 +18,8 @@
 use crate::{mock::*, Enclave, EnclaveRegistry};
 use frame_support::assert_ok;
 use sp_keyring::AccountKeyring;
-use test_utils::ias::{
-	consts::{TEST4_MRENCLAVE, URL},
+use test_utils::{
+	test_data::consts::{TEST4_MRENCLAVE, URL},
 	TestEnclave,
 };
 

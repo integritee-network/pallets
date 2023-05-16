@@ -21,7 +21,7 @@ use pallet_teerex::Error;
 use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
 use teeracle_primitives::*;
-use test_utils::ias::consts::{
+use test_utils::test_data::consts::{
 	TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST5_MRENCLAVE,
 	TEST5_SIGNER_PUB, TEST8_MRENCLAVE, URL,
 };

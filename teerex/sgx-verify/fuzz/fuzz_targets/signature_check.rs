@@ -12,7 +12,7 @@ fuzz_target!(|data: &[u8]| {
 		return
 	}
 
-	let cert = include_str!("../../test/dcap/qe_identity_cert.pem");
+	let cert = include_str!("../../test-data/dcap/qe_identity_cert.pem");
 	let cert = cert.replace('\n', "");
 	let decoded_cert = base64::decode(&cert).unwrap();
 	let cert = webpki::EndEntityCert::from(decoded_cert.as_slice()).unwrap();

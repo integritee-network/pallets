@@ -67,13 +67,11 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
-	// TODO benchmark dcap registration
 	fn register_dcap_enclave() -> Weight {
 		Weight::from_ref_time(1_969_500_000)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
-	// TODO benchmark dcap registration
 	fn register_quoting_enclave() -> Weight {
 		Weight::from_ref_time(1_969_500_000)
 			.saturating_add(RocksDbWeight::get().reads(2))

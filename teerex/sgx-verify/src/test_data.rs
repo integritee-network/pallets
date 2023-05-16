@@ -15,44 +15,7 @@
 
 */
 
-use core::default::Default;
-use teerex_primitives::{Enclave, MrEnclave};
-
-pub trait TestEnclave<AccountId, Url> {
-	fn test_enclave(pubkey: AccountId) -> Enclave<AccountId, Url>;
-	fn with_mr_enclave(self, mr_enclave: MrEnclave) -> Enclave<AccountId, Url>;
-	fn with_timestamp(self, timestamp: u64) -> Enclave<AccountId, Url>;
-	fn with_url(self, url: Url) -> Enclave<AccountId, Url>;
-}
-
-impl<AccountId, Url: Default> TestEnclave<AccountId, Url> for Enclave<AccountId, Url> {
-	fn test_enclave(pubkey: AccountId) -> Self {
-		Enclave::new(
-			pubkey,
-			Default::default(),
-			Default::default(),
-			Default::default(),
-			Default::default(),
-		)
-	}
-
-	fn with_mr_enclave(mut self, mr_enclave: MrEnclave) -> Self {
-		self.mr_enclave = mr_enclave;
-		self
-	}
-
-	fn with_timestamp(mut self, timestamp: u64) -> Self {
-		self.timestamp = timestamp;
-		self
-	}
-
-	fn with_url(mut self, url: Url) -> Self {
-		self.url = url;
-		self
-	}
-}
-
-pub mod setups {
+pub mod ias {
 	use super::consts::*;
 	use teerex_primitives::MrEnclave;
 
@@ -103,26 +66,26 @@ pub mod consts {
 	];
 
 	// reproduce with "integritee_service dump_ra"
-	pub const TEST4_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST4.der");
-	pub const TEST5_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST5.der");
-	pub const TEST6_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST6.der");
-	pub const TEST7_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST7.der");
-	pub const TEST8_CERT: &[u8] = include_bytes!("./ias-data/ra_dump_cert_TEST8_PRODUCTION.der");
+	pub const TEST4_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST4.der");
+	pub const TEST5_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST5.der");
+	pub const TEST6_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST6.der");
+	pub const TEST7_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST7.der");
+	pub const TEST8_CERT: &[u8] = include_bytes!("../test-data/ra_dump_cert_TEST8_PRODUCTION.der");
 
-	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("./ias-data/ra_dcap_dump_quote.ra");
+	pub const TEST1_DCAP_QUOTE: &[u8] = include_bytes!("../test-data/ra_dcap_dump_quote.ra");
 
 	// reproduce with integritee-service signing-key
 	pub const TEST4_SIGNER_PUB: &MrSigner =
-		include_bytes!("./ias-data/enclave-signing-pubkey-TEST4.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST4.bin");
 	// equal to TEST4! because of MRSIGNER policy it was possible to change the MRENCLAVE but keep the secret
 	pub const TEST5_SIGNER_PUB: &MrSigner =
-		include_bytes!("./ias-data/enclave-signing-pubkey-TEST5.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST5.bin");
 	pub const TEST6_SIGNER_PUB: &MrSigner =
-		include_bytes!("./ias-data/enclave-signing-pubkey-TEST6.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST6.bin");
 	pub const TEST7_SIGNER_PUB: &MrSigner =
-		include_bytes!("./ias-data/enclave-signing-pubkey-TEST7.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST7.bin");
 	pub const TEST8_SIGNER_PUB: &MrSigner =
-		include_bytes!("./ias-data/enclave-signing-pubkey-TEST8-PRODUCTION.bin");
+		include_bytes!("../test-data/enclave-signing-pubkey-TEST8-PRODUCTION.bin");
 
 	// reproduce with "make mrenclave" in worker repo root
 	// MRSIGNER is always 83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e

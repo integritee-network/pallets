@@ -155,6 +155,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 //Build genesis storage for mockup, where RA from enclave compiled in debug mode is NOT allowed
+#[cfg(not(feature = "skip-ias-check"))]
 pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
@@ -171,12 +172,14 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	ext
 }
 
-//Help method for the OnTimestampSet to be called
+/// Helper method for the OnTimestampSet to be called
+#[cfg(not(feature = "skip-ias-check"))]
 pub fn set_timestamp(t: u64) {
 	let _ = timestamp::Pallet::<Test>::set(RuntimeOrigin::none(), t);
 }
 
 /// Run until a particular block.
+#[cfg(not(feature = "skip-ias-check"))]
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
 		if System::block_number() > 1 {
