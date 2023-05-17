@@ -51,8 +51,8 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_teerex.
 pub trait WeightInfo {
 	fn register_ias_enclave() -> Weight;
-	fn register_tcb_info() -> Weight;
 	fn register_quoting_enclave() -> Weight;
+	fn register_tcb_info() -> Weight;
 	fn register_dcap_enclave() -> Weight;
 	fn unregister_enclave() -> Weight;
 	fn call_worker() -> Weight;
