@@ -361,7 +361,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(8)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::register_tcb_info(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_tcb_info(
 			origin: OriginFor<T>,
 			tcb_info: Vec<u8>,
@@ -385,7 +385,7 @@ pub mod pallet {
 		/// `data` can be anything worthwhile publishing related to the hash. If it is a
 		/// utf8-encoded string, the UIs will usually even render the text.
 		#[pallet::call_index(9)]
-		#[pallet::weight((<T as Config>::WeightInfo::publish_hash(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::publish_hash(extra_topics.len().saturated_into(), data.len().saturated_into()), DispatchClass::Normal, Pays::Yes))]
 		pub fn publish_hash(
 			origin: OriginFor<T>,
 			hash: H256,
