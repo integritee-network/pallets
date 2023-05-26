@@ -30,7 +30,7 @@ pub trait WeightInfo {
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn confirm_imported_sidechain_block() -> Weight {
-		Weight::from_ref_time(46_200_000)
+		Weight::from_parts(46_200_000, 0u64)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -39,7 +39,7 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 // For tests
 impl WeightInfo for () {
 	fn confirm_imported_sidechain_block() -> Weight {
-		Weight::from_ref_time(46_200_000)
+		Weight::from_parts(46_200_000, 0u64)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}

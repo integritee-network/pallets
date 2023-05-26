@@ -54,19 +54,19 @@ pub trait WeightInfo {
 pub struct TestWeightInfo;
 impl WeightInfo for TestWeightInfo {
 	fn claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn mint_claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn claim_attest() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn attest() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn move_claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 }
 
