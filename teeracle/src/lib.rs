@@ -49,7 +49,6 @@ pub mod pallet {
 	pub type OracleDataBlob<T> = BoundedVec<u8, <T as Config>::MaxOracleBlobLen>;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
