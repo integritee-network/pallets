@@ -639,6 +639,7 @@ mod tests {
 
 	use parity_scale_codec::Encode;
 	use sp_core::H256;
+	use sp_runtime::{DispatchError::Token, TokenError::Frozen};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
@@ -715,6 +716,10 @@ mod tests {
 		type MaxReserves = ();
 		type ReserveIdentifier = [u8; 8];
 		type WeightInfo = ();
+		type HoldIdentifier = ();
+		type FreezeIdentifier = ();
+		type MaxHolds = ();
+		type MaxFreezes = ();
 	}
 
 	parameter_types! {
@@ -1135,7 +1140,7 @@ mod tests {
 					180,
 					ExistenceRequirement::AllowDeath
 				),
-				pallet_balances::Error::<Test, _>::LiquidityRestrictions,
+				Token(Frozen),
 			);
 		});
 	}

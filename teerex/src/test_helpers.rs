@@ -18,7 +18,6 @@
 use crate::{Config, Pallet, TcbInfo};
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
-use hex_literal::hex;
 use sgx_verify::test_data::dcap::{
 	QE_IDENTITY_ISSUER_CHAIN, QUOTING_ENCLAVE, QUOTING_ENCLAVE_SIGNATURE, TCB_INFO,
 	TCB_INFO_CERTIFICATE_CHAIN, TCB_INFO_FMSPC, TCB_INFO_SIGNATURE,

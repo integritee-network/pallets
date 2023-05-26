@@ -17,11 +17,7 @@
 
 // Creating mock runtime here
 use crate as pallet_teerex;
-use frame_support::{
-	pallet_prelude::GenesisBuild,
-	parameter_types,
-	traits::{OnFinalize, OnInitialize},
-};
+use frame_support::{self, pallet_prelude::GenesisBuild, parameter_types};
 use frame_system as system;
 use pallet_teerex::Config;
 use sp_core::H256;
@@ -109,6 +105,10 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = ();
+	type MaxFreezes = ();
 }
 
 parameter_types! {
