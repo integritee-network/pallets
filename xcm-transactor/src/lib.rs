@@ -87,7 +87,7 @@ pub mod pallet {
 		///		* buy_execution_weight: 5_000_000_000
 		///
 		#[pallet::call_index(0)]
-		#[pallet::weight(46_200_000)] // Arbitrary weight.
+		#[pallet::weight({46_200_000})] // Arbitrary weight.
 		pub fn send_swap_ump(
 			origin: OriginFor<T>,
 			self_id: ParaId,
