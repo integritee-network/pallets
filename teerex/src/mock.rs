@@ -181,6 +181,7 @@ pub fn set_timestamp(t: u64) {
 /// Run until a particular block.
 #[cfg(not(feature = "skip-ias-check"))]
 pub fn run_to_block(n: u32) {
+	use frame_support::traits::{OnFinalize, OnInitialize};
 	while System::block_number() < n {
 		if System::block_number() > 1 {
 			System::on_finalize(System::block_number());
