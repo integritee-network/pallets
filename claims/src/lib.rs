@@ -1228,6 +1228,13 @@ mod tests {
 	#[test]
 	fn claiming_while_vested_doesnt_work() {
 		new_test_ext().execute_with(|| {
+			CurrencyOf::<Test>::make_free_balance_be(&69, CurrencyOf::<Test>::minimum_balance());
+			assert_ok!(<Test as Config>::VestingSchedule::can_add_vesting_schedule(
+				&69,
+				total_claims(),
+				100,
+				10
+			));
 			// A user is already vested
 			assert_ok!(<Test as Config>::VestingSchedule::add_vesting_schedule(
 				&69,
@@ -1235,10 +1242,7 @@ mod tests {
 				100,
 				10
 			));
-			CurrencyOf::<Test>::make_free_balance_be(
-				&69,
-				total_claims() + CurrencyOf::<Test>::minimum_balance(),
-			);
+			CurrencyOf::<Test>::make_free_balance_be(&69, total_claims());
 			assert_eq!(Balances::free_balance(69), total_claims());
 			assert_ok!(Claims::mint_claim(
 				RuntimeOrigin::root(),
