@@ -1235,7 +1235,10 @@ mod tests {
 				100,
 				10
 			));
-			CurrencyOf::<Test>::make_free_balance_be(&69, total_claims());
+			CurrencyOf::<Test>::make_free_balance_be(
+				&69,
+				total_claims() + CurrencyOf::<Test>::minimum_balance(),
+			);
 			assert_eq!(Balances::free_balance(69), total_claims());
 			assert_ok!(Claims::mint_claim(
 				RuntimeOrigin::root(),
