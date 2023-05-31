@@ -54,19 +54,19 @@ pub trait WeightInfo {
 pub struct TestWeightInfo;
 impl WeightInfo for TestWeightInfo {
 	fn claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn mint_claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn claim_attest() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn attest() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 	fn move_claim() -> Weight {
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0u64)
 	}
 }
 
@@ -77,7 +77,6 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -640,6 +639,7 @@ mod tests {
 
 	use parity_scale_codec::Encode;
 	use sp_core::H256;
+	use sp_runtime::{DispatchError::Token, TokenError::Frozen};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
@@ -716,6 +716,10 @@ mod tests {
 		type MaxReserves = ();
 		type ReserveIdentifier = [u8; 8];
 		type WeightInfo = ();
+		type HoldIdentifier = ();
+		type FreezeIdentifier = ();
+		type MaxHolds = ();
+		type MaxFreezes = ();
 	}
 
 	parameter_types! {
@@ -1136,7 +1140,7 @@ mod tests {
 					180,
 					ExistenceRequirement::AllowDeath
 				),
-				pallet_balances::Error::<Test, _>::LiquidityRestrictions,
+				Token(Frozen),
 			);
 		});
 	}
@@ -1224,6 +1228,13 @@ mod tests {
 	#[test]
 	fn claiming_while_vested_doesnt_work() {
 		new_test_ext().execute_with(|| {
+			CurrencyOf::<Test>::make_free_balance_be(&69, CurrencyOf::<Test>::minimum_balance());
+			assert_ok!(<Test as Config>::VestingSchedule::can_add_vesting_schedule(
+				&69,
+				total_claims(),
+				100,
+				10
+			));
 			// A user is already vested
 			assert_ok!(<Test as Config>::VestingSchedule::add_vesting_schedule(
 				&69,
