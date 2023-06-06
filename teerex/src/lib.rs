@@ -66,8 +66,14 @@ pub mod pallet {
 	pub trait Config: frame_system::Config + timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
+
+		#[pallet::constant]
 		type MomentsPerDay: Get<Self::Moment>;
+
 		type WeightInfo: WeightInfo;
+
+		/// If a worker does not re-register within `MaxSilenceTime`, it will be unregistered.
+		#[pallet::constant]
 		type MaxSilenceTime: Get<Self::Moment>;
 	}
 
