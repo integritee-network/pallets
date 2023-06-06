@@ -72,7 +72,7 @@ pub mod pallet {
 
 		type WeightInfo: WeightInfo;
 
-		/// If a worker does not re-register before `MaxSilenceTime` it will be unregistered.
+		/// If a worker does not re-register within `MaxSilenceTime`, it will be unregistered.
 		#[pallet::constant]
 		type MaxSilenceTime: Get<Self::Moment>;
 	}
