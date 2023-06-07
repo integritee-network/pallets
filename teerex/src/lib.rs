@@ -378,11 +378,21 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
+
+			#[cfg(not(feature = "skip-ias-check"))]
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: report.status,
 				attestation_type: Attestation::Dcap,
+			});
+
+			#[cfg(feature = "skip-ias-check")]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: None,
+				attestation_type: Attestation::Skip,
 			});
 			Ok(().into())
 		}
