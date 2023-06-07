@@ -92,6 +92,12 @@ pub mod pallet {
 			hash: H256,
 			data: Vec<u8>,
 		},
+		TcbInfoRegistered {
+			fmspc: [u8; 6],
+		},
+		QuotingEnclaveRegistered {
+			enclave_identity: Vec<u8>,
+		},
 	}
 
 	// Watch out: we start indexing with 1 instead of zero in order to
@@ -359,9 +365,13 @@ pub mod pallet {
 			log::info!("teerex: called into runtime call register_quoting_enclave()");
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			let quoting_enclave =
-				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
+			let quoting_enclave = Self::verify_quoting_enclave(
+				enclave_identity.clone(),
+				signature,
+				certificate_chain,
+			)?;
 			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
+			Self::deposit_event(Event::QuotingEnclaveRegistered { enclave_identity });
 			Ok(().into())
 		}
 
@@ -379,6 +389,7 @@ pub mod pallet {
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<TcbInfo<T>>::insert(fmspc, on_chain_info);
+			Self::deposit_event(Event::TcbInfoRegistered { fmspc });
 			Ok(().into())
 		}
 

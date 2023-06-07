@@ -32,6 +32,8 @@ use test_utils::test_data::{
 	dcap::{TEST1_DCAP_QUOTE, TEST_VALID_COLLATERAL_TIMESTAMP},
 };
 
+use sgx_verify::test_data::dcap::QUOTING_ENCLAVE;
+
 fn list_enclaves() -> Vec<(u64, Enclave<AccountId, Vec<u8>>)> {
 	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, Enclave<AccountId, Vec<u8>>)>>()
 }
@@ -75,6 +77,11 @@ fn register_quoting_enclave_works() {
 		register_test_quoting_enclave::<Test>(alice);
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.isvprodid, 1);
+
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::QuotingEnclaveRegistered {
+			enclave_identity: QUOTING_ENCLAVE.to_vec(),
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }
 
@@ -88,6 +95,9 @@ fn register_tcb_info_works() {
 		let tcb_info = Teerex::tcb_info(fmspc);
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
 		assert_eq!(tcb_info.next_update, 1681649132000);
+
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::TcbInfoRegistered { fmspc });
+		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }
 
