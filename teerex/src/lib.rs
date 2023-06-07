@@ -94,9 +94,10 @@ pub mod pallet {
 		},
 		TcbInfoRegistered {
 			fmspc: Fmspc,
+			on_chain_info: TcbInfoOnChain,
 		},
 		QuotingEnclaveRegistered {
-			enclave_identity: Vec<u8>,
+			quoting_enclave: QuotingEnclave,
 		},
 	}
 
@@ -370,8 +371,8 @@ pub mod pallet {
 				signature,
 				certificate_chain,
 			)?;
-			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
-			Self::deposit_event(Event::QuotingEnclaveRegistered { enclave_identity });
+			<QuotingEnclaveRegistry<T>>::put(&quoting_enclave);
+			Self::deposit_event(Event::QuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
 
@@ -388,8 +389,8 @@ pub mod pallet {
 			let _sender = ensure_signed(origin)?;
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
-			<TcbInfo<T>>::insert(fmspc, on_chain_info);
-			Self::deposit_event(Event::TcbInfoRegistered { fmspc });
+			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
+			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
 
