@@ -383,7 +383,7 @@ pub mod pallet {
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
-				tcb_status: report.status,
+				tcb_status: Some(report.status),
 				attestation_type: Attestation::Dcap,
 			});
 
