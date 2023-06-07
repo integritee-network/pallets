@@ -93,7 +93,7 @@ pub mod pallet {
 			data: Vec<u8>,
 		},
 		TcbInfoRegistered {
-			fmspc: [u8; 6],
+			fmspc: Fmspc,
 		},
 		QuotingEnclaveRegistered {
 			enclave_identity: Vec<u8>,
