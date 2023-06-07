@@ -26,6 +26,7 @@ use frame_support::{
 use frame_system::{self, ensure_signed};
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
+	SgxStatus,
 };
 use sp_core::H256;
 use sp_runtime::{traits::SaturatedConversion, Saturating};
@@ -83,6 +84,8 @@ pub mod pallet {
 		AddedEnclave {
 			registered_by: T::AccountId,
 			worker_url: Vec<u8>,
+			tcb_status: SgxStatus,
+			attestation_type: Attestation,
 		},
 		RemovedEnclave(T::AccountId),
 		Forwarded(ShardIdentifier),
@@ -172,13 +175,16 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
-				Enclave::new(
-					sender.clone(),
-					report.mr_enclave,
-					report.timestamp,
-					worker_url.clone(),
-					report.build_mode,
+			let (enclave, report) = Self::verify_report(&sender, ra_report).map(|report| {
+				(
+					Enclave::new(
+						sender.clone(),
+						report.mr_enclave,
+						report.timestamp,
+						worker_url.clone(),
+						report.build_mode,
+					),
+					report,
 				)
 			})?;
 
@@ -202,7 +208,12 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave { registered_by: sender, worker_url });
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: report.status,
+				attestation_type: Attestation::Ias,
+			});
 			Ok(().into())
 		}
 
@@ -324,13 +335,16 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
-				Enclave::new(
-					sender.clone(),
-					report.mr_enclave,
-					report.timestamp,
-					worker_url.clone(),
-					report.build_mode,
+			let (enclave, report) = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
+				(
+					Enclave::new(
+						sender.clone(),
+						report.mr_enclave,
+						report.timestamp,
+						worker_url.clone(),
+						report.build_mode,
+					),
+					report,
 				)
 			})?;
 
@@ -354,7 +368,12 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave { registered_by: sender, worker_url });
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: report.status,
+				attestation_type: Attestation::Dcap,
+			});
 			Ok(().into())
 		}
 
