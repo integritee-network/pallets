@@ -76,9 +76,8 @@ fn register_quoting_enclave_works() {
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.isvprodid, 1);
 
-		let expected_event = RuntimeEvent::Teerex(TeerexEvent::QuotingEnclaveRegistered {
-			quoting_enclave: qe,
-		});
+		let expected_event =
+			RuntimeEvent::Teerex(TeerexEvent::QuotingEnclaveRegistered { quoting_enclave: qe });
 		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }
@@ -94,7 +93,8 @@ fn register_tcb_info_works() {
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
 		assert_eq!(tcb_info.next_update, 1681649132000);
 
-		let expected_event = RuntimeEvent::Teerex(TeerexEvent::TcbInfoRegistered { fmspc, on_chain_info: tcb_info });
+		let expected_event =
+			RuntimeEvent::Teerex(TeerexEvent::TcbInfoRegistered { fmspc, on_chain_info: tcb_info });
 		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }

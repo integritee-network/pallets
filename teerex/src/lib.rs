@@ -80,7 +80,10 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		AddedEnclave(T::AccountId, Vec<u8>),
+		AddedEnclave {
+			registered_by: T::AccountId,
+			worker_url: Vec<u8>,
+		},
 		RemovedEnclave(T::AccountId),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
@@ -199,7 +202,7 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Self::deposit_event(Event::AddedEnclave { registered_by: sender, worker_url });
 			Ok(().into())
 		}
 
@@ -351,7 +354,7 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+			Self::deposit_event(Event::AddedEnclave { registered_by: sender, worker_url });
 			Ok(().into())
 		}
 
