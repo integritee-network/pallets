@@ -84,7 +84,7 @@ pub mod pallet {
 		AddedEnclave {
 			registered_by: T::AccountId,
 			worker_url: Vec<u8>,
-			tcb_status: SgxStatus,
+			tcb_status: Option<SgxStatus>,
 			attestation_type: Attestation,
 		},
 		RemovedEnclave(T::AccountId),
@@ -208,11 +208,21 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
+
+			#[cfg(not(feature = "skip-ias-check"))]
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
-				tcb_status: report.status,
+				tcb_status: Some(report.status),
 				attestation_type: Attestation::Ias,
+			});
+
+			#[cfg(feature = "skip-ias-check")]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: None,
+				attestation_type: Attestation::Skip,
 			});
 			Ok(().into())
 		}
