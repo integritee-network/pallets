@@ -35,7 +35,7 @@ impl Default for SgxBuildMode {
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub enum Attestation {
+pub enum AttestationMethod {
 	Dcap,
 	Ias,
 	Skip,

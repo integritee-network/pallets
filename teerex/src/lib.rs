@@ -85,7 +85,7 @@ pub mod pallet {
 			registered_by: T::AccountId,
 			worker_url: Vec<u8>,
 			tcb_status: Option<SgxStatus>,
-			attestation_type: Attestation,
+			attestation_method: AttestationMethod,
 		},
 		RemovedEnclave(T::AccountId),
 		Forwarded(ShardIdentifier),
@@ -214,7 +214,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(report.status),
-				attestation_type: Attestation::Ias,
+				attestation_method: AttestationMethod::Ias,
 			});
 
 			#[cfg(feature = "skip-ias-check")]
@@ -222,7 +222,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: None,
-				attestation_type: Attestation::Skip,
+				attestation_method: AttestationMethod::Skip,
 			});
 			Ok(().into())
 		}
@@ -384,7 +384,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(report.status),
-				attestation_type: Attestation::Dcap,
+				attestation_method: AttestationMethod::Dcap,
 			});
 
 			#[cfg(feature = "skip-ias-check")]
@@ -392,7 +392,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: None,
-				attestation_type: Attestation::Skip,
+				attestation_method: AttestationMethod::Skip,
 			});
 			Ok(().into())
 		}
