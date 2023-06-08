@@ -26,6 +26,7 @@ use frame_support::{
 use frame_system::{self, ensure_signed};
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
+	SgxStatus,
 };
 use sp_core::H256;
 use sp_runtime::{traits::SaturatedConversion, Saturating};
@@ -80,7 +81,12 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		AddedEnclave(T::AccountId, Vec<u8>),
+		AddedEnclave {
+			registered_by: T::AccountId,
+			worker_url: Vec<u8>,
+			tcb_status: Option<SgxStatus>,
+			attestation_method: AttestationMethod,
+		},
 		RemovedEnclave(T::AccountId),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
@@ -91,6 +97,13 @@ pub mod pallet {
 			mr_enclave: MrEnclave,
 			hash: H256,
 			data: Vec<u8>,
+		},
+		TcbInfoRegistered {
+			fmspc: Fmspc,
+			on_chain_info: TcbInfoOnChain,
+		},
+		QuotingEnclaveRegistered {
+			quoting_enclave: QuotingEnclave,
 		},
 	}
 
@@ -162,13 +175,16 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_report(&sender, ra_report).map(|report| {
-				Enclave::new(
-					sender.clone(),
-					report.mr_enclave,
-					report.timestamp,
-					worker_url.clone(),
-					report.build_mode,
+			let (enclave, report) = Self::verify_report(&sender, ra_report).map(|report| {
+				(
+					Enclave::new(
+						sender.clone(),
+						report.mr_enclave,
+						report.timestamp,
+						worker_url.clone(),
+						report.build_mode,
+					),
+					report,
 				)
 			})?;
 
@@ -192,7 +208,22 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: Some(report.status),
+				attestation_method: AttestationMethod::Ias,
+			});
+
+			#[cfg(feature = "skip-ias-check")]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: None,
+				attestation_method: AttestationMethod::Skip,
+			});
 			Ok(().into())
 		}
 
@@ -314,13 +345,16 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
-				Enclave::new(
-					sender.clone(),
-					report.mr_enclave,
-					report.timestamp,
-					worker_url.clone(),
-					report.build_mode,
+			let (enclave, report) = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
+				(
+					Enclave::new(
+						sender.clone(),
+						report.mr_enclave,
+						report.timestamp,
+						worker_url.clone(),
+						report.build_mode,
+					),
+					report,
 				)
 			})?;
 
@@ -344,7 +378,22 @@ pub mod pallet {
 			);
 
 			Self::add_enclave(&sender, &enclave)?;
-			Self::deposit_event(Event::AddedEnclave(sender, worker_url));
+
+			#[cfg(not(feature = "skip-ias-check"))]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: Some(report.status),
+				attestation_method: AttestationMethod::Dcap,
+			});
+
+			#[cfg(feature = "skip-ias-check")]
+			Self::deposit_event(Event::AddedEnclave {
+				registered_by: sender,
+				worker_url,
+				tcb_status: None,
+				attestation_method: AttestationMethod::Skip,
+			});
 			Ok(().into())
 		}
 
@@ -359,9 +408,13 @@ pub mod pallet {
 			log::info!("teerex: called into runtime call register_quoting_enclave()");
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			let quoting_enclave =
-				Self::verify_quoting_enclave(enclave_identity, signature, certificate_chain)?;
-			<QuotingEnclaveRegistry<T>>::put(quoting_enclave);
+			let quoting_enclave = Self::verify_quoting_enclave(
+				enclave_identity.clone(),
+				signature,
+				certificate_chain,
+			)?;
+			<QuotingEnclaveRegistry<T>>::put(&quoting_enclave);
+			Self::deposit_event(Event::QuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
 
@@ -378,7 +431,8 @@ pub mod pallet {
 			let _sender = ensure_signed(origin)?;
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
-			<TcbInfo<T>>::insert(fmspc, on_chain_info);
+			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
+			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
 

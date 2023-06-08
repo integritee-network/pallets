@@ -14,7 +14,7 @@
 	limitations under the License.
 
 */
-use crate::mock::*;
+use crate::{mock::*, Event as ParentchainEvent};
 use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
@@ -45,6 +45,10 @@ fn verify_storage_works() {
 		assert_eq!(Parentchain::block_number(), block_number);
 		assert_eq!(Parentchain::parent_hash(), parent_hash);
 		assert_eq!(Parentchain::block_hash(), hash);
+
+		System::assert_last_event(
+			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash }.into(),
+		);
 	})
 }
 

@@ -52,11 +52,12 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Parentchain: pallet_parentchain::{Pallet, Call, Storage},
+		Parentchain: pallet_parentchain::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
 impl Config for Test {
+	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 }
 

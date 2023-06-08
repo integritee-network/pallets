@@ -14,7 +14,14 @@ pub mod pallet {
 	/// Configuration trait.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
+	}
+
+	#[pallet::event]
+	#[pallet::generate_deposit(pub(super) fn deposit_event)]
+	pub enum Event<T: Config> {
+		SetBlock { block_number: T::BlockNumber, parent_hash: T::Hash, block_hash: T::Hash },
 	}
 
 	/// The current block number being processed. Set by `set_block`.
@@ -44,6 +51,11 @@ pub mod pallet {
 			<Number<T>>::put(header.number());
 			<ParentHash<T>>::put(header.parent_hash());
 			<BlockHash<T>>::put(header.hash());
+			Self::deposit_event(Event::SetBlock {
+				block_number: *header.number(),
+				parent_hash: *header.parent_hash(),
+				block_hash: header.hash(),
+			});
 			Ok(())
 		}
 	}
