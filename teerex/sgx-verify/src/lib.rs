@@ -493,9 +493,9 @@ pub fn deserialize_tcb_info(
 	log::info!(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, verify_signature succeded"
 	);
-	let res = serde_json::from_slice(data);
+	let res = TcbInfo::from_byte_slice(data);
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, serde_json::from_slice is {:#?}", &res
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, TcbInfo::from_byte_slice is {:#?}", &res
 	);
 	res.map_err(|_| "Deserialization failed")
 }
