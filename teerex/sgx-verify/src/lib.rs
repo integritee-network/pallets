@@ -493,7 +493,11 @@ pub fn deserialize_tcb_info(
 	log::info!(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, verify_signature succeded"
 	);
-	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
+	let res = serde_json::from_slice(data);
+	log::info!(
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, serde_json::from_slice is {:#?}", &res
+	);
+	res.map_err(|_| "Deserialization failed")
 }
 
 /// Extract a list of certificates from a byte vec. The certificates must be separated by
