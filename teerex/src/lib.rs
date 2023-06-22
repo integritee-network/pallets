@@ -394,6 +394,7 @@ pub mod pallet {
 				tcb_status: None,
 				attestation_method: AttestationMethod::Skip,
 			});
+			log::info!("teerex: added enclave: ok");
 			Ok(().into())
 		}
 
@@ -641,6 +642,7 @@ impl<T: Config> Pallet<T> {
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
 		ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
+		log::info!("teerex: DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
@@ -651,6 +653,7 @@ impl<T: Config> Pallet<T> {
 		//     "RA status is insufficient");
 		// log::info!("teerex: status is acceptable");
 
+		log::info!("teerex: DCAP report is: {:?}", &report);
 		Ok(report)
 	}
 
