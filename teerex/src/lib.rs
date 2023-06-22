@@ -641,7 +641,11 @@ impl<T: Config> Pallet<T> {
 
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-		ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
+		log::info!("teerex: DCAP quote ensuring...");
+		let res = tcb_info_on_chain.verify_examinee(&tcb_info);
+		log::info!("teerex: DCAP quote ensure result is: {:#?}", &res);
+		ensure!(res, "tcb_info is outdated");
+
 		log::info!("teerex: DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
