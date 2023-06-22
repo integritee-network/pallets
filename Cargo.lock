@@ -3167,6 +3167,7 @@ dependencies = [
  "frame-support",
  "hex",
  "hex-literal 0.3.4",
+ "log",
  "parity-scale-codec",
  "ring 0.16.20 (git+https://github.com/Niederb/ring-xous.git?branch=0.16.20-cleanup)",
  "scale-info",

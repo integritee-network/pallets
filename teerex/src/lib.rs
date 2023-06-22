@@ -430,10 +430,12 @@ pub mod pallet {
 			log::info!("teerex: called into runtime call register_tcb_info()");
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
+			log::info!("teerex: called into runtime call register_tcb_info(), origin is ensured to be signed");
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
 			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
+			log::info!("teerex: called into runtime call register_tcb_info(), Self::verify_tcb_info succeded.");
 			Ok(().into())
 		}
 
@@ -691,13 +693,22 @@ impl<T: Config> Pallet<T> {
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
 	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
+		log::info!(
+			"teerex: called into runtime call register_tcb_info(), inside Self::verify_tcb_info."
+		);
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		log::info!(
+			"teerex: called into runtime call register_tcb_info(), inside Self::verify_tcb_info, certs len is >= 2."
+		);
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+		log::info!(
+			"teerex: called into runtime call register_tcb_info(), Self::deserialize_tcb_info succeded."
+		);
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
 		} else {
