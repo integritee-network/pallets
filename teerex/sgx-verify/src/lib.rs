@@ -482,7 +482,19 @@ pub fn deserialize_tcb_info(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info."
 	);
 	let signature = encode_as_der(signature)?;
+	log::info!(
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, signature is: {:#?}", &signature
+	);
+	log::info!(
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, certificate is: {:#?}", &certificate
+	);
+	log::info!(
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, data is: {:#?}", &data
+	);
 	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
+	log::info!(
+		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, verify_signature succeded"
+	);
 	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
 }
 
