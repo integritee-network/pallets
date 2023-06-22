@@ -642,8 +642,8 @@ impl<T: Config> Pallet<T> {
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
 		log::info!("teerex: DCAP quote ensuring...");
-		let res = tcb_info_on_chain.verify_examinee(&tcb_info);
-		log::info!("teerex: DCAP quote ensure result is: {:#?}", &res);
+		//let res = tcb_info_on_chain.verify_examinee(&tcb_info);
+		//log::info!("teerex: DCAP quote ensure result is: {:#?}", &res);
 		// TODO reenable check
 		//ensure!(res, "tcb_info is outdated");
 
@@ -652,6 +652,7 @@ impl<T: Config> Pallet<T> {
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
+		log::info!("teerex: DCAP quote ensure sender == enclave_signer");
 
 		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
