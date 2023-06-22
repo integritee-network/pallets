@@ -485,9 +485,7 @@ pub fn deserialize_tcb_info(
 	log::info!(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, signature is: {:#?}", &signature
 	);
-	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, certificate is: {:#?}", &certificate
-	);
+
 	log::info!(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, data is: {:#?}", &data
 	);
