@@ -641,9 +641,9 @@ impl<T: Config> Pallet<T> {
 
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-		log::info!("teerex: DCAP quote ensuring...");
-		//let res = tcb_info_on_chain.verify_examinee(&tcb_info);
-		//log::info!("teerex: DCAP quote ensure result is: {:#?}", &res);
+		log::info!("teerex: TCB Info verification...");
+		let res = tcb_info_on_chain.verify_examinee(&tcb_info);
+		log::info!("teerex: TCB Info verification done, result is: {:#?}", &res);
 		// TODO reenable check
 		//ensure!(res, "tcb_info is outdated");
 
