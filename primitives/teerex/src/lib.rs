@@ -171,6 +171,9 @@ pub struct TcbInfoOnChain {
 
 impl TcbInfoOnChain {
 	pub fn new(issue_date: u64, next_update: u64, tcb_levels: Vec<TcbVersionStatus>) -> Self {
+		log::info!("teerex: called into TcbInfoOnChain::new()");
+
+		log::info!("teerex: called into TcbInfoOnChain::new(), tcbLevels: {:#?}", &tcb_levels);
 		Self { issue_date, next_update, tcb_levels }
 	}
 

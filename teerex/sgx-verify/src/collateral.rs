@@ -20,6 +20,7 @@ pub extern crate alloc;
 
 use alloc::string::String;
 use chrono::prelude::{DateTime, Utc};
+use log;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
 use teerex_primitives::{
@@ -324,6 +325,12 @@ impl TcbInfoV2 {
 		)
 	}
 	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
+		log::info!("teerex: called into runtime call v2::is_valid().");
+		log::info!(
+			"teerex: called into runtime call v2::is_valid(), timestamp_millis: {:#?}",
+			timestamp_millis
+		);
+		log::info!("teerex: called into runtime call v2::is_valid(), self: {:#?}", self);
 		self.version == 2 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&
 			timestamp_millis < self.next_update.timestamp_millis()
