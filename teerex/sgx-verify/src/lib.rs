@@ -497,7 +497,7 @@ pub fn deserialize_tcb_info(
 	log::info!(
 		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, TcbInfo::from_byte_slice is {:#?}", &res
 	);
-	res.ok_or_else(|| "Deserialization failed")
+	res.ok_or("Deserialization failed")
 }
 
 /// Extract a list of certificates from a byte vec. The certificates must be separated by

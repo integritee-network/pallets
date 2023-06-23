@@ -274,10 +274,8 @@ impl TcbInfo {
 	pub fn from_byte_slice(slice: &[u8]) -> Option<TcbInfo> {
 		if let Some(v2) = TcbInfoV2::from_byte_slice(slice) {
 			Some(TcbInfo::V2(v2))
-		} else if let Some(v3) = TcbInfoV3::from_byte_slice(slice) {
-			Some(TcbInfo::V3(v3))
 		} else {
-			None
+			TcbInfoV3::from_byte_slice(slice).map(TcbInfo::V3)
 		}
 	}
 }
