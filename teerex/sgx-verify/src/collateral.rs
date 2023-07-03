@@ -65,7 +65,7 @@ impl TcbLevel {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct TcbComponent {
 	svn: u8,
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -75,13 +75,13 @@ struct TcbComponent {
 	tcb_type: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TcbFull {
 	sgxtcbcomponents: [TcbComponent; 16],
 	pcesvn: Pcesvn,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TcbLevelFull {
 	tcb: TcbFull,
@@ -181,7 +181,7 @@ impl EnclaveIdentity {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TcbInfo {
 	id: String,
@@ -230,6 +230,8 @@ impl TcbInfo {
 	}
 
 	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
+		log::debug!("teerex: called into runtime call register_tcb_info(), inside Self::is_valid, self is: {:#?}" , &self);
+		log::debug!("teerex: called into runtime call register_tcb_info(), inside Self::is_valid, timestamp_millis: {:#?}" , &timestamp_millis);
 		self.id == "SGX" &&
 			self.version == 3 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&
