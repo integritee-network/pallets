@@ -168,11 +168,11 @@ pub mod pallet {
 			ra_report: Vec<u8>,
 			worker_url: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_ias_enclave()");
+			log::info!(target: TEEREX, "Called into runtime call register_ias_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter length ok");
+			log::info!(target: TEEREX, "parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			let (enclave, report) = Self::verify_report(&sender, ra_report).map(|report| {
@@ -230,7 +230,7 @@ pub mod pallet {
 		#[pallet::call_index(1)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call unregister_enclave()");
+			log::info!(target: TEEREX, "Called into runtime call unregister_enclave()");
 			let sender = ensure_signed(origin)?;
 
 			Self::remove_enclave(&sender)?;
@@ -338,11 +338,11 @@ pub mod pallet {
 			dcap_quote: Vec<u8>,
 			worker_url: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_dcap_enclave()");
+			log::info!(target: TEEREX, "Called into runtime call register_dcap_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter length ok");
+			log::info!(target: TEEREX, "parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			let (enclave, report) = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
@@ -394,7 +394,7 @@ pub mod pallet {
 				tcb_status: None,
 				attestation_method: AttestationMethod::Skip,
 			});
-			log::info!("teerex: added enclave: ok");
+			log::info!(target: TEEREX, "added enclave: ok");
 			Ok(().into())
 		}
 
@@ -406,7 +406,7 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_quoting_enclave()");
+			log::info!(target: TEEREX, "Called into runtime call register_quoting_enclave()");
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
 			let quoting_enclave = Self::verify_quoting_enclave(
@@ -427,15 +427,21 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_tcb_info()");
+			log::info!(target: TEEREX, "Called into runtime call register_tcb_info()");
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			log::info!("teerex: called into runtime call register_tcb_info(), origin is ensured to be signed");
+			log::info!(
+				target: TEEREX,
+				"Called into runtime call register_tcb_info(), origin is ensured to be signed"
+			);
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
 			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
-			log::info!("teerex: called into runtime call register_tcb_info(), Self::verify_tcb_info succeded.");
+			log::info!(
+				target: TEEREX,
+				"Called into runtime call register_tcb_info(), Self::verify_tcb_info succeded."
+			);
 			Ok(().into())
 		}
 
@@ -611,7 +617,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<sgx_verify::SgxReport, DispatchErrorWithPostInfo> {
 		let report = sgx_verify::verify_ias_report(&ra_report)
 			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-		log::info!("teerex: IAS report successfully verified");
+		log::info!(target: TEEREX, "IAS report successfully verified");
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
@@ -620,7 +626,7 @@ impl<T: Config> Pallet<T> {
 		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
-		// log::info!("teerex: status is acceptable");
+		// log::info!(target: TEEREX, "status is acceptable");
 
 		Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 		Ok(report)
@@ -641,29 +647,29 @@ impl<T: Config> Pallet<T> {
 					<Error<T>>::RemoteAttestationVerificationFailed
 				})?;
 
-		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
+		log::info!(target: TEEREX, "DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-		log::info!("teerex: TCB Info verification...");
-		log::info!("teerex: tcb_info_on_chain is: {:#?}", &tcb_info_on_chain);
+		log::info!(target: TEEREX, "TCB Info verification...");
+		log::info!(target: TEEREX, "tcb_info_on_chain is: {:#?}", &tcb_info_on_chain);
 		let res = tcb_info_on_chain.verify_examinee(&tcb_info);
-		log::info!("teerex: TCB Info verification done, result is: {:#?}", &res);
+		log::info!(target: TEEREX, "TCB Info verification done, result is: {:#?}", &res);
 		// TODO reenable check
 		//ensure!(res, "tcb_info is outdated");
 
-		log::info!("teerex: DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
+		log::info!(target: TEEREX, "DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		// ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
-		log::info!("teerex: DCAP quote ensure sender: {:#?}", sender);
-		log::info!("teerex: DCAP quote ensure enclave_signer: {:#?}", &enclave_signer);
+		log::info!(target: TEEREX, "DCAP quote ensure sender: {:#?}", sender);
+		log::info!(target: TEEREX, "DCAP quote ensure enclave_signer: {:#?}", &enclave_signer);
 
 		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
-		// log::info!("teerex: status is acceptable");
+		// log::info!(target: TEEREX, "status is acceptable");
 
-		log::info!("teerex: DCAP report is: {:?}", &report);
+		log::info!(target: TEEREX, "DCAP report is: {:?}", &report);
 		Ok(report)
 	}
 
@@ -694,20 +700,22 @@ impl<T: Config> Pallet<T> {
 		certificate_chain: Vec<u8>,
 	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
 		log::info!(
-			"teerex: called into runtime call register_tcb_info(), inside Self::verify_tcb_info."
+			target: TEEREX,
+			"Called into runtime call register_tcb_info(), inside Self::verify_tcb_info."
 		);
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
 		log::info!(
-			"teerex: called into runtime call register_tcb_info(), inside Self::verify_tcb_info, certs len is >= 2."
+			target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::verify_tcb_info, certs len is >= 2."
 		);
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		log::info!(
-			"teerex: called into runtime call register_tcb_info(), Self::deserialize_tcb_info succeded."
+			target: TEEREX,
+			"Called into runtime call register_tcb_info(), Self::deserialize_tcb_info succeded."
 		);
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())

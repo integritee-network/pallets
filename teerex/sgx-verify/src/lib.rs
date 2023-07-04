@@ -50,6 +50,7 @@ use sp_std::{
 };
 use teerex_primitives::{
 	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus,
+	TEEREX,
 };
 use webpki::SignatureAlgorithm;
 use x509_cert::Certificate;
@@ -479,23 +480,24 @@ pub fn deserialize_tcb_info(
 	certificate: &webpki::EndEntityCert,
 ) -> Result<TcbInfo, &'static str> {
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info."
+		target: TEEREX,
+		"Called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info."
 	);
 	let signature = encode_as_der(signature)?;
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, signature is: {:#?}", &signature
+		target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, signature is: {:#?}", &signature
 	);
 
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, data is: {:#?}", &data
+		target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, data is: {:#?}", &data
 	);
 	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, verify_signature succeded"
+		target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, verify_signature succeded"
 	);
 	let res = serde_json::from_slice(data);
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, serde_json::from_slice is {:#?}", &res
+		target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::deserialize_tcb_info, serde_json::from_slice is {:#?}", &res
 	);
 	res.map_err(|_| "Deserialization failed")
 }
@@ -521,12 +523,13 @@ pub fn verify_certificate_chain<'a>(
 	verification_time: u64,
 ) -> Result<webpki::EndEntityCert<'a>, &'static str> {
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::verify_certificate_chain."
+		target: TEEREX,
+		"Called into runtime call register_tcb_info(), inside Self::verify_certificate_chain."
 	);
 	let leaf_cert: webpki::EndEntityCert =
 		webpki::EndEntityCert::from(leaf_cert).map_err(|_| "Failed to parse leaf certificate")?;
 	log::info!(
-			"teerex: called into runtime call register_tcb_info(), inside Self::verify_certificate_chain, leaf cert parsed."
+			target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::verify_certificate_chain, leaf cert parsed."
 		);
 	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
@@ -534,7 +537,7 @@ pub fn verify_certificate_chain<'a>(
 		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, intermediate_certs, time)
 		.map_err(|_| "Invalid certificate chain")?;
 	log::info!(
-		"teerex: called into runtime call register_tcb_info(), inside Self::verify_certificate_chain, is valid tls server cert."
+		target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::verify_certificate_chain, is valid tls server cert."
 	);
 	Ok(leaf_cert)
 }
