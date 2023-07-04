@@ -22,7 +22,7 @@ use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_std::prelude::*;
 
-pub const TEEREX: &str = "TEEREX";
+pub const TEEREX: &str = "teerex";
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxBuildMode {
