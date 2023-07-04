@@ -230,12 +230,12 @@ impl TcbInfo {
 	}
 
 	pub fn is_valid(&self, timestamp_millis: i64) -> bool {
+		log::debug!(target: TEEREX, "inside Self::is_valid, self is: {:#?}", &self);
 		log::debug!(
 			target: TEEREX,
-			"Called into runtime call register_tcb_info(), inside Self::is_valid, self is: {:#?}",
-			&self
+			"inside Self::is_valid, timestamp_millis: {:#?}",
+			&timestamp_millis
 		);
-		log::debug!(target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::is_valid, timestamp_millis: {:#?}" , &timestamp_millis);
 		self.id == "SGX" &&
 			self.version == 3 &&
 			self.issue_date.timestamp_millis() < timestamp_millis &&

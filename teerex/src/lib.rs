@@ -430,18 +430,12 @@ pub mod pallet {
 			log::info!(target: TEEREX, "Called into runtime call register_tcb_info()");
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
-			log::info!(
-				target: TEEREX,
-				"Called into runtime call register_tcb_info(), origin is ensured to be signed"
-			);
+			log::trace!(target: TEEREX, "In register_tcb_info(), origin is ensured to be signed");
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
 			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
-			log::info!(
-				target: TEEREX,
-				"Called into runtime call register_tcb_info(), Self::verify_tcb_info succeded."
-			);
+			log::debug!(target: TEEREX, "In register_tcb_info(), Self::verify_tcb_info succeded.");
 			Ok(().into())
 		}
 
@@ -649,27 +643,27 @@ impl<T: Config> Pallet<T> {
 
 		log::info!(target: TEEREX, "DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
-		log::info!(target: TEEREX, "TCB Info verification...");
-		log::info!(target: TEEREX, "tcb_info_on_chain is: {:#?}", &tcb_info_on_chain);
+		log::trace!(target: TEEREX, "TCB Info verification...");
+		log::debug!(target: TEEREX, "tcb_info_on_chain is: {:#?}", &tcb_info_on_chain);
 		let res = tcb_info_on_chain.verify_examinee(&tcb_info);
-		log::info!(target: TEEREX, "TCB Info verification done, result is: {:#?}", &res);
+		log::trace!(target: TEEREX, "TCB Info verification done, result is: {:#?}", &res);
 		// TODO reenable check
 		//ensure!(res, "tcb_info is outdated");
 
-		log::info!(target: TEEREX, "DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
+		log::debug!(target: TEEREX, "DCAP quote ensured. tcbinfo: {:?}", &tcb_info);
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
 		// ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
-		log::info!(target: TEEREX, "DCAP quote ensure sender: {:#?}", sender);
-		log::info!(target: TEEREX, "DCAP quote ensure enclave_signer: {:#?}", &enclave_signer);
+		log::trace!(target: TEEREX, "DCAP quote ensure sender: {:#?}", sender);
+		log::trace!(target: TEEREX, "DCAP quote ensure enclave_signer: {:#?}", &enclave_signer);
 
 		// TODO: activate state checks as soon as we've fixed our setup #83
 		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 		//     "RA status is insufficient");
 		// log::info!(target: TEEREX, "status is acceptable");
 
-		log::info!(target: TEEREX, "DCAP report is: {:?}", &report);
+		log::debug!(target: TEEREX, "DCAP report is: {:?}", &report);
 		Ok(report)
 	}
 
@@ -699,24 +693,15 @@ impl<T: Config> Pallet<T> {
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
 	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
-		log::info!(
-			target: TEEREX,
-			"Called into runtime call register_tcb_info(), inside Self::verify_tcb_info."
-		);
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
-		log::info!(
-			target: TEEREX, "Called into runtime call register_tcb_info(), inside Self::verify_tcb_info, certs len is >= 2."
-		);
+		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
-		log::info!(
-			target: TEEREX,
-			"Called into runtime call register_tcb_info(), Self::deserialize_tcb_info succeded."
-		);
+		log::debug!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
 		} else {
