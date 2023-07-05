@@ -31,7 +31,6 @@ use test_utils::test_data::{
 	consts::*,
 	dcap::{TEST1_DCAP_QUOTE, TEST_VALID_COLLATERAL_TIMESTAMP},
 };
-use codec::Encode;
 
 fn list_enclaves() -> Vec<(u64, SgxEnclave<Vec<u8>>)> {
 	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, SgxEnclave<Vec<u8>>)>>()
@@ -164,9 +163,9 @@ fn list_enclaves_works() {
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 		assert_ok!(Teerex::register_ias_enclave(
 			RuntimeOrigin::signed(signer.clone()),
@@ -176,6 +175,7 @@ fn list_enclaves_works() {
 		assert_eq!(Teerex::enclave_count(), 1);
 		let enclaves = list_enclaves();
 		assert_eq!(enclaves[0].1.maybe_pubkey(), Some(signer));
+		assert_eq!(enclaves[0].1, e_1);
 		assert!(enclaves.contains(&(1, e_1)));
 	})
 }
@@ -197,9 +197,9 @@ fn remove_middle_enclave_works() {
 			timestamp: TEST5_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		let e_2: SgxEnclave<Vec<u8>> = SgxEnclave {
@@ -208,9 +208,9 @@ fn remove_middle_enclave_works() {
 			timestamp: TEST6_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		let e_3: SgxEnclave<Vec<u8>> = SgxEnclave {
@@ -219,9 +219,9 @@ fn remove_middle_enclave_works() {
 			timestamp: TEST7_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		assert_ok!(Teerex::register_ias_enclave(
@@ -321,9 +321,9 @@ fn update_enclave_url_works() {
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(url2.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		assert_ok!(Teerex::register_ias_enclave(
@@ -457,14 +457,14 @@ fn timestamp_callback_works() {
 
 		// add enclave 1
 		let e_2: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST5_SIGNER_PUB),
+			report_data: get_report_data_from_pubkey(TEST6_SIGNER_PUB),
 			mr_enclave: TEST6_MRENCLAVE,
 			timestamp: TEST6_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		let e_3: SgxEnclave<Vec<u8>> = SgxEnclave {
@@ -473,9 +473,9 @@ fn timestamp_callback_works() {
 			timestamp: TEST7_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		//Register 3 enclaves: 5, 6 ,7
@@ -539,9 +539,9 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::ConfigurationNeeded,
 		};
 
 		//Register an enclave compiled in debug mode
@@ -568,9 +568,9 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 				timestamp: TEST8_TIMESTAMP,
 				url: Some(URL.to_vec()),
 				build_mode: SgxBuildMode::Production,
-				mr_signer: *TEST4_SIGNER_PUB,
+				mr_signer: TEST8_MRSIGNER,
 				attestation_method: SgxAttestationMethod::Ias,
-				status: SgxStatus::Ok,
+				status: SgxStatus::Invalid,
 			};
 
 			//Register an enclave compiled in production mode
@@ -581,6 +581,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			));
 			assert_eq!(Teerex::enclave_count(), 1);
 			let enclaves = list_enclaves();
+			assert_eq!(enclaves[0].1, e_0);
 			assert!(enclaves.contains(&(1, e_0)));
 		})
 	})
@@ -614,9 +615,9 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 			timestamp: TEST8_TIMESTAMP,
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Production,
-			mr_signer: *TEST4_SIGNER_PUB,
+			mr_signer: TEST8_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
-			status: SgxStatus::Ok,
+			status: SgxStatus::Invalid,
 		};
 
 		//Register an enclave compiled in production mode
@@ -627,6 +628,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 		));
 		assert_eq!(Teerex::enclave_count(), 1);
 		let enclaves = list_enclaves();
+		assert_eq!(enclaves[0].1, e_0);
 		assert!(enclaves.contains(&(1, e_0)));
 	})
 }

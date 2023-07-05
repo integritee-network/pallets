@@ -105,11 +105,11 @@ impl<Url> SgxEnclave<Url> {
 			PubKey: Decode,
 	{
 		let mut xt_signer_array = [0u8; 32];
-		xt_signer_array.copy_from_slice(&self.report_data.d);
+		xt_signer_array.copy_from_slice(&self.report_data.d[..32]);
 		match PubKey::decode(&mut &xt_signer_array[..]) {
 			Ok(p) => {
 				match self.attestation_method {
-					SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) => Some(p),
+					SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) | SgxAttestationMethod::Ias => Some(p),
 					_ => None
 				}
 			},
