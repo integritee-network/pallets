@@ -49,7 +49,7 @@ use sp_std::{
 	prelude::*,
 };
 use teerex_primitives::{
-	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, TcbVersionStatus,
+	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, SgxStatus, SgxReportData, TcbVersionStatus,
 };
 use webpki::SignatureAlgorithm;
 use x509_cert::Certificate;
@@ -62,13 +62,6 @@ pub mod test_data;
 #[cfg(test)]
 mod tests;
 mod utils;
-
-const SGX_REPORT_DATA_SIZE: usize = 64;
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
-#[repr(C)]
-pub struct SgxReportData {
-	d: [u8; SGX_REPORT_DATA_SIZE],
-}
 
 #[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
@@ -331,24 +324,11 @@ pub struct SgxQuote {
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub enum SgxStatus {
-	Invalid,
-	Ok,
-	GroupOutOfDate,
-	GroupRevoked,
-	ConfigurationNeeded,
-}
-impl Default for SgxStatus {
-	fn default() -> Self {
-		SgxStatus::Invalid
-	}
-}
-
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct SgxReport {
+pub struct SgxVerifiedReport {
 	pub mr_enclave: MrEnclave,
-	pub pubkey: [u8; 32],
+	pub mr_signer: MrSigner,
+	pub report_data: SgxReportData,
 	pub status: SgxStatus,
 	pub timestamp: u64, // unix timestamp in milliseconds
 	pub build_mode: SgxBuildMode,
@@ -538,7 +518,7 @@ pub fn verify_dcap_quote(
 	dcap_quote_raw: &[u8],
 	verification_time: u64,
 	qe: &QuotingEnclave,
-) -> Result<(Fmspc, TcbVersionStatus, SgxReport), &'static str> {
+) -> Result<(Fmspc, TcbVersionStatus, SgxVerifiedReport), &'static str> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
@@ -553,8 +533,6 @@ pub fn verify_dcap_quote(
 		"Only support for PEM formatted PCK Cert Chain"
 	);
 	ensure!(quote.quote_signature_data.qe_report.verify(qe), "Enclave rejected by quoting enclave");
-	let mut xt_signer_array = [0u8; 32];
-	xt_signer_array.copy_from_slice(&quote.body.report_data.d[..32]);
 
 	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
@@ -617,10 +595,11 @@ pub fn verify_dcap_quote(
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
 	ensure!(dcap_quote_clone.is_empty(), "There should be no bytes left over after decoding");
-	let report = SgxReport {
+	let report = SgxVerifiedReport {
 		mr_enclave: quote.body.mr_enclave,
+		mr_signer: quote.body.mr_signer,
+		report_data: quote.body.report_data,
 		status: SgxStatus::Ok,
-		pubkey: xt_signer_array,
 		timestamp: verification_time,
 		build_mode: quote.body.sgx_build_mode(),
 	};
@@ -628,7 +607,7 @@ pub fn verify_dcap_quote(
 }
 
 // make sure this function doesn't panic!
-pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
+pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
 	// Before we reach here, the runtime already verified the extrinsic is properly signed by the extrinsic sender
 	// Hence, we skip: EphemeralKey::try_from(cert)?;
 
@@ -654,7 +633,7 @@ pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxReport, &'static str> {
 	parse_report(netscape.attestation_raw)
 }
 
-fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
+fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
 	// parse attestation report
 	let attn_report: Value = match serde_json::from_slice(report_raw) {
 		Ok(report) => report,
@@ -718,12 +697,11 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxReport, &'static str> {
 			println!("sgx quote report_data = {:x?}", sgx_quote.report_body.report_data.d.to_vec());
 		}
 
-		let mut xt_signer_array = [0u8; 32];
-		xt_signer_array.copy_from_slice(&sgx_quote.report_body.report_data.d[..32]);
-		Ok(SgxReport {
+		Ok(SgxVerifiedReport {
 			mr_enclave: sgx_quote.report_body.mr_enclave,
+			mr_signer: sgx_quote.report_body.mr_signer,
 			status: ra_status,
-			pubkey: xt_signer_array,
+			report_data: sgx_quote.report_body.report_data,
 			timestamp: ra_timestamp,
 			build_mode: sgx_quote.report_body.sgx_build_mode(),
 		})

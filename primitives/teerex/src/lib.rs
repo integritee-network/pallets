@@ -35,33 +35,85 @@ impl Default for SgxBuildMode {
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub enum AttestationMethod {
-	Dcap,
+pub enum SgxAttestationMethod {
+	Skip(bool),
 	Ias,
-	Skip,
+	Dcap(bool),
+}
+
+impl Default for SgxAttestationMethod {
+	fn default() -> Self {
+		SgxAttestationMethod::Skip(false)
+	}
+}
+
+const SGX_REPORT_DATA_SIZE: usize = 64;
+#[derive(Debug, Encode, Decode, Copy, Clone, PartialEq, Eq, TypeInfo)]
+#[repr(C)]
+pub struct SgxReportData {
+	pub d: [u8; SGX_REPORT_DATA_SIZE],
+}
+
+impl Default for SgxReportData {
+	fn default() -> Self {
+		SgxReportData{d: [0u8; SGX_REPORT_DATA_SIZE]}
+	}
+}
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub enum SgxStatus {
+	Invalid,
+	Ok,
+	GroupOutOfDate,
+	GroupRevoked,
+	ConfigurationNeeded,
+}
+impl Default for SgxStatus {
+	fn default() -> Self {
+		SgxStatus::Invalid
+	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct Enclave<PubKey, Url> {
-	pub pubkey: PubKey, // FIXME: this is redundant information
+pub struct SgxEnclave<Url> {
+	pub report_data: SgxReportData,
 	pub mr_enclave: MrEnclave,
-	// Todo: make timestamp: Moment
+	pub mr_signer: MrSigner,
 	pub timestamp: u64, // unix epoch in milliseconds
-	pub url: Url,       // utf8 encoded url
-	pub sgx_mode: SgxBuildMode,
+	pub url: Option<Url>,       // utf8 encoded url
+	pub build_mode: SgxBuildMode,
+	pub attestation_method: SgxAttestationMethod,
+	pub status: SgxStatus,
 }
 
-impl<PubKey, Url> Enclave<PubKey, Url> {
+impl<Url> SgxEnclave<Url> {
 	pub fn new(
-		pubkey: PubKey,
+		report_data: SgxReportData,
 		mr_enclave: MrEnclave,
+		mr_signer: MrSigner,
 		timestamp: u64,
-		url: Url,
-		sgx_build_mode: SgxBuildMode,
+		url: Option<Url>,
+		build_mode: SgxBuildMode,
+		attestation_method: SgxAttestationMethod,
+		status: SgxStatus,
 	) -> Self {
-		Enclave { pubkey, mr_enclave, timestamp, url, sgx_mode: sgx_build_mode }
+		SgxEnclave { report_data, mr_enclave, mr_signer, timestamp, url, build_mode, attestation_method, status }
+	}
+
+	pub fn try_pubkey<PubKey>(&self) -> Result<PubKey, &'static str>
+		where
+			PubKey: From<[u8; 32]>,
+	{
+		let mut xt_signer_array = [0u8; 32];
+		xt_signer_array.copy_from_slice(&self.report_data.d);
+		match self.attestation_method {
+			SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) => Ok(PubKey::from(xt_signer_array)),
+			_ => Err("can't derive pubkey from proxied enclave")
+		}
 	}
 }
+
+
 
 /// The list of valid TCBs for an enclave.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
