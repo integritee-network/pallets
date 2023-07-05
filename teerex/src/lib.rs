@@ -654,7 +654,7 @@ impl<T: Config> Pallet<T> {
 
 		let enclave_signer = T::AccountId::decode(&mut &report.pubkey[..])
 			.map_err(|_| <Error<T>>::EnclaveSignerDecodeError)?;
-		// ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
+		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 		log::trace!(target: TEEREX, "DCAP quote ensure sender: {:#?}", sender);
 		log::trace!(target: TEEREX, "DCAP quote ensure enclave_signer: {:#?}", &enclave_signer);
 
