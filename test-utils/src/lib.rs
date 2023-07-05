@@ -18,28 +18,22 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use sgx_verify::test_data;
-pub use teerex_primitives::{Enclave, MrEnclave};
+pub use teerex_primitives::{SgxEnclave, MrEnclave};
 
 pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
 	AccountId::from(*pubkey)
 }
 
-pub trait TestEnclave<AccountId, Url> {
-	fn test_enclave(pubkey: AccountId) -> Enclave<AccountId, Url>;
-	fn with_mr_enclave(self, mr_enclave: MrEnclave) -> Enclave<AccountId, Url>;
-	fn with_timestamp(self, timestamp: u64) -> Enclave<AccountId, Url>;
-	fn with_url(self, url: Url) -> Enclave<AccountId, Url>;
+pub trait TestEnclave<Url> {
+	fn test_enclave() -> SgxEnclave<Url>;
+	fn with_mr_enclave(self, mr_enclave: MrEnclave) -> SgxEnclave<Url>;
+	fn with_timestamp(self, timestamp: u64) -> SgxEnclave<Url>;
+	fn with_url(self, url: Url) -> SgxEnclave<Url>;
 }
 
-impl<AccountId, Url: Default> TestEnclave<AccountId, Url> for Enclave<AccountId, Url> {
-	fn test_enclave(pubkey: AccountId) -> Self {
-		Enclave::new(
-			pubkey,
-			Default::default(),
-			Default::default(),
-			Default::default(),
-			Default::default(),
-		)
+impl<Url: Default> TestEnclave<Url> for SgxEnclave<Url> {
+	fn test_enclave() -> Self {
+		SgxEnclave::default()
 	}
 
 	fn with_mr_enclave(mut self, mr_enclave: MrEnclave) -> Self {
@@ -53,7 +47,7 @@ impl<AccountId, Url: Default> TestEnclave<AccountId, Url> for Enclave<AccountId,
 	}
 
 	fn with_url(mut self, url: Url) -> Self {
-		self.url = url;
+		self.url = Some(url);
 		self
 	}
 }

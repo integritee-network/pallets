@@ -100,20 +100,34 @@ impl<Url> SgxEnclave<Url> {
 		SgxEnclave { report_data, mr_enclave, mr_signer, timestamp, url, build_mode, attestation_method, status }
 	}
 
-	pub fn try_pubkey<PubKey>(&self) -> Result<PubKey, &'static str>
+	pub fn maybe_pubkey<PubKey>(&self) -> Option<PubKey>
 		where
-			PubKey: From<[u8; 32]>,
+			PubKey: Decode,
 	{
 		let mut xt_signer_array = [0u8; 32];
 		xt_signer_array.copy_from_slice(&self.report_data.d);
-		match self.attestation_method {
-			SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) => Ok(PubKey::from(xt_signer_array)),
-			_ => Err("can't derive pubkey from proxied enclave")
+		match PubKey::decode(&mut &xt_signer_array[..]) {
+			Ok(p) => {
+				match self.attestation_method {
+					SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) => Some(p),
+					_ => None
+				}
+			},
+			Err(_) => None,
 		}
 	}
+
+	pub fn with_url(mut self, url: Url) -> Self {
+		self.url = Some(url);
+		self
+	}
+
+	pub fn with_attestation_method(mut self, attestation_method: SgxAttestationMethod) -> Self {
+		self.attestation_method = attestation_method;
+		self
+	}
+
 }
-
-
 
 /// The list of valid TCBs for an enclave.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
