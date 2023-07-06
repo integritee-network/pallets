@@ -146,7 +146,7 @@ impl<Url> MultiEnclave<Url> {
 		}
 	}
 
-	pub fn is_proxied(self) -> bool {
+	pub fn attestaion_proxied(self) -> bool {
 		match self {
 			MultiEnclave::Sgx(enclave) => match enclave.attestation_method {
 				SgxAttestationMethod::Skip(true) | SgxAttestationMethod::Dcap(true) => true,

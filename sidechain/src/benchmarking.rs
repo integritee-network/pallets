@@ -36,7 +36,7 @@ fn generate_accounts<T: Config>(amount: u32) -> Vec<T::AccountId> {
 
 fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
-		Teerex::<T>::add_enclave(
+		Teerex::<T>::add_sgx_enclave(
 			a,
 			&SgxEnclave::test_enclave()
 				.with_pubkey(a.encode())
