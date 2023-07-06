@@ -167,13 +167,29 @@ pub mod pallet {
 
 			match attestation_method {
 				SgxAttestationMethod::Ias => {
-					let enclave =
-						Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
+					let report = sgx_verify::verify_ias_report(&proof)
+						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
+					log::info!("teerex: IAS report successfully verified");
+					let enclave = SgxEnclave::new(
+						report.report_data,
+						report.mr_enclave,
+						report.mr_signer,
+						report.timestamp,
+						report.build_mode,
+						report.status,
+					)
+						.with_attestation_method(SgxAttestationMethod::Ias);
+					let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 
-					if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
-						log::warn!("teerex: debug mode is not allowed to attest!");
-						return Err(<Error<T>>::SgxModeNotAllowed.into())
-					}
+					ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
+
+					// TODO: activate state checks as soon as we've fixed our setup #83
+					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+					//     "RA status is insufficient");
+					// log::info!("teerex: status is acceptable");
+
+					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
+
 				},
 				SgxAttestationMethod::Dcap(proxied) => {
 					let verification_time = <timestamp::Pallet<T>>::get();
@@ -212,6 +228,11 @@ pub mod pallet {
 					//     "RA status is insufficient");
 					// log::info!("teerex: status is acceptable");
 				},
+			}
+
+			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
+				log::warn!("teerex: debug mode is not allowed to attest!");
+				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
 			Self::add_sgx_enclave(&sender, &enclave)?;
@@ -474,7 +495,7 @@ impl<T: Config> Pallet<T> {
 		let multi_enclave = MultiEnclave::from(enclave);
 
 		if multi_enclave.attestaion_proxied() {
-			log::warning!("proxied enclaves not supported yet");
+			log::warn!("proxied enclaves not supported yet");
 			return Err(Error::<T>::SenderIsNotAttestedEnclave)
 		}
 
@@ -538,28 +559,7 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		ra_report: Vec<u8>,
 	) -> Result<SgxEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
-		let report = sgx_verify::verify_ias_report(&ra_report)
-			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-		log::info!("teerex: IAS report successfully verified");
-		let enclave = SgxEnclave::new(
-			report.report_data,
-			report.mr_enclave,
-			report.mr_signer,
-			report.timestamp,
-			report.build_mode,
-			report.status,
-		)
-		.with_attestation_method(SgxAttestationMethod::Ias);
-		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 
-		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
-
-		// TODO: activate state checks as soon as we've fixed our setup #83
-		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
-		//     "RA status is insufficient");
-		// log::info!("teerex: status is acceptable");
-
-		Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 		Ok(enclave)
 	}
 
