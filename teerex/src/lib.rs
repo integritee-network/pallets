@@ -137,7 +137,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
-	pub type AllowSGXDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
+	pub type SgxAllowDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::genesis_config]
 	#[cfg_attr(feature = "std", derive(Default))]
@@ -148,7 +148,7 @@ pub mod pallet {
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
-			AllowSGXDebugMode::<T>::put(self.allow_sgx_debug_mode);
+			SgxAllowDebugMode::<T>::put(self.allow_sgx_debug_mode);
 		}
 	}
 
@@ -177,7 +177,7 @@ pub mod pallet {
 			let enclave = Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			if !<AllowSGXDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
+			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
@@ -350,7 +350,7 @@ pub mod pallet {
 			})?;
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			if !<AllowSGXDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
+			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
