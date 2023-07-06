@@ -152,7 +152,7 @@ impl<Url> SgxEnclave<Url> {
 
 	pub fn with_pubkey(mut self, pubkey: &[u8]) -> Self {
 		let mut data = SgxReportData::default();
-		data.d[..pubkey.len()].copy_from_slice(&pubkey[..]);
+		data.d[..pubkey.len()].copy_from_slice(pubkey);
 		self.report_data = data;
 		self
 	}
