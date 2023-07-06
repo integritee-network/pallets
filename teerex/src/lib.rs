@@ -178,7 +178,7 @@ pub mod pallet {
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			if !<AllowSGXDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
-				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
+				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
@@ -351,7 +351,7 @@ pub mod pallet {
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			if !<AllowSGXDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
-				log::error!("substraTEE_registry: debug mode is not allowed to attest!");
+				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
