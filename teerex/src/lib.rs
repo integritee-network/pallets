@@ -213,7 +213,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip(false),
+				attestation_method: SgxAttestationMethod::Skip { proxied: false },
 			});
 			Ok(().into())
 		}
@@ -359,7 +359,7 @@ pub mod pallet {
 			)
 			.with_pubkey(sender.encode())
 			.with_url(worker_url.clone())
-			.with_attestation_method(SgxAttestationMethod::Skip(false));
+			.with_attestation_method(SgxAttestationMethod::Skip { proxied: false });
 
 			Self::add_enclave(&sender, &enclave)?;
 
@@ -376,7 +376,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip(false),
+				attestation_method: SgxAttestationMethod::Skip { proxied: false },
 			});
 			Ok(().into())
 		}
@@ -650,7 +650,7 @@ impl<T: Config> Pallet<T> {
 			report.build_mode,
 			report.status,
 		)
-		.with_attestation_method(SgxAttestationMethod::Dcap(false));
+		.with_attestation_method(SgxAttestationMethod::Dcap { proxied: false });
 
 		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);

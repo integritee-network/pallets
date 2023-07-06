@@ -36,14 +36,14 @@ impl Default for SgxBuildMode {
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxAttestationMethod {
-	Skip(bool),
+	Skip { proxied: bool },
 	Ias,
-	Dcap(bool),
+	Dcap { proxied: bool },
 }
 
 impl Default for SgxAttestationMethod {
 	fn default() -> Self {
-		SgxAttestationMethod::Skip(false)
+		SgxAttestationMethod::Skip { proxied: false }
 	}
 }
 
@@ -115,8 +115,8 @@ impl<Url> SgxEnclave<Url> {
 		xt_signer_array.copy_from_slice(&self.report_data.d[..32]);
 		match PubKey::decode(&mut &xt_signer_array[..]) {
 			Ok(p) => match self.attestation_method {
-				SgxAttestationMethod::Dcap(false) |
-				SgxAttestationMethod::Skip(false) |
+				SgxAttestationMethod::Dcap { proxied: false } |
+				SgxAttestationMethod::Skip { proxied: false } |
 				SgxAttestationMethod::Ias => Some(p),
 				_ => None,
 			},
