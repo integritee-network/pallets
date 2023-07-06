@@ -92,9 +92,7 @@ impl<Url> SgxEnclave<Url> {
 		mr_enclave: MrEnclave,
 		mr_signer: MrSigner,
 		timestamp: u64,
-		url: Option<Url>,
 		build_mode: SgxBuildMode,
-		attestation_method: SgxAttestationMethod,
 		status: SgxStatus,
 	) -> Self {
 		SgxEnclave {
@@ -102,9 +100,9 @@ impl<Url> SgxEnclave<Url> {
 			mr_enclave,
 			mr_signer,
 			timestamp,
-			url,
+			url: None,
 			build_mode,
-			attestation_method,
+			attestation_method: SgxAttestationMethod::default(),
 			status,
 		}
 	}

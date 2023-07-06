@@ -340,11 +340,11 @@ pub mod pallet {
 						report.mr_enclave,
 						report.mr_signer,
 						report.timestamp,
-						Some(worker_url.clone()),
 						report.build_mode,
-						SgxAttestationMethod::Dcap(false),
 						report.status,
-					),
+					)
+					.with_url(worker_url.clone())
+					.with_attestation_method(SgxAttestationMethod::Dcap(false)),
 					report,
 				)
 			})?;
@@ -613,11 +613,10 @@ impl<T: Config> Pallet<T> {
 			report.mr_enclave,
 			report.mr_signer,
 			report.timestamp,
-			None,
 			report.build_mode,
-			SgxAttestationMethod::Ias,
 			report.status,
-		);
+		)
+		.with_attestation_method(SgxAttestationMethod::Ias);
 		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
@@ -655,11 +654,10 @@ impl<T: Config> Pallet<T> {
 			report.mr_enclave,
 			report.mr_signer,
 			report.timestamp,
-			None,
 			report.build_mode,
-			SgxAttestationMethod::Dcap(false),
 			report.status,
-		);
+		)
+		.with_attestation_method(SgxAttestationMethod::Dcap(false));
 
 		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
