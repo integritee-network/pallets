@@ -133,6 +133,13 @@ impl<Url> SgxEnclave<Url> {
 		self.attestation_method = attestation_method;
 		self
 	}
+
+	pub fn with_pubkey(mut self, pubkey: Vec<u8>) -> Self {
+		let mut data = SgxReportData::default();
+		data.d[..pubkey.len()].copy_from_slice(&pubkey[..]);
+		self.report_data = data;
+		self
+	}
 }
 
 /// The list of valid TCBs for an enclave.

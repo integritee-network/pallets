@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use sgx_verify::test_data;
-use teerex_primitives::SgxReportData;
 pub use teerex_primitives::{MrEnclave, SgxEnclave};
 
 pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
@@ -27,22 +26,13 @@ pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
 
 pub trait TestEnclave<Url> {
 	fn test_enclave() -> SgxEnclave<Url>;
-	fn with_pubkey(self, pubkey: Vec<u8>) -> SgxEnclave<Url>;
 	fn with_mr_enclave(self, mr_enclave: MrEnclave) -> SgxEnclave<Url>;
 	fn with_timestamp(self, timestamp: u64) -> SgxEnclave<Url>;
-	fn with_url(self, url: Url) -> SgxEnclave<Url>;
 }
 
 impl<Url: Default> TestEnclave<Url> for SgxEnclave<Url> {
 	fn test_enclave() -> Self {
 		SgxEnclave::default()
-	}
-
-	fn with_pubkey(mut self, pubkey: Vec<u8>) -> Self {
-		let mut data = SgxReportData::default();
-		data.d[..pubkey.len()].copy_from_slice(&pubkey[..]);
-		self.report_data = data;
-		self
 	}
 
 	fn with_mr_enclave(mut self, mr_enclave: MrEnclave) -> Self {
@@ -52,11 +42,6 @@ impl<Url: Default> TestEnclave<Url> for SgxEnclave<Url> {
 
 	fn with_timestamp(mut self, timestamp: u64) -> Self {
 		self.timestamp = timestamp;
-		self
-	}
-
-	fn with_url(mut self, url: Url) -> Self {
-		self.url = Some(url);
 		self
 	}
 }

@@ -186,14 +186,17 @@ pub mod pallet {
 			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
 
 			#[cfg(feature = "skip-ias-check")]
-			let enclave = SgxEnclave::new(
-				sender.clone(),
+			let enclave = SgxEnclave::<Vec<u8>>::new(
+				SgxReportData::default(),
 				// insert mrenclave if the ra_report represents one, otherwise insert default
 				<MrEnclave>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
+				MrSigner::default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
-				worker_url.clone(),
 				SgxBuildMode::default(),
-			);
+				SgxStatus::Invalid,
+			)
+			.with_pubkey(sender.encode())
+			.with_url(worker_url.clone());
 
 			Self::add_enclave(&sender, &enclave)?;
 
@@ -202,7 +205,7 @@ pub mod pallet {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
-				attestation_method: SgxAttestationMethod::Ias,
+				attestation_method: enclave.attestation_method,
 			});
 
 			#[cfg(feature = "skip-ias-check")]
@@ -333,21 +336,7 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let (enclave, report) = Self::verify_dcap_quote(&sender, dcap_quote).map(|report| {
-				(
-					SgxEnclave::new(
-						report.report_data,
-						report.mr_enclave,
-						report.mr_signer,
-						report.timestamp,
-						report.build_mode,
-						report.status,
-					)
-					.with_url(worker_url.clone())
-					.with_attestation_method(SgxAttestationMethod::Dcap(false)),
-					report,
-				)
-			})?;
+			let enclave = Self::verify_dcap_quote(&sender, dcap_quote)?.with_url(worker_url.clone());
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
@@ -360,13 +349,17 @@ pub mod pallet {
 
 			#[cfg(feature = "skip-ias-check")]
 			let enclave = SgxEnclave::new(
-				sender.clone(),
+				SgxReportData::default(),
 				// insert mrenclave if the ra_report represents one, otherwise insert default
 				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
+				MrSigner::default(),
 				<timestamp::Pallet<T>>::get().saturated_into(),
-				worker_url.clone(),
 				SgxBuildMode::default(),
-			);
+				SgxStatus::Invalid,
+			)
+			.with_pubkey(sender.encode())
+			.with_url(worker_url.clone())
+			.with_attestation_method(SgxAttestationMethod::Skip(false));
 
 			Self::add_enclave(&sender, &enclave)?;
 
@@ -374,8 +367,8 @@ pub mod pallet {
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
-				tcb_status: Some(report.status),
-				attestation_method: SgxAttestationMethod::Dcap(false),
+				tcb_status: Some(enclave.status),
+				attestation_method: enclave.attestation_method,
 			});
 
 			#[cfg(feature = "skip-ias-check")]
