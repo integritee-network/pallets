@@ -195,7 +195,7 @@ pub mod pallet {
 				SgxBuildMode::default(),
 				SgxStatus::Invalid,
 			)
-			.with_pubkey(sender.encode())
+			.with_pubkey(&sender.encode())
 			.with_url(worker_url.clone());
 
 			Self::add_enclave(&sender, &enclave)?;
@@ -357,7 +357,7 @@ pub mod pallet {
 				SgxBuildMode::default(),
 				SgxStatus::Invalid,
 			)
-			.with_pubkey(sender.encode())
+			.with_pubkey(&sender.encode())
 			.with_url(worker_url.clone())
 			.with_attestation_method(SgxAttestationMethod::Skip { proxied: false });
 

@@ -41,12 +41,6 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
 }
 
-fn get_report_data_from_pubkey(pubkey: &[u8; 32]) -> SgxReportData {
-	let mut data = SgxReportData::default();
-	data.d[..32].copy_from_slice(pubkey);
-	data
-}
-
 #[test]
 fn add_and_remove_dcap_enclave_works() {
 	new_test_ext().execute_with(|| {
@@ -158,7 +152,7 @@ fn list_enclaves_works() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let e_1: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST4_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST4_SIGNER_PUB),
 			mr_enclave: TEST4_MRENCLAVE,
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -192,7 +186,7 @@ fn remove_middle_enclave_works() {
 
 		// add enclave 1
 		let e_1: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST5_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST5_SIGNER_PUB),
 			mr_enclave: TEST5_MRENCLAVE,
 			timestamp: TEST5_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -203,7 +197,7 @@ fn remove_middle_enclave_works() {
 		};
 
 		let e_2: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST6_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST6_SIGNER_PUB),
 			mr_enclave: TEST6_MRENCLAVE,
 			timestamp: TEST6_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -214,7 +208,7 @@ fn remove_middle_enclave_works() {
 		};
 
 		let e_3: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST7_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST7_SIGNER_PUB),
 			mr_enclave: TEST7_MRENCLAVE,
 			timestamp: TEST7_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -316,7 +310,7 @@ fn update_enclave_url_works() {
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let url2 = "my fancy url".as_bytes();
 		let _e_1: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST4_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST4_SIGNER_PUB),
 			mr_enclave: TEST4_MRENCLAVE,
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(url2.to_vec()),
@@ -457,7 +451,7 @@ fn timestamp_callback_works() {
 
 		// add enclave 1
 		let e_2: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST6_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST6_SIGNER_PUB),
 			mr_enclave: TEST6_MRENCLAVE,
 			timestamp: TEST6_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -468,7 +462,7 @@ fn timestamp_callback_works() {
 		};
 
 		let e_3: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST7_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST7_SIGNER_PUB),
 			mr_enclave: TEST7_MRENCLAVE,
 			timestamp: TEST7_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -534,7 +528,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 		set_timestamp(TEST4_TIMESTAMP);
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
 		let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST4_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST4_SIGNER_PUB),
 			mr_enclave: TEST4_MRENCLAVE,
 			timestamp: TEST4_TIMESTAMP,
 			url: Some(URL.to_vec()),
@@ -563,7 +557,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			set_timestamp(TEST8_TIMESTAMP);
 			let signer8 = get_signer(TEST8_SIGNER_PUB);
 			let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
-				report_data: get_report_data_from_pubkey(TEST8_SIGNER_PUB),
+				report_data: SgxReportData::from(TEST8_SIGNER_PUB),
 				mr_enclave: TEST8_MRENCLAVE,
 				timestamp: TEST8_TIMESTAMP,
 				url: Some(URL.to_vec()),
@@ -610,7 +604,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 		set_timestamp(TEST8_TIMESTAMP);
 		let signer8 = get_signer(TEST8_SIGNER_PUB);
 		let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
-			report_data: get_report_data_from_pubkey(TEST8_SIGNER_PUB),
+			report_data: SgxReportData::from(TEST8_SIGNER_PUB),
 			mr_enclave: TEST8_MRENCLAVE,
 			timestamp: TEST8_TIMESTAMP,
 			url: Some(URL.to_vec()),

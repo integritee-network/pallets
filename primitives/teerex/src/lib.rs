@@ -60,6 +60,28 @@ impl Default for SgxReportData {
 	}
 }
 
+impl From<&[u8; 32]> for SgxReportData {
+	fn from(pubkey: &[u8; 32]) -> Self {
+		let mut data = SgxReportData::default();
+		data.d[..32].copy_from_slice(pubkey);
+		data
+	}
+}
+
+impl AsRef<[u8; 64]> for SgxReportData {
+	fn as_ref(&self) -> &[u8; 64] {
+		&self.d
+	}
+}
+
+impl SgxReportData {
+	fn lower32(&self) -> [u8; 32] {
+		let mut lower = [0u8; 32];
+		lower.copy_from_slice(&self.d[..32]);
+		lower
+	}
+}
+
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxStatus {
 	#[default]
@@ -107,9 +129,7 @@ impl<Url> SgxEnclave<Url> {
 	where
 		PubKey: Decode,
 	{
-		let mut xt_signer_array = [0u8; 32];
-		xt_signer_array.copy_from_slice(&self.report_data.d[..32]);
-		match PubKey::decode(&mut &xt_signer_array[..]) {
+		match PubKey::decode(&mut self.report_data.lower32().as_ref()) {
 			Ok(p) => match self.attestation_method {
 				SgxAttestationMethod::Dcap { proxied: false } |
 				SgxAttestationMethod::Skip { proxied: false } |
