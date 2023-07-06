@@ -19,6 +19,7 @@
 
 pub use sgx_verify::test_data;
 pub use teerex_primitives::{SgxEnclave, MrEnclave};
+use teerex_primitives::SgxReportData;
 
 pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
 	AccountId::from(*pubkey)
@@ -26,6 +27,7 @@ pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
 
 pub trait TestEnclave<Url> {
 	fn test_enclave() -> SgxEnclave<Url>;
+	fn with_pubkey(self, pubkey: Vec<u8>) -> SgxEnclave<Url>;
 	fn with_mr_enclave(self, mr_enclave: MrEnclave) -> SgxEnclave<Url>;
 	fn with_timestamp(self, timestamp: u64) -> SgxEnclave<Url>;
 	fn with_url(self, url: Url) -> SgxEnclave<Url>;
@@ -34,6 +36,13 @@ pub trait TestEnclave<Url> {
 impl<Url: Default> TestEnclave<Url> for SgxEnclave<Url> {
 	fn test_enclave() -> Self {
 		SgxEnclave::default()
+	}
+
+	fn with_pubkey(mut self, pubkey: Vec<u8>) -> Self {
+		let mut data = SgxReportData::default();
+		data.d[..pubkey.len()].copy_from_slice(&pubkey[..]);
+		self.report_data = data;
+		self
 	}
 
 	fn with_mr_enclave(mut self, mr_enclave: MrEnclave) -> Self {
