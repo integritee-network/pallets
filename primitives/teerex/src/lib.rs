@@ -60,18 +60,14 @@ impl Default for SgxReportData {
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxStatus {
+	#[default]
 	Invalid,
 	Ok,
 	GroupOutOfDate,
 	GroupRevoked,
 	ConfigurationNeeded,
-}
-impl Default for SgxStatus {
-	fn default() -> Self {
-		SgxStatus::Invalid
-	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
