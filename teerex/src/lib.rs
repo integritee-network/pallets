@@ -167,42 +167,27 @@ pub mod pallet {
 
 			match attestation_method {
 				SgxAttestationMethod::Ias => {
-					#[cfg(not(feature = "skip-ias-check"))]
-						let enclave = Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
+					let enclave =
+						Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
 
-					#[cfg(not(feature = "skip-ias-check"))]
 					if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 						log::warn!("teerex: debug mode is not allowed to attest!");
 						return Err(<Error<T>>::SgxModeNotAllowed.into())
 					}
-
-					#[cfg(feature = "skip-ias-check")]
-					log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
-
-					#[cfg(feature = "skip-ias-check")]
-						let enclave = SgxEnclave::<Vec<u8>>::new(
-						SgxReportData::default(),
-						// insert mrenclave if the ra_report represents one, otherwise insert default
-						<MrEnclave>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
-						MrSigner::default(),
-						<timestamp::Pallet<T>>::get().saturated_into(),
-						SgxBuildMode::default(),
-						SgxStatus::Invalid,
-					)
-						.with_pubkey(sender.encode())
-						.with_url(worker_url.clone());
-
 				},
 				SgxAttestationMethod::Dcap(proxied) => {
 					let verification_time = <timestamp::Pallet<T>>::get();
 
 					let qe = <SgxQuotingEnclaveRegistry<T>>::get();
-					let (fmspc, tcb_info, report) =
-						sgx_verify::verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe)
-							.map_err(|e| {
-								log::warn!("verify_dcap_quote failed: {:?}", e);
-								<Error<T>>::RemoteAttestationVerificationFailed
-							})?;
+					let (fmspc, tcb_info, report) = sgx_verify::verify_dcap_quote(
+						&dcap_quote,
+						verification_time.saturated_into(),
+						&qe,
+					)
+					.map_err(|e| {
+						log::warn!("verify_dcap_quote failed: {:?}", e);
+						<Error<T>>::RemoteAttestationVerificationFailed
+					})?;
 
 					log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
 					let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
@@ -216,35 +201,26 @@ pub mod pallet {
 						report.build_mode,
 						report.status,
 					)
-						.with_attestation_method(SgxAttestationMethod::Dcap(proxied));
+					.with_attestation_method(SgxAttestationMethod::Dcap(proxied));
 
-					let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
+					let enclave_signer =
+						enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 					//ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 					//     "RA status is insufficient");
 					// log::info!("teerex: status is acceptable");
-				}
+				},
 			}
-
 
 			Self::add_sgx_enclave(&sender, &enclave)?;
 
-			#[cfg(not(feature = "skip-ias-check"))]
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
 				attestation_method: enclave.attestation_method,
-			});
-
-			#[cfg(feature = "skip-ias-check")]
-			Self::deposit_event(Event::AddedEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip(false),
 			});
 			Ok(().into())
 		}
@@ -366,48 +342,21 @@ pub mod pallet {
 			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
 			log::info!("teerex: parameter length ok");
 
-			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_dcap_quote(&sender, dcap_quote)?.with_url(worker_url.clone());
+			let enclave =
+				Self::verify_dcap_quote(&sender, dcap_quote)?.with_url(worker_url.clone());
 
-			#[cfg(not(feature = "skip-ias-check"))]
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
-			#[cfg(feature = "skip-ias-check")]
-			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
-
-			#[cfg(feature = "skip-ias-check")]
-			let enclave = SgxEnclave::new(
-				SgxReportData::default(),
-				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
-				MrSigner::default(),
-				<timestamp::Pallet<T>>::get().saturated_into(),
-				SgxBuildMode::default(),
-				SgxStatus::Invalid,
-			)
-			.with_pubkey(sender.encode())
-			.with_url(worker_url.clone())
-			.with_attestation_method(SgxAttestationMethod::Skip(false));
-
 			Self::add_sgx_enclave(&sender, &enclave)?;
 
-			#[cfg(not(feature = "skip-ias-check"))]
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
 				attestation_method: enclave.attestation_method,
-			});
-
-			#[cfg(feature = "skip-ias-check")]
-			Self::deposit_event(Event::AddedEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip(false),
 			});
 			Ok(().into())
 		}
@@ -526,7 +475,7 @@ impl<T: Config> Pallet<T> {
 
 		if multi_enclave.attestaion_proxied() {
 			log::warning!("proxied enclaves not supported yet");
-			return Err(Error::<T>::SenderIsNotAttestedEnclave);
+			return Err(Error::<T>::SenderIsNotAttestedEnclave)
 		}
 
 		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
@@ -585,7 +534,6 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	#[cfg(not(feature = "skip-ias-check"))]
 	fn verify_report(
 		sender: &T::AccountId,
 		ra_report: Vec<u8>,
@@ -615,7 +563,6 @@ impl<T: Config> Pallet<T> {
 		Ok(enclave)
 	}
 
-	#[cfg(not(feature = "skip-ias-check"))]
 	fn verify_dcap_quote(
 		sender: &T::AccountId,
 		dcap_quote: Vec<u8>,
@@ -695,7 +642,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	#[cfg(not(feature = "skip-ias-check"))]
 	fn ensure_timestamp_within_24_hours(report_timestamp: u64) -> DispatchResultWithPostInfo {
 		use sp_runtime::traits::CheckedSub;
 
