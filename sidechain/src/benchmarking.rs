@@ -39,7 +39,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 		Teerex::<T>::add_enclave(
 			a,
 			&SgxEnclave::test_enclave()
-				.with_pubkey(a.encode())
+				.with_pubkey(&a.encode())
 				.with_mr_enclave(TEST4_SETUP.mrenclave),
 		)
 		.unwrap();

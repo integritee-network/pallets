@@ -29,7 +29,7 @@ fn now() -> u64 {
 
 fn test_enclave() -> SgxEnclave<Vec<u8>> {
 	SgxEnclave::test_enclave()
-		.with_pubkey(AccountKeyring::Alice.public().to_vec())
+		.with_pubkey(&AccountKeyring::Alice.public().to_vec())
 		.with_timestamp(now())
 		.with_url(URL.to_vec())
 }
