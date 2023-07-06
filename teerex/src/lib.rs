@@ -99,10 +99,10 @@ pub mod pallet {
 		},
 		TcbInfoRegistered {
 			fmspc: Fmspc,
-			on_chain_info: TcbInfoOnChain,
+			on_chain_info: SgxTcbInfoOnChain,
 		},
 		QuotingEnclaveRegistered {
-			quoting_enclave: QuotingEnclave,
+			quoting_enclave: SgxQuotingEnclave,
 		},
 	}
 
@@ -119,12 +119,12 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn quoting_enclave)]
-	pub type QuotingEnclaveRegistry<T: Config> = StorageValue<_, QuotingEnclave, ValueQuery>;
+	pub type SgxQuotingEnclaveRegistry<T: Config> = StorageValue<_, SgxQuotingEnclave, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn tcb_info)]
-	pub type TcbInfo<T: Config> =
-		StorageMap<_, Blake2_128Concat, Fmspc, TcbInfoOnChain, ValueQuery>;
+	pub type SgxTcbInfo<T: Config> =
+		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn enclave_index)]
@@ -404,7 +404,7 @@ pub mod pallet {
 				signature,
 				certificate_chain,
 			)?;
-			<QuotingEnclaveRegistry<T>>::put(&quoting_enclave);
+			<SgxQuotingEnclaveRegistry<T>>::put(&quoting_enclave);
 			Self::deposit_event(Event::QuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
@@ -422,7 +422,7 @@ pub mod pallet {
 			let _sender = ensure_signed(origin)?;
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
-			<TcbInfo<T>>::insert(fmspc, &on_chain_info);
+			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
 			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
@@ -638,7 +638,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
 		let verification_time = <timestamp::Pallet<T>>::get();
 
-		let qe = <QuotingEnclaveRegistry<T>>::get();
+		let qe = <SgxQuotingEnclaveRegistry<T>>::get();
 		let (fmspc, tcb_info, report) =
 			sgx_verify::verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe)
 				.map_err(|e| {
@@ -647,7 +647,7 @@ impl<T: Config> Pallet<T> {
 				})?;
 
 		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
-		let tcb_info_on_chain = <TcbInfo<T>>::get(fmspc);
+		let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
 		ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
 
 		let enclave = SgxEnclave::new(
@@ -676,7 +676,7 @@ impl<T: Config> Pallet<T> {
 		enclave_identity: Vec<u8>,
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
-	) -> Result<QuotingEnclave, DispatchErrorWithPostInfo> {
+	) -> Result<SgxQuotingEnclave, DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
@@ -697,7 +697,7 @@ impl<T: Config> Pallet<T> {
 		tcb_info: Vec<u8>,
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
-	) -> Result<(Fmspc, TcbInfoOnChain), DispatchErrorWithPostInfo> {
+	) -> Result<(Fmspc, SgxTcbInfoOnChain), DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");

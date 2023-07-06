@@ -49,7 +49,7 @@ use sp_std::{
 	prelude::*,
 };
 use teerex_primitives::{
-	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, SgxReportData,
+	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, SgxQuotingEnclave, SgxBuildMode, SgxReportData,
 	SgxStatus, TcbVersionStatus,
 };
 use webpki::SignatureAlgorithm;
@@ -270,7 +270,7 @@ impl SgxReportBody {
 		}
 	}
 
-	fn verify_misc_select_field(&self, o: &QuotingEnclave) -> bool {
+	fn verify_misc_select_field(&self, o: &SgxQuotingEnclave) -> bool {
 		for i in 0..self.misc_select.len() {
 			if (self.misc_select[i] & o.miscselect_mask[i]) !=
 				(o.miscselect[i] & o.miscselect_mask[i])
@@ -281,7 +281,7 @@ impl SgxReportBody {
 		true
 	}
 
-	fn verify_attributes_field(&self, o: &QuotingEnclave) -> bool {
+	fn verify_attributes_field(&self, o: &SgxQuotingEnclave) -> bool {
 		let attributes_flags = self.attributes.flags;
 
 		let quoting_enclave_attributes_mask = o.attributes_flags_mask_as_u64();
@@ -290,7 +290,7 @@ impl SgxReportBody {
 		(attributes_flags & quoting_enclave_attributes_mask) == quoting_enclave_attributes_flags
 	}
 
-	pub fn verify(&self, o: &QuotingEnclave) -> bool {
+	pub fn verify(&self, o: &SgxQuotingEnclave) -> bool {
 		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
 			return false
 		}
@@ -518,7 +518,7 @@ pub fn extract_tcb_info_from_raw_dcap_quote(
 pub fn verify_dcap_quote(
 	dcap_quote_raw: &[u8],
 	verification_time: u64,
-	qe: &QuotingEnclave,
+	qe: &SgxQuotingEnclave,
 ) -> Result<(Fmspc, TcbVersionStatus, SgxVerifiedReport), &'static str> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =

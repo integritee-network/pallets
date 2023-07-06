@@ -15,14 +15,14 @@
 
 */
 
-use crate::{Config, Pallet, TcbInfo};
+use crate::{Config, Pallet, SgxTcbInfo};
 use frame_support::assert_ok;
 use frame_system::RawOrigin;
 use sgx_verify::test_data::dcap::{
 	QE_IDENTITY_ISSUER_CHAIN, QUOTING_ENCLAVE, QUOTING_ENCLAVE_SIGNATURE, TCB_INFO,
 	TCB_INFO_CERTIFICATE_CHAIN, TCB_INFO_FMSPC, TCB_INFO_SIGNATURE,
 };
-use teerex_primitives::TcbInfoOnChain;
+use teerex_primitives::SgxTcbInfoOnChain;
 
 /// Registers a predefined quoting enclave.
 ///
@@ -65,10 +65,10 @@ where
 }
 
 /// Gets the above tcb info.
-pub fn get_test_tcb_info<T>() -> TcbInfoOnChain
+pub fn get_test_tcb_info<T>() -> SgxTcbInfoOnChain
 where
 	T: Config,
 	<T as frame_system::Config>::Hash: From<[u8; 32]>,
 {
-	TcbInfo::<T>::get(TCB_INFO_FMSPC)
+	SgxTcbInfo::<T>::get(TCB_INFO_FMSPC)
 }
