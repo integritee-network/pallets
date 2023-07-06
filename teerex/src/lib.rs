@@ -174,8 +174,7 @@ pub mod pallet {
 			log::info!("teerex: parameter length ok");
 
 			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_report(&sender, ra_report)?
-				.with_url(worker_url.clone());
+			let enclave = Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
 
 			#[cfg(not(feature = "skip-ias-check"))]
 			if !<AllowSGXDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
@@ -344,7 +343,7 @@ pub mod pallet {
 						Some(worker_url.clone()),
 						report.build_mode,
 						SgxAttestationMethod::Dcap(false),
-						report.status
+						report.status,
 					),
 					report,
 				)
@@ -530,9 +529,7 @@ impl<T: Config> Pallet<T> {
 		Ok(().into())
 	}
 
-	pub(crate) fn get_enclave(
-		sender: &T::AccountId,
-	) -> Result<SgxEnclave<Vec<u8>>, Error<T>> {
+	pub(crate) fn get_enclave(sender: &T::AccountId) -> Result<SgxEnclave<Vec<u8>>, Error<T>> {
 		let sender_index = <EnclaveIndex<T>>::get(sender);
 		<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)
 	}
@@ -545,15 +542,19 @@ impl<T: Config> Pallet<T> {
 			let last_enclave = <EnclaveRegistry<T>>::get(new_enclaves_count)
 				.ok_or(Error::<T>::EmptyEnclaveRegistry)?;
 			<EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
-			<EnclaveIndex<T>>::insert(last_enclave.maybe_pubkey::<T::AccountId>().ok_or(Error::<T>::EnclaveSignerDecodeError)?, index_to_remove);
+			<EnclaveIndex<T>>::insert(
+				last_enclave
+					.maybe_pubkey::<T::AccountId>()
+					.ok_or(Error::<T>::EnclaveSignerDecodeError)?,
+				index_to_remove,
+			);
 		}
 
 		<EnclaveRegistry<T>>::remove(new_enclaves_count);
 		Ok(().into())
 	}
 
-	fn unregister_silent_workers(now: T::Moment)
-	{
+	fn unregister_silent_workers(now: T::Moment) {
 		let minimum = now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
 		if minimum == 0 {
 			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?");
@@ -576,7 +577,7 @@ impl<T: Config> Pallet<T> {
 						},
 					};
 				},
-				None => log::error!("Cannot unregister enclave")
+				None => log::error!("Cannot unregister enclave"),
 			}
 		}
 	}
@@ -617,8 +618,7 @@ impl<T: Config> Pallet<T> {
 			SgxAttestationMethod::Ias,
 			report.status,
 		);
-		let enclave_signer = enclave.maybe_pubkey()
-			.ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
+		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
@@ -658,11 +658,10 @@ impl<T: Config> Pallet<T> {
 			None,
 			report.build_mode,
 			SgxAttestationMethod::Dcap(false),
-			report.status
+			report.status,
 		);
 
-		let enclave_signer = enclave.maybe_pubkey()
-			.ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
+		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
 		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
 
 		// TODO: activate state checks as soon as we've fixed our setup #83

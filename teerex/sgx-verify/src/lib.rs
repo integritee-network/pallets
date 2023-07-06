@@ -49,7 +49,8 @@ use sp_std::{
 	prelude::*,
 };
 use teerex_primitives::{
-	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, SgxStatus, SgxReportData, TcbVersionStatus,
+	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, QuotingEnclave, SgxBuildMode, SgxReportData,
+	SgxStatus, TcbVersionStatus,
 };
 use webpki::SignatureAlgorithm;
 use x509_cert::Certificate;

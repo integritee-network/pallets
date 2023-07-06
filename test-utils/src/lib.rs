@@ -18,8 +18,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use sgx_verify::test_data;
-pub use teerex_primitives::{SgxEnclave, MrEnclave};
 use teerex_primitives::SgxReportData;
+pub use teerex_primitives::{MrEnclave, SgxEnclave};
 
 pub fn get_signer<AccountId: From<[u8; 32]>>(pubkey: &[u8; 32]) -> AccountId {
 	AccountId::from(*pubkey)

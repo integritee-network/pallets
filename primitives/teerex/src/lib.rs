@@ -56,7 +56,7 @@ pub struct SgxReportData {
 
 impl Default for SgxReportData {
 	fn default() -> Self {
-		SgxReportData{d: [0u8; SGX_REPORT_DATA_SIZE]}
+		SgxReportData { d: [0u8; SGX_REPORT_DATA_SIZE] }
 	}
 }
 
@@ -79,8 +79,8 @@ pub struct SgxEnclave<Url> {
 	pub report_data: SgxReportData,
 	pub mr_enclave: MrEnclave,
 	pub mr_signer: MrSigner,
-	pub timestamp: u64, // unix epoch in milliseconds
-	pub url: Option<Url>,       // utf8 encoded url
+	pub timestamp: u64,   // unix epoch in milliseconds
+	pub url: Option<Url>, // utf8 encoded url
 	pub build_mode: SgxBuildMode,
 	pub attestation_method: SgxAttestationMethod,
 	pub status: SgxStatus,
@@ -97,21 +97,30 @@ impl<Url> SgxEnclave<Url> {
 		attestation_method: SgxAttestationMethod,
 		status: SgxStatus,
 	) -> Self {
-		SgxEnclave { report_data, mr_enclave, mr_signer, timestamp, url, build_mode, attestation_method, status }
+		SgxEnclave {
+			report_data,
+			mr_enclave,
+			mr_signer,
+			timestamp,
+			url,
+			build_mode,
+			attestation_method,
+			status,
+		}
 	}
 
 	pub fn maybe_pubkey<PubKey>(&self) -> Option<PubKey>
-		where
-			PubKey: Decode,
+	where
+		PubKey: Decode,
 	{
 		let mut xt_signer_array = [0u8; 32];
 		xt_signer_array.copy_from_slice(&self.report_data.d[..32]);
 		match PubKey::decode(&mut &xt_signer_array[..]) {
-			Ok(p) => {
-				match self.attestation_method {
-					SgxAttestationMethod::Dcap(false) | SgxAttestationMethod::Skip(false) | SgxAttestationMethod::Ias => Some(p),
-					_ => None
-				}
+			Ok(p) => match self.attestation_method {
+				SgxAttestationMethod::Dcap(false) |
+				SgxAttestationMethod::Skip(false) |
+				SgxAttestationMethod::Ias => Some(p),
+				_ => None,
 			},
 			Err(_) => None,
 		}
@@ -126,7 +135,6 @@ impl<Url> SgxEnclave<Url> {
 		self.attestation_method = attestation_method;
 		self
 	}
-
 }
 
 /// The list of valid TCBs for an enclave.

@@ -18,15 +18,15 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	SgxEnclave, EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request, ShardIdentifier,
-	DATA_LENGTH_LIMIT,
+	EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request, SgxEnclave,
+	ShardIdentifier, DATA_LENGTH_LIMIT,
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
 use sgx_verify::test_data::dcap::TEST1_DCAP_QUOTE_SIGNER;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
-use teerex_primitives::{SgxBuildMode, SgxReportData, SgxAttestationMethod, SgxStatus};
+use teerex_primitives::{SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus};
 use test_utils::test_data::{
 	consts::*,
 	dcap::{TEST1_DCAP_QUOTE, TEST_VALID_COLLATERAL_TIMESTAMP},
@@ -563,7 +563,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			set_timestamp(TEST8_TIMESTAMP);
 			let signer8 = get_signer(TEST8_SIGNER_PUB);
 			let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
-				report_data:get_report_data_from_pubkey(TEST8_SIGNER_PUB),
+				report_data: get_report_data_from_pubkey(TEST8_SIGNER_PUB),
 				mr_enclave: TEST8_MRENCLAVE,
 				timestamp: TEST8_TIMESTAMP,
 				url: Some(URL.to_vec()),
