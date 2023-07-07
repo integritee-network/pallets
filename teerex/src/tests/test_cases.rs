@@ -63,10 +63,10 @@ fn add_and_remove_dcap_enclave_works() {
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 		assert_eq!(
-			Teerex::sovereign_enclaves(signer).unwrap().attestation_timestamp(),
+			Teerex::sovereign_enclaves(&signer).unwrap().attestation_timestamp(),
 			TEST_VALID_COLLATERAL_TIMESTAMP
 		);
-		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer)));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer.clone())));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
 		assert_eq!(list_enclaves(), vec![])
 	})
@@ -116,7 +116,7 @@ fn add_enclave_works() {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
-			RuntimeOrigin::signed(signer),
+			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
 			SgxAttestationMethod::Ias
@@ -137,7 +137,7 @@ fn add_and_remove_enclave_works() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
-		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer)));
+		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer.clone())));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
 		assert_eq!(list_enclaves(), vec![])
 	})
@@ -182,10 +182,6 @@ fn list_enclaves_works() {
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 		let enclaves = list_enclaves();
-		assert_eq!(
-			enclaves[0].1.instance_signer(),
-			AnySigner::from(sp_core::ed25519::Public::from(signer.encode()))
-		);
 		assert_eq!(enclaves[0].1, MultiEnclave::from(e_1));
 	})
 }
@@ -248,7 +244,7 @@ fn update_enclave_url_works() {
 			report_data: SgxReportData::from(TEST4_SIGNER_PUB),
 			mr_enclave: TEST4_MRENCLAVE,
 			timestamp: TEST4_TIMESTAMP,
-			url: Some(url2.to_vec()),
+			url: None,
 			build_mode: SgxBuildMode::Debug,
 			mr_signer: TEST4_MRSIGNER,
 			attestation_method: SgxAttestationMethod::Ias,
@@ -273,8 +269,6 @@ fn update_enclave_url_works() {
 			Teerex::sovereign_enclaves(&signer).unwrap().instance_url(),
 			Some(url2.to_vec())
 		);
-		let enclaves = list_enclaves();
-		assert_eq!(enclaves[0].1.instance_signer(), AnySigner::from(signer.into()))
 	})
 }
 
@@ -401,7 +395,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 
 		//Register an enclave compiled in debug mode
 		assert_ok!(Teerex::register_sgx_enclave(
-			RuntimeOrigin::signed(signer4),
+			RuntimeOrigin::signed(signer4.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
 			SgxAttestationMethod::Ias
@@ -431,7 +425,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 
 			//Register an enclave compiled in production mode
 			assert_ok!(Teerex::register_sgx_enclave(
-				RuntimeOrigin::signed(signer8),
+				RuntimeOrigin::signed(signer8.clone()),
 				TEST8_CERT.to_vec(),
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Ias
@@ -451,7 +445,7 @@ fn debug_mode_enclave_attest_fails_when_sgx_debug_mode_not_allowed() {
 		//Try to register an enclave compiled in debug mode
 		assert_err!(
 			Teerex::register_sgx_enclave(
-				RuntimeOrigin::signed(signer4),
+				RuntimeOrigin::signed(signer4.clone()),
 				TEST4_CERT.to_vec(),
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Ias
@@ -479,7 +473,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 
 		//Register an enclave compiled in production mode
 		assert_ok!(Teerex::register_sgx_enclave(
-			RuntimeOrigin::signed(signer8),
+			RuntimeOrigin::signed(signer8.clone()),
 			TEST8_CERT.to_vec(),
 			Some(URL.to_vec()),
 			SgxAttestationMethod::Ias

@@ -70,7 +70,7 @@ benchmarks! {
 			SgxAttestationMethod::Ias
 		).unwrap();
 
-	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), Some(URL.to_vec()), SgxAttestationMethod::Ias)
+	}: _(RawOrigin::Signed(signer.clone()), TEST4_SETUP.cert.to_vec(), Some(URL.to_vec()), SgxAttestationMethod::Ias)
 	verify {
 		assert!(crate::SovereignEnclaves::<T>::contains_key(&signer));
 	}
