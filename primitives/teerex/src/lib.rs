@@ -140,7 +140,7 @@ impl<Url> MultiEnclave<Url> {
 		}
 	}
 
-	pub fn fingerprint(self) -> EnclaveFingerprint {
+	pub fn fingerprint(&self) -> EnclaveFingerprint {
 		match self {
 			MultiEnclave::Sgx(enclave) => EnclaveFingerprint::from(enclave.mr_enclave),
 		}

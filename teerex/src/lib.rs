@@ -273,6 +273,7 @@ pub mod pallet {
 			};
 
 			Self::add_enclave(&sender, &MultiEnclave::from(enclave.clone()))?;
+			Self::poke_shard(enclave.mr_enclave.into(), &sender)?;
 
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
@@ -313,7 +314,10 @@ pub mod pallet {
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::ensure_registered_enclave(&sender)?;
+			let enclave =
+				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			Self::poke_shard(enclave.fingerprint().into(), &sender)?;
+
 			log::debug!(
 				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
 				sender,
@@ -361,9 +365,9 @@ pub mod pallet {
 			call_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::ensure_registered_enclave(&sender)?;
 			let sender_enclave =
-				<SovereignEnclaves<T>>::get(sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			Self::poke_shard(sender_enclave.fingerprint().into(), &sender)?;
 
 			ensure!(
 				sender_enclave.fingerprint().encode() == bonding_account.encode(),
@@ -443,9 +447,9 @@ pub mod pallet {
 			data: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			Self::ensure_registered_enclave(&sender)?;
 			let enclave =
-				<SovereignEnclaves<T>>::get(sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			Self::poke_shard(enclave.fingerprint().into(), &sender)?;
 
 			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
 			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
@@ -588,7 +592,7 @@ impl<T: Config> Pallet<T> {
 
 	fn poke_shard(
 		shard: ShardIdentifier,
-		enclave_signer: T::AccountId,
+		enclave_signer: &T::AccountId,
 	) -> DispatchResultWithPostInfo {
 		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
 			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
@@ -602,7 +606,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		let signer_statuses = if let Some(mut status_vec) = <ShardStatus<T>>::get(shard) {
-			if let Some(index) = status_vec.iter().position(|i| i.signer == enclave_signer) {
+			if let Some(index) = status_vec.iter().position(|i| i.signer == *enclave_signer) {
 				status_vec[index] = fresh_status;
 			} else {
 				status_vec.push(fresh_status)
