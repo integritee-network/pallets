@@ -15,7 +15,7 @@
 
 */
 
-use crate::{mock::*, Enclave, EnclaveRegistry};
+use crate::{mock::*, EnclaveRegistry, SgxEnclave};
 use frame_support::assert_ok;
 use sp_keyring::AccountKeyring;
 use test_utils::{
@@ -27,8 +27,9 @@ fn now() -> u64 {
 	<timestamp::Pallet<Test>>::get()
 }
 
-fn test_enclave() -> Enclave<AccountId, Vec<u8>> {
-	Enclave::test_enclave(AccountKeyring::Alice.to_account_id())
+fn test_enclave() -> SgxEnclave<Vec<u8>> {
+	SgxEnclave::test_enclave()
+		.with_pubkey(&AccountKeyring::Alice.public().to_vec())
 		.with_timestamp(now())
 		.with_url(URL.to_vec())
 }

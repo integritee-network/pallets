@@ -33,7 +33,7 @@ fn verify_ias_report_should_work() {
 	let report = report.unwrap();
 	assert_eq!(report.mr_enclave, TEST4_MRENCLAVE);
 	assert_eq!(report.timestamp, TEST4_TIMESTAMP);
-	assert_eq!(&report.pubkey, TEST4_SIGNER_PUB);
+	assert_eq!(&report.report_data.d[..32], TEST4_SIGNER_PUB);
 	//assert_eq!(report.status, SgxStatus::GroupOutOfDate);
 	assert_eq!(report.status, SgxStatus::ConfigurationNeeded);
 	assert_eq!(report.build_mode, SgxBuildMode::Debug);

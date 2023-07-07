@@ -151,10 +151,15 @@ pub mod consts {
 		hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d1");
 	pub const TEST7_MRENCLAVE: MrEnclave =
 		hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d1");
+	pub const TEST4_MRSIGNER: MrEnclave =
+		hex!("83d719e77deaca1470f6baf62a4d774303c899db69020f9c70ee1dfc08c7ce9e");
+
 	// production mode
 	// MRSIGNER is 117f95f65f06afb5764b572156b8b525c6230db7d6b1c94e8ebdb7fba068f4e8
 	pub const TEST8_MRENCLAVE: MrEnclave =
 		hex!("bcf66abfc6b3ef259e9ecfe4cf8df667a7f5a546525dee16822741b38f6e6050");
+	pub const TEST8_MRSIGNER: MrEnclave =
+		hex!("117f95f65f06afb5764b572156b8b525c6230db7d6b1c94e8ebdb7fba068f4e8");
 
 	// unix epoch. must be later than this
 	pub const TEST4_TIMESTAMP: u64 = 1587899785000;

@@ -38,7 +38,9 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
 		Teerex::<T>::add_enclave(
 			a,
-			&Enclave::test_enclave(a.clone()).with_mr_enclave(TEST4_SETUP.mrenclave),
+			&SgxEnclave::test_enclave()
+				.with_pubkey(&a.encode())
+				.with_mr_enclave(TEST4_SETUP.mrenclave),
 		)
 		.unwrap();
 	}
@@ -66,7 +68,7 @@ use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use teerex_primitives::Enclave;
+use teerex_primitives::SgxEnclave;
 use test_utils::TestEnclave;
 
 #[cfg(test)]

@@ -35,31 +35,126 @@ impl Default for SgxBuildMode {
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub enum AttestationMethod {
-	Dcap,
+pub enum SgxAttestationMethod {
+	Skip { proxied: bool },
 	Ias,
-	Skip,
+	Dcap { proxied: bool },
+}
+
+impl Default for SgxAttestationMethod {
+	fn default() -> Self {
+		SgxAttestationMethod::Skip { proxied: false }
+	}
+}
+
+const SGX_REPORT_DATA_SIZE: usize = 64;
+#[derive(Debug, Encode, Decode, Copy, Clone, PartialEq, Eq, TypeInfo)]
+#[repr(C)]
+pub struct SgxReportData {
+	pub d: [u8; SGX_REPORT_DATA_SIZE],
+}
+
+impl Default for SgxReportData {
+	fn default() -> Self {
+		SgxReportData { d: [0u8; SGX_REPORT_DATA_SIZE] }
+	}
+}
+
+impl From<&[u8; 32]> for SgxReportData {
+	fn from(pubkey: &[u8; 32]) -> Self {
+		let mut data = SgxReportData::default();
+		data.d[..32].copy_from_slice(pubkey);
+		data
+	}
+}
+
+impl AsRef<[u8; 64]> for SgxReportData {
+	fn as_ref(&self) -> &[u8; 64] {
+		&self.d
+	}
+}
+
+impl SgxReportData {
+	fn lower32(&self) -> [u8; 32] {
+		let mut lower = [0u8; 32];
+		lower.copy_from_slice(&self.d[..32]);
+		lower
+	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct Enclave<PubKey, Url> {
-	pub pubkey: PubKey, // FIXME: this is redundant information
-	pub mr_enclave: MrEnclave,
-	// Todo: make timestamp: Moment
-	pub timestamp: u64, // unix epoch in milliseconds
-	pub url: Url,       // utf8 encoded url
-	pub sgx_mode: SgxBuildMode,
+pub enum SgxStatus {
+	#[default]
+	Invalid,
+	Ok,
+	GroupOutOfDate,
+	GroupRevoked,
+	ConfigurationNeeded,
 }
 
-impl<PubKey, Url> Enclave<PubKey, Url> {
+#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct SgxEnclave<Url> {
+	pub report_data: SgxReportData,
+	pub mr_enclave: MrEnclave,
+	pub mr_signer: MrSigner,
+	pub timestamp: u64,   // unix epoch in milliseconds
+	pub url: Option<Url>, // utf8 encoded url
+	pub build_mode: SgxBuildMode,
+	pub attestation_method: SgxAttestationMethod,
+	pub status: SgxStatus,
+}
+
+impl<Url> SgxEnclave<Url> {
 	pub fn new(
-		pubkey: PubKey,
+		report_data: SgxReportData,
 		mr_enclave: MrEnclave,
+		mr_signer: MrSigner,
 		timestamp: u64,
-		url: Url,
-		sgx_build_mode: SgxBuildMode,
+		build_mode: SgxBuildMode,
+		status: SgxStatus,
 	) -> Self {
-		Enclave { pubkey, mr_enclave, timestamp, url, sgx_mode: sgx_build_mode }
+		SgxEnclave {
+			report_data,
+			mr_enclave,
+			mr_signer,
+			timestamp,
+			url: None,
+			build_mode,
+			attestation_method: SgxAttestationMethod::default(),
+			status,
+		}
+	}
+
+	pub fn maybe_pubkey<PubKey>(&self) -> Option<PubKey>
+	where
+		PubKey: Decode,
+	{
+		match PubKey::decode(&mut self.report_data.lower32().as_ref()) {
+			Ok(p) => match self.attestation_method {
+				SgxAttestationMethod::Dcap { proxied: false } |
+				SgxAttestationMethod::Skip { proxied: false } |
+				SgxAttestationMethod::Ias => Some(p),
+				_ => None,
+			},
+			Err(_) => None,
+		}
+	}
+
+	pub fn with_url(mut self, url: Url) -> Self {
+		self.url = Some(url);
+		self
+	}
+
+	pub fn with_attestation_method(mut self, attestation_method: SgxAttestationMethod) -> Self {
+		self.attestation_method = attestation_method;
+		self
+	}
+
+	pub fn with_pubkey(mut self, pubkey: &[u8]) -> Self {
+		let mut data = SgxReportData::default();
+		data.d[..pubkey.len()].copy_from_slice(pubkey);
+		self.report_data = data;
+		self
 	}
 }
 
@@ -78,7 +173,7 @@ impl QeTcb {
 /// This represents all the collateral data that we need to store on chain in order to verify
 /// the quoting enclave validity of another enclave that wants to register itself on chain
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct QuotingEnclave {
+pub struct SgxQuotingEnclave {
 	// Todo: make timestamp: Moment
 	pub issue_date: u64, // unix epoch in milliseconds
 	// Todo: make timestamp: Moment
@@ -93,7 +188,7 @@ pub struct QuotingEnclave {
 	pub tcb: Vec<QeTcb>,
 }
 
-impl QuotingEnclave {
+impl SgxQuotingEnclave {
 	#[allow(clippy::too_many_arguments)]
 	pub fn new(
 		issue_date: u64,
@@ -154,7 +249,7 @@ impl TcbVersionStatus {
 /// This represents all the collateral data that we need to store on chain in order to verify
 /// the quoting enclave validity of another enclave that wants to register itself on chain
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct TcbInfoOnChain {
+pub struct SgxTcbInfoOnChain {
 	// Todo: make timestamp: Moment
 	pub issue_date: u64, // unix epoch in milliseconds
 	// Todo: make timestamp: Moment
@@ -162,7 +257,7 @@ pub struct TcbInfoOnChain {
 	tcb_levels: Vec<TcbVersionStatus>,
 }
 
-impl TcbInfoOnChain {
+impl SgxTcbInfoOnChain {
 	pub fn new(issue_date: u64, next_update: u64, tcb_levels: Vec<TcbVersionStatus>) -> Self {
 		Self { issue_date, next_update, tcb_levels }
 	}
