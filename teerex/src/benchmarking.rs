@@ -126,8 +126,7 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(accounts[0].clone()))
 	verify {
-		assert!(!crate::EnclaveIndex::<T>::contains_key(&accounts[0]));
-		assert_eq!(Teerex::<T>::enclave_count(), enclave_count as u64 - 1);
+		assert!(!crate::SovereignEnclaves::<T>::contains_key(&accounts[0]));
 	}
 
 	// Benchmark `call_worker`. There are no worst conditions. The benchmark showed that

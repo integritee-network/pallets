@@ -19,7 +19,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_core::H256;
+use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
+use sp_runtime::MultiSigner;
 use sp_std::prelude::*;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
@@ -90,6 +91,87 @@ pub enum SgxStatus {
 	GroupOutOfDate,
 	GroupRevoked,
 	ConfigurationNeeded,
+}
+
+pub type OpaqueSigner = BoundedVec<u8, ConstU32<66>>;
+pub type EnclaveFingerprint = H256;
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub enum AnySigner {
+	Opaque(OpaqueSigner),
+	Known(MultiSigner),
+}
+
+impl From<MultiSigner> for AnySigner {
+	fn from(signer: MultiSigner) -> Self {
+		AnySigner::Known(signer)
+	}
+}
+
+impl From<OpaqueSigner> for AnySigner {
+	fn from(signer_bytes: OpaqueSigner) -> Self {
+		AnySigner::Opaque(signer_bytes)
+	}
+}
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub enum MultiEnclave<Url> {
+	Sgx(SgxEnclave<Url>),
+}
+
+impl<Url> From<SgxEnclave<Url>> for MultiEnclave<Url> {
+	fn from(sgx_enclave: SgxEnclave<Url>) -> Self {
+		MultiEnclave::Sgx(sgx_enclave)
+	}
+}
+
+impl<Url> MultiEnclave<Url> {
+	pub fn author(self) -> AnySigner {
+		match self {
+			MultiEnclave::Sgx(enclave) => AnySigner::Opaque(
+				OpaqueSigner::try_from(enclave.mr_signer.to_vec()).unwrap_or_default(),
+			),
+		}
+	}
+
+	pub fn fingerprint(self) -> H256 {
+		match self {
+			MultiEnclave::Sgx(enclave) => EnclaveFingerprint::from(enclave.mr_enclave),
+		}
+	}
+
+	pub fn instance_signer(self) -> AnySigner {
+		match self {
+			MultiEnclave::Sgx(enclave) => match enclave.maybe_pubkey() {
+				Some(pubkey) =>
+					AnySigner::from(MultiSigner::from(sp_core::ed25519::Public::from_raw(pubkey))),
+				None => AnySigner::Opaque(
+					OpaqueSigner::try_from(enclave.report_data.d.to_vec()).unwrap_or_default(),
+				),
+			},
+		}
+	}
+
+	pub fn instance_url(self) -> Option<Url> {
+		match self {
+			MultiEnclave::Sgx(enclave) => enclave.url,
+		}
+	}
+
+	pub fn attestation_timestamp(self) -> u64 {
+		match self {
+			MultiEnclave::Sgx(enclave) => enclave.timestamp,
+		}
+	}
+
+	pub fn attestaion_proxied(self) -> bool {
+		match self {
+			MultiEnclave::Sgx(enclave) => match enclave.attestation_method {
+				SgxAttestationMethod::Skip(true) | SgxAttestationMethod::Dcap(true) => true,
+				_ => false,
+			},
+		}
+	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]

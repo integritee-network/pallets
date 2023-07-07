@@ -18,7 +18,7 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	EnclaveRegistry, Error, Event as TeerexEvent, ExecutedCalls, Request, SgxEnclave,
+	SovereignEnclaves, Error, Event as TeerexEvent, ExecutedCalls, Request, SgxEnclave,
 	ShardIdentifier, DATA_LENGTH_LIMIT,
 };
 use frame_support::{assert_err, assert_ok};
@@ -33,7 +33,7 @@ use test_utils::test_data::{
 };
 
 fn list_enclaves() -> Vec<(u64, SgxEnclave<Vec<u8>>)> {
-	<EnclaveRegistry<Test>>::iter().collect::<Vec<(u64, SgxEnclave<Vec<u8>>)>>()
+	<SovereignEnclaves<Test>>::iter().collect::<Vec<(u64, SgxEnclave<Vec<u8>>)>>()
 }
 
 // give get_signer a concrete type
@@ -77,7 +77,7 @@ fn register_quoting_enclave_works() {
 		assert_eq!(qe.isvprodid, 1);
 
 		let expected_event =
-			RuntimeEvent::Teerex(TeerexEvent::QuotingEnclaveRegistered { quoting_enclave: qe });
+			RuntimeEvent::Teerex(TeerexEvent::SgxQuotingEnclaveRegistered { quoting_enclave: qe });
 		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }
@@ -94,7 +94,7 @@ fn register_tcb_info_works() {
 		assert_eq!(tcb_info.next_update, 1681649132000);
 
 		let expected_event =
-			RuntimeEvent::Teerex(TeerexEvent::TcbInfoRegistered { fmspc, on_chain_info: tcb_info });
+			RuntimeEvent::Teerex(TeerexEvent::SgxTcbInfoRegistered { fmspc, on_chain_info: tcb_info });
 		assert!(System::events().iter().any(|a| a.event == expected_event))
 	})
 }

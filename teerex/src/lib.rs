@@ -41,8 +41,8 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Bal
 
 pub use pallet::*;
 
-const MAX_RA_REPORT_LEN: usize = 4096;
-const MAX_DCAP_QUOTE_LEN: usize = 5000;
+const SGX_RA_PROOF_MAX_LEN: usize = 5000;
+
 const MAX_URL_LEN: usize = 256;
 /// Maximum number of topics for the `publish_hash` call.
 const TOPICS_LIMIT: usize = 5;
@@ -82,7 +82,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		AddedEnclave {
 			registered_by: T::AccountId,
-			worker_url: Vec<u8>,
+			worker_url: Option<Vec<u8>>,
 			tcb_status: Option<SgxStatus>,
 			attestation_method: SgxAttestationMethod,
 		},
@@ -97,11 +97,11 @@ pub mod pallet {
 			hash: H256,
 			data: Vec<u8>,
 		},
-		TcbInfoRegistered {
+		SgxTcbInfoRegistered {
 			fmspc: Fmspc,
 			on_chain_info: SgxTcbInfoOnChain,
 		},
-		QuotingEnclaveRegistered {
+		SgxQuotingEnclaveRegistered {
 			quoting_enclave: SgxQuotingEnclave,
 		},
 	}
@@ -110,12 +110,8 @@ pub mod pallet {
 	// avoid ambiguity between Null and 0.
 	#[pallet::storage]
 	#[pallet::getter(fn enclave)]
-	pub type EnclaveRegistry<T: Config> =
-		StorageMap<_, Blake2_128Concat, u64, SgxEnclave<Vec<u8>>, OptionQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn enclave_count)]
-	pub type EnclaveCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+	pub type SovereignEnclaves<T: Config> =
+		StorageMap<_, Blake2_128Concat, u64, MultiEnclave<Vec<u8>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn quoting_enclave)]
@@ -125,11 +121,6 @@ pub mod pallet {
 	#[pallet::getter(fn tcb_info)]
 	pub type SgxTcbInfo<T: Config> =
 		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn enclave_index)]
-	pub type EnclaveIndex<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn confirmed_calls)]
@@ -162,58 +153,109 @@ pub mod pallet {
 		// the integritee-service wants to register his enclave
 		#[pallet::call_index(0)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_ias_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_ias_enclave(
+		pub fn register_sgx_enclave(
 			origin: OriginFor<T>,
-			ra_report: Vec<u8>,
-			worker_url: Vec<u8>,
+			proof: Vec<u8>,
+			worker_url: Option<Vec<u8>>,
+			attestation_method: SgxAttestationMethod,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_ias_enclave()");
+			log::info!("teerex: called into runtime call register_sgx_enclave()");
 			let sender = ensure_signed(origin)?;
-			ensure!(ra_report.len() <= MAX_RA_REPORT_LEN, <Error<T>>::RaReportTooLong);
-			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, <Error<T>>::RaProofTooLong);
+			ensure!(
+				worker_url.unwrap_or_default().len() <= MAX_URL_LEN,
+				<Error<T>>::EnclaveUrlTooLong
+			);
 			log::info!("teerex: parameter length ok");
 
-			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_report(&sender, ra_report)?.with_url(worker_url.clone());
+			let enclave = match attestation_method {
+				SgxAttestationMethod::Ias => {
+					let report = sgx_verify::verify_ias_report(&proof)
+						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
+					log::info!("teerex: IAS report successfully verified");
+					let enclave = SgxEnclave::new(
+						report.report_data,
+						report.mr_enclave,
+						report.mr_signer,
+						report.timestamp,
+						report.build_mode,
+						report.status,
+					)
+					.with_attestation_method(SgxAttestationMethod::Ias);
 
-			#[cfg(not(feature = "skip-ias-check"))]
+					ensure!(
+						sender == T::AccountId::decode(report.report_data.lower32()),
+						<Error<T>>::SenderIsNotAttestedEnclave
+					);
+
+					// TODO: activate state checks as soon as we've fixed our setup #83
+					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+					//     "RA status is insufficient");
+					// log::info!("teerex: status is acceptable");
+
+					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
+					enclave
+				},
+				SgxAttestationMethod::Dcap(proxied) => {
+					let verification_time = <timestamp::Pallet<T>>::get();
+
+					let qe = <SgxQuotingEnclaveRegistry<T>>::get();
+					let (fmspc, tcb_info, report) = sgx_verify::verify_dcap_quote(
+						&proof,
+						verification_time.saturated_into(),
+						&qe,
+					)
+					.map_err(|e| {
+						log::warn!("verify_dcap_quote failed: {:?}", e);
+						<Error<T>>::RemoteAttestationVerificationFailed
+					})?;
+
+					if !proxied {
+						ensure!(
+							sender == T::AccountId::decode(report.report_data.lower32()),
+							<Error<T>>::SenderIsNotAttestedEnclave
+						);
+					}
+
+					log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
+					let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
+					ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
+
+					let enclave = SgxEnclave::new(
+						report.report_data,
+						report.mr_enclave,
+						report.mr_signer,
+						report.timestamp,
+						report.build_mode,
+						report.status,
+					)
+					.with_attestation_method(SgxAttestationMethod::Dcap(proxied));
+
+					// TODO: activate state checks as soon as we've fixed our setup #83
+					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+					//     "RA status is insufficient");
+					// log::info!("teerex: status is acceptable");
+					enclave
+				},
+			};
+
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::warn!("teerex: debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
-			#[cfg(feature = "skip-ias-check")]
-			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
+			let enclave = match worker_url {
+				Some(url) => enclave.with_url(url),
+				None => enclave,
+			};
 
-			#[cfg(feature = "skip-ias-check")]
-			let enclave = SgxEnclave::<Vec<u8>>::new(
-				SgxReportData::default(),
-				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<MrEnclave>::decode(&mut ra_report.as_slice()).unwrap_or_default(),
-				MrSigner::default(),
-				<timestamp::Pallet<T>>::get().saturated_into(),
-				SgxBuildMode::default(),
-				SgxStatus::Invalid,
-			)
-			.with_pubkey(&sender.encode())
-			.with_url(worker_url.clone());
+			Self::add_enclave(&sender, &MultiEnclave::from(enclave))?;
 
-			Self::add_enclave(&sender, &enclave)?;
-
-			#[cfg(not(feature = "skip-ias-check"))]
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
 				attestation_method: enclave.attestation_method,
-			});
-
-			#[cfg(feature = "skip-ias-check")]
-			Self::deposit_event(Event::AddedEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip { proxied: false },
 			});
 			Ok(().into())
 		}
@@ -322,65 +364,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(6)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_dcap_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn register_dcap_enclave(
-			origin: OriginFor<T>,
-			dcap_quote: Vec<u8>,
-			worker_url: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_dcap_enclave()");
-			let sender = ensure_signed(origin)?;
-			ensure!(dcap_quote.len() <= MAX_DCAP_QUOTE_LEN, <Error<T>>::RaReportTooLong);
-			ensure!(worker_url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
-			log::info!("teerex: parameter length ok");
-
-			#[cfg(not(feature = "skip-ias-check"))]
-			let enclave = Self::verify_dcap_quote(&sender, dcap_quote)?.with_url(worker_url.clone());
-
-			#[cfg(not(feature = "skip-ias-check"))]
-			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
-				log::warn!("teerex: debug mode is not allowed to attest!");
-				return Err(<Error<T>>::SgxModeNotAllowed.into())
-			}
-
-			#[cfg(feature = "skip-ias-check")]
-			log::warn!("[teerex]: Skipping remote attestation check. Only dev-chains are allowed to do this!");
-
-			#[cfg(feature = "skip-ias-check")]
-			let enclave = SgxEnclave::new(
-				SgxReportData::default(),
-				// insert mrenclave if the ra_report represents one, otherwise insert default
-				<MrEnclave>::decode(&mut dcap_quote.as_slice()).unwrap_or_default(),
-				MrSigner::default(),
-				<timestamp::Pallet<T>>::get().saturated_into(),
-				SgxBuildMode::default(),
-				SgxStatus::Invalid,
-			)
-			.with_pubkey(&sender.encode())
-			.with_url(worker_url.clone())
-			.with_attestation_method(SgxAttestationMethod::Skip { proxied: false });
-
-			Self::add_enclave(&sender, &enclave)?;
-
-			#[cfg(not(feature = "skip-ias-check"))]
-			Self::deposit_event(Event::AddedEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: Some(enclave.status),
-				attestation_method: enclave.attestation_method,
-			});
-
-			#[cfg(feature = "skip-ias-check")]
-			Self::deposit_event(Event::AddedEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: None,
-				attestation_method: SgxAttestationMethod::Skip { proxied: false },
-			});
-			Ok(().into())
-		}
-
 		#[pallet::call_index(7)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_quoting_enclave(
@@ -398,7 +381,7 @@ pub mod pallet {
 				certificate_chain,
 			)?;
 			<SgxQuotingEnclaveRegistry<T>>::put(&quoting_enclave);
-			Self::deposit_event(Event::QuotingEnclaveRegistered { quoting_enclave });
+			Self::deposit_event(Event::SgxQuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
 
@@ -416,7 +399,7 @@ pub mod pallet {
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
-			Self::deposit_event(Event::TcbInfoRegistered { fmspc, on_chain_info });
+			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
 
@@ -474,7 +457,7 @@ pub mod pallet {
 		/// The worker url is too long.
 		EnclaveUrlTooLong,
 		/// The Remote Attestation report is too long.
-		RaReportTooLong,
+		RaProofTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
 		/// The provided collateral data is invalid
@@ -489,97 +472,28 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	pub fn add_enclave(
 		sender: &T::AccountId,
-		enclave: &SgxEnclave<Vec<u8>>,
+		multi_enclave: &MultiEnclave<Vec<u8>>,
 	) -> DispatchResultWithPostInfo {
-		let enclave_idx = if <EnclaveIndex<T>>::contains_key(sender) {
-			log::info!("Updating already registered enclave");
-			<EnclaveIndex<T>>::get(sender)
-		} else {
-			let enclaves_count = Self::enclave_count()
-				.checked_add(1)
-				.ok_or("[Teerex]: Overflow adding new enclave to registry")?;
-			<EnclaveIndex<T>>::insert(sender, enclaves_count);
-			<EnclaveCount<T>>::put(enclaves_count);
-			enclaves_count
-		};
+		if multi_enclave.attestaion_proxied() {
+			log::warn!("proxied enclaves not supported yet");
+			return Err(Error::<T>::SenderIsNotAttestedEnclave)
+		}
 
-		<EnclaveRegistry<T>>::insert(enclave_idx, enclave);
+		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
 		Ok(().into())
 	}
 
 	fn remove_enclave(sender: &T::AccountId) -> DispatchResultWithPostInfo {
-		ensure!(<EnclaveIndex<T>>::contains_key(sender), <Error<T>>::EnclaveIsNotRegistered);
-		let index_to_remove = <EnclaveIndex<T>>::take(sender);
-
-		let enclaves_count = Self::enclave_count();
-		let new_enclaves_count = enclaves_count
-			.checked_sub(1)
-			.ok_or("[Teerex]: Underflow removing an enclave from the registry")?;
-
-		Self::swap_and_pop(index_to_remove, new_enclaves_count + 1)?;
-		<EnclaveCount<T>>::put(new_enclaves_count);
-
+		ensure!(<SovereignEnclaves<T>>::contains_key(sender), <Error<T>>::EnclaveIsNotRegistered);
+		<SovereignEnclaves<T>>::remove(sender);
 		Ok(().into())
-	}
-
-	pub(crate) fn get_enclave(sender: &T::AccountId) -> Result<SgxEnclave<Vec<u8>>, Error<T>> {
-		let sender_index = <EnclaveIndex<T>>::get(sender);
-		<EnclaveRegistry<T>>::get(sender_index).ok_or(Error::<T>::EmptyEnclaveRegistry)
-	}
-
-	/// Our list implementation would introduce holes in out list if if we try to remove elements from the middle.
-	/// As the order of the enclave entries is not important, we use the swap and pop method to remove elements from
-	/// the registry.
-	fn swap_and_pop(index_to_remove: u64, new_enclaves_count: u64) -> DispatchResultWithPostInfo {
-		if index_to_remove != new_enclaves_count {
-			let last_enclave = <EnclaveRegistry<T>>::get(new_enclaves_count)
-				.ok_or(Error::<T>::EmptyEnclaveRegistry)?;
-			<EnclaveRegistry<T>>::insert(index_to_remove, &last_enclave);
-			<EnclaveIndex<T>>::insert(
-				last_enclave
-					.maybe_pubkey::<T::AccountId>()
-					.ok_or(Error::<T>::EnclaveSignerDecodeError)?,
-				index_to_remove,
-			);
-		}
-
-		<EnclaveRegistry<T>>::remove(new_enclaves_count);
-		Ok(().into())
-	}
-
-	fn unregister_silent_workers(now: T::Moment) {
-		let minimum = now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
-		if minimum == 0 {
-			log::error!("Invalid time in unregister_silent_workers. Is the timestamp pallet properly configured?");
-			return
-		}
-		let silent_workers = <EnclaveRegistry<T>>::iter()
-			.filter(|e| e.1.timestamp < minimum)
-			.map(|e| e.1.maybe_pubkey());
-		for maybe_index in silent_workers {
-			match maybe_index {
-				Some(index) => {
-					let result = Self::remove_enclave(&index);
-					match result {
-						Ok(_) => {
-							log::info!("Unregister enclave because silent worker : {:?}", index);
-							Self::deposit_event(Event::RemovedEnclave(index));
-						},
-						Err(e) => {
-							log::error!("Cannot unregister enclave : {:?}", e);
-						},
-					};
-				},
-				None => log::error!("Cannot unregister enclave"),
-			}
-		}
 	}
 
 	/// Check if the sender is a registered enclave
 	pub fn ensure_registered_enclave(
 		account: &T::AccountId,
 	) -> Result<(), DispatchErrorWithPostInfo> {
-		ensure!(<EnclaveIndex<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
+		ensure!(<SovereignEnclaves<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
 		Ok(())
 	}
 
@@ -591,76 +505,6 @@ impl<T: Config> Pallet<T> {
 			topics,
 			<T as Config>::RuntimeEvent::from(event).into(),
 		)
-	}
-
-	#[cfg(not(feature = "skip-ias-check"))]
-	fn verify_report(
-		sender: &T::AccountId,
-		ra_report: Vec<u8>,
-	) -> Result<SgxEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
-		let report = sgx_verify::verify_ias_report(&ra_report)
-			.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-		log::info!("teerex: IAS report successfully verified");
-		let enclave = SgxEnclave::new(
-			report.report_data,
-			report.mr_enclave,
-			report.mr_signer,
-			report.timestamp,
-			report.build_mode,
-			report.status,
-		)
-		.with_attestation_method(SgxAttestationMethod::Ias);
-		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
-
-		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
-
-		// TODO: activate state checks as soon as we've fixed our setup #83
-		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
-		//     "RA status is insufficient");
-		// log::info!("teerex: status is acceptable");
-
-		Self::ensure_timestamp_within_24_hours(report.timestamp)?;
-		Ok(enclave)
-	}
-
-	#[cfg(not(feature = "skip-ias-check"))]
-	fn verify_dcap_quote(
-		sender: &T::AccountId,
-		dcap_quote: Vec<u8>,
-	) -> Result<SgxEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
-		let verification_time = <timestamp::Pallet<T>>::get();
-
-		let qe = <SgxQuotingEnclaveRegistry<T>>::get();
-		let (fmspc, tcb_info, report) =
-			sgx_verify::verify_dcap_quote(&dcap_quote, verification_time.saturated_into(), &qe)
-				.map_err(|e| {
-					log::warn!("verify_dcap_quote failed: {:?}", e);
-					<Error<T>>::RemoteAttestationVerificationFailed
-				})?;
-
-		log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
-		let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
-		ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
-
-		let enclave = SgxEnclave::new(
-			report.report_data,
-			report.mr_enclave,
-			report.mr_signer,
-			report.timestamp,
-			report.build_mode,
-			report.status,
-		)
-		.with_attestation_method(SgxAttestationMethod::Dcap { proxied: false });
-
-		let enclave_signer = enclave.maybe_pubkey().ok_or(<Error<T>>::EnclaveSignerDecodeError)?;
-		ensure!(sender == &enclave_signer, <Error<T>>::SenderIsNotAttestedEnclave);
-
-		// TODO: activate state checks as soon as we've fixed our setup #83
-		// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
-		//     "RA status is insufficient");
-		// log::info!("teerex: status is acceptable");
-
-		Ok(enclave)
 	}
 
 	fn verify_quoting_enclave(
@@ -703,7 +547,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	#[cfg(not(feature = "skip-ias-check"))]
 	fn ensure_timestamp_within_24_hours(report_timestamp: u64) -> DispatchResultWithPostInfo {
 		use sp_runtime::traits::CheckedSub;
 
