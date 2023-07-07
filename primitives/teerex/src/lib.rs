@@ -76,7 +76,7 @@ impl AsRef<[u8; 64]> for SgxReportData {
 }
 
 impl SgxReportData {
-	fn lower32(&self) -> [u8; 32] {
+	pub fn lower32(&self) -> [u8; 32] {
 		let mut lower = [0u8; 32];
 		lower.copy_from_slice(&self.d[..32]);
 		lower
@@ -108,6 +108,12 @@ impl From<MultiSigner> for AnySigner {
 	}
 }
 
+impl From<sp_core::ed25519::Public> for AnySigner {
+	fn from(signer: sp_core::ed25519::Public) -> Self {
+		AnySigner::Known(MultiSigner::from(signer))
+	}
+}
+
 impl From<OpaqueSigner> for AnySigner {
 	fn from(signer_bytes: OpaqueSigner) -> Self {
 		AnySigner::Opaque(signer_bytes)
@@ -134,7 +140,7 @@ impl<Url> MultiEnclave<Url> {
 		}
 	}
 
-	pub fn fingerprint(self) -> H256 {
+	pub fn fingerprint(self) -> EnclaveFingerprint {
 		match self {
 			MultiEnclave::Sgx(enclave) => EnclaveFingerprint::from(enclave.mr_enclave),
 		}
@@ -167,7 +173,8 @@ impl<Url> MultiEnclave<Url> {
 	pub fn attestaion_proxied(self) -> bool {
 		match self {
 			MultiEnclave::Sgx(enclave) => match enclave.attestation_method {
-				SgxAttestationMethod::Skip(true) | SgxAttestationMethod::Dcap(true) => true,
+				SgxAttestationMethod::Skip { proxied: true } |
+				SgxAttestationMethod::Dcap { proxied: true } => true,
 				_ => false,
 			},
 		}

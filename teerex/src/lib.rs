@@ -93,7 +93,7 @@ pub mod pallet {
 		ProcessedParentchainBlock(T::AccountId, H256, H256, T::BlockNumber),
 		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
 		PublishedHash {
-			mr_enclave: MrEnclave,
+			fingerprint: EnclaveFingerprint,
 			hash: H256,
 			data: Vec<u8>,
 		},
@@ -109,9 +109,9 @@ pub mod pallet {
 	// Watch out: we start indexing with 1 instead of zero in order to
 	// avoid ambiguity between Null and 0.
 	#[pallet::storage]
-	#[pallet::getter(fn enclave)]
+	#[pallet::getter(fn sovereign_enclaves)]
 	pub type SovereignEnclaves<T: Config> =
-		StorageMap<_, Blake2_128Concat, u64, MultiEnclave<Vec<u8>>, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, MultiEnclave<Vec<u8>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn quoting_enclave)]
@@ -163,7 +163,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, <Error<T>>::RaProofTooLong);
 			ensure!(
-				worker_url.unwrap_or_default().len() <= MAX_URL_LEN,
+				worker_url.clone().unwrap_or_default().len() <= MAX_URL_LEN,
 				<Error<T>>::EnclaveUrlTooLong
 			);
 			log::info!("teerex: parameter length ok");
@@ -184,7 +184,8 @@ pub mod pallet {
 					.with_attestation_method(SgxAttestationMethod::Ias);
 
 					ensure!(
-						sender == T::AccountId::decode(report.report_data.lower32()),
+						Ok(sender.clone()) ==
+							T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
 						<Error<T>>::SenderIsNotAttestedEnclave
 					);
 
@@ -196,7 +197,7 @@ pub mod pallet {
 					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 					enclave
 				},
-				SgxAttestationMethod::Dcap(proxied) => {
+				SgxAttestationMethod::Dcap { proxied } => {
 					let verification_time = <timestamp::Pallet<T>>::get();
 
 					let qe = <SgxQuotingEnclaveRegistry<T>>::get();
@@ -212,7 +213,8 @@ pub mod pallet {
 
 					if !proxied {
 						ensure!(
-							sender == T::AccountId::decode(report.report_data.lower32()),
+							Ok(sender.clone()) ==
+								T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
 							<Error<T>>::SenderIsNotAttestedEnclave
 						);
 					}
@@ -229,7 +231,7 @@ pub mod pallet {
 						report.build_mode,
 						report.status,
 					)
-					.with_attestation_method(SgxAttestationMethod::Dcap(proxied));
+					.with_attestation_method(SgxAttestationMethod::Dcap { proxied });
 
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
@@ -237,6 +239,17 @@ pub mod pallet {
 					// log::info!("teerex: status is acceptable");
 					enclave
 				},
+				SgxAttestationMethod::Skip { proxied } => SgxEnclave::new(
+					SgxReportData::default(),
+					// insert mrenclave if the ra_report represents one, otherwise insert default
+					<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
+					MrSigner::default(),
+					<timestamp::Pallet<T>>::get().saturated_into(),
+					SgxBuildMode::default(),
+					SgxStatus::Invalid,
+				)
+				.with_pubkey(sender.encode().as_ref())
+				.with_attestation_method(SgxAttestationMethod::Skip { proxied }),
 			};
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
@@ -245,11 +258,11 @@ pub mod pallet {
 			}
 
 			let enclave = match worker_url {
-				Some(url) => enclave.with_url(url),
+				Some(ref url) => enclave.with_url(url.clone()),
 				None => enclave,
 			};
 
-			Self::add_enclave(&sender, &MultiEnclave::from(enclave))?;
+			Self::add_enclave(&sender, &MultiEnclave::from(enclave.clone()))?;
 
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
@@ -339,10 +352,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::ensure_registered_enclave(&sender)?;
-			let sender_enclave = Self::get_enclave(&sender)?;
+			let sender_enclave =
+				<SovereignEnclaves<T>>::get(sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 
 			ensure!(
-				sender_enclave.mr_enclave.encode() == bonding_account.encode(),
+				sender_enclave.fingerprint().encode() == bonding_account.encode(),
 				<Error<T>>::WrongMrenclaveForBondingAccount
 			);
 
@@ -420,17 +434,18 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::ensure_registered_enclave(&sender)?;
-			let enclave = Self::get_enclave(&sender)?;
+			let enclave =
+				<SovereignEnclaves<T>>::get(sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 
 			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
 			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
 
 			let mut topics = extra_topics;
-			topics.push(enclave.mr_enclave.into());
+			topics.push(T::Hash::from(enclave.clone().fingerprint().into()));
 
 			Self::deposit_event_indexed(
 				&topics,
-				Event::PublishedHash { mr_enclave: enclave.mr_enclave, hash, data },
+				Event::PublishedHash { fingerprint: enclave.fingerprint(), hash, data },
 			);
 
 			Ok(().into())
@@ -474,9 +489,9 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		multi_enclave: &MultiEnclave<Vec<u8>>,
 	) -> DispatchResultWithPostInfo {
-		if multi_enclave.attestaion_proxied() {
+		if multi_enclave.clone().attestaion_proxied() {
 			log::warn!("proxied enclaves not supported yet");
-			return Err(Error::<T>::SenderIsNotAttestedEnclave)
+			return Err(Error::<T>::SenderIsNotAttestedEnclave.into())
 		}
 
 		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
@@ -559,12 +574,6 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err(<Error<T>>::RemoteAttestationTooOld.into())
 		}
-	}
-}
-
-impl<T: Config> OnTimestampSet<T::Moment> for Pallet<T> {
-	fn on_timestamp_set(moment: T::Moment) {
-		Self::unregister_silent_workers(moment)
 	}
 }
 

@@ -56,22 +56,23 @@ benchmarks! {
 	// Benchmark `register_ias_enclave` with the worst possible conditions:
 	// * remote attestation is valid
 	// * enclave already exists
-	register_ias_enclave {
+	register_sgx_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_ias_enclave(
+		Teerex::<T>::register_sgx_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
-			URL.to_vec()
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias
 		).unwrap();
 
-	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), URL.to_vec())
+	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), Some(URL.to_vec()), SgxAttestationMethod::Ias)
 	verify {
-		assert_eq!(Teerex::<T>::enclave_count(), 1);
+		assert!(crate::SovereignEnclaves::<T>::contains_key(&signer));
 	}
 
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
@@ -100,10 +101,10 @@ benchmarks! {
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
 		assert_eq!(get_test_tcb_info::<T>().next_update, 1681649132000);
 	}
-
+/*
 	// Benchmark `register_dcap_enclave` with the worst possible conditions:
 	// * dcap registration succeeds
-	register_dcap_enclave {
+	register_sgx_enclave {
 		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
@@ -111,11 +112,11 @@ benchmarks! {
 		register_test_quoting_enclave::<T>(signer.clone());
 		register_test_tcb_info::<T>(signer.clone());
 
-	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), URL.to_vec())
+	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), Some(URL.to_vec()), SgxAttestationMethod::Dcap { proxied: false })
 	verify {
 		assert_eq!(Teerex::<T>::enclave_count(), 1);
 	}
-
+*/
 	// Benchmark `unregister_enclave` enclave with the worst possible conditions:
 	// * enclave exists
 	// * enclave is not the most recently registered enclave
@@ -178,7 +179,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
 		Teerex::<T>::add_enclave(
 			a,
-			&SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave),
+			&MultiEnclave::from(SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave)),
 		)
 		.unwrap();
 	}
