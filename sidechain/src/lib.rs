@@ -92,14 +92,14 @@ pub mod pallet {
 
 			let sender = ensure_signed(origin)?;
 			Teerex::<T>::ensure_registered_enclave(&sender)?;
-			let sender_index = Teerex::<T>::enclave_index(&sender);
-			let sender_enclave = Teerex::<T>::enclave(sender_index)
-				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
+			let sender_enclave = Teerex::<T>::sovereign_enclaves(sender)
+				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
 			ensure!(
-				sender_enclave.mr_enclave.encode() == shard_id.encode(),
+				sender_enclave.fingerprint.encode() == shard_id.encode(),
 				pallet_teerex::Error::<T>::WrongMrenclaveForShard
 			);
 
+			// TODO: fix this! this hardcodes that only a single sidechain can exist and only the firs ever registere enclave can finalize
 			// Simple logic for now: only accept blocks from first registered enclave.
 			if sender_index != 1 {
 				log::debug!(

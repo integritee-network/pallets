@@ -114,6 +114,16 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, T::AccountId, MultiEnclave<Vec<u8>>, OptionQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn shard_status)]
+	pub type ShardStatus<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		ShardIdentifier,
+		Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn quoting_enclave)]
 	pub type SgxQuotingEnclaveRegistry<T: Config> = StorageValue<_, SgxQuotingEnclave, ValueQuery>;
 
@@ -574,6 +584,35 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err(<Error<T>>::RemoteAttestationTooOld.into())
 		}
+	}
+
+	fn poke_shard(
+		shard: ShardIdentifier,
+		enclave_signer: T::AccountId,
+	) -> DispatchResultWithPostInfo {
+		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
+			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+
+		let current_block_number = <frame_system::Pallet<T>>::block_number();
+
+		let fresh_status = ShardSignerStatus {
+			signer: enclave_signer.clone(),
+			fingerprint: enclave.fingerprint(),
+			last_activity: current_block_number,
+		};
+
+		let signer_statuses = if let Some(mut status_vec) = <ShardStatus<T>>::get(shard) {
+			if let Some(index) = status_vec.iter().position(|i| i.signer == enclave_signer) {
+				status_vec[index] = fresh_status;
+			} else {
+				status_vec.push(fresh_status)
+			}
+			status_vec
+		} else {
+			vec![fresh_status]
+		};
+		<ShardStatus<T>>::insert(shard, signer_statuses);
+		Ok(().into())
 	}
 }
 

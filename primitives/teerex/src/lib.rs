@@ -374,6 +374,13 @@ pub struct Request {
 	pub cyphertext: Vec<u8>,
 }
 
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct ShardSignerStatus<AccountId, BlockNumber> {
+	pub signer: AccountId,
+	pub fingerprint: EnclaveFingerprint,
+	pub last_activity: BlockNumber,
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
