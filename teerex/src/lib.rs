@@ -28,7 +28,7 @@ use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
 };
 use sp_core::H256;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::{traits::SaturatedConversion, Saturating};
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
@@ -78,7 +78,7 @@ pub mod pallet {
 
 		type WeightInfo: WeightInfo;
 
-		/// If a worker does not re-register within `MaxSilenceTime`, it will be unregistered.
+		/// If a worker does not re-register within `MaxSilenceTime`, it can be unregistered by anyone.
 		#[pallet::constant]
 		type MaxSilenceTime: Get<Self::Moment>;
 	}
@@ -291,12 +291,21 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
-		pub fn unregister_enclave(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call unregister_enclave()");
+		pub fn unregister_sovereign_enclave(
+			origin: OriginFor<T>,
+			enclave_signer: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_sovereign_enclave()");
 			let sender = ensure_signed(origin)?;
-
-			Self::remove_enclave(&sender)?;
-			Self::deposit_event(Event::RemovedEnclave(sender));
+			let enclave = Self::sovereign_enclaves(&enclave_signer)
+				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			let now = <timestamp::Module<T>>::get();
+			let oldest_acceptable_attestation_time =
+				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
+				<SovereignEnclaves<T>>::remove(&enclave_signer);
+			}
+			Self::deposit_event(Event::RemovedEnclave(enclave_signer));
 			Ok(().into())
 		}
 
@@ -514,12 +523,6 @@ impl<T: Config> Pallet<T> {
 		}
 
 		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
-		Ok(().into())
-	}
-
-	fn remove_enclave(sender: &T::AccountId) -> DispatchResultWithPostInfo {
-		ensure!(<SovereignEnclaves<T>>::contains_key(sender), <Error<T>>::EnclaveIsNotRegistered);
-		<SovereignEnclaves<T>>::remove(sender);
 		Ok(().into())
 	}
 

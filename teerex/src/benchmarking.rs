@@ -22,6 +22,7 @@
 use super::*;
 
 use crate::{
+	mock::{MaxSilenceTime, Timestamp},
 	test_helpers::{get_test_tcb_info, register_test_quoting_enclave, register_test_tcb_info},
 	Pallet as Teerex,
 };
@@ -120,12 +121,13 @@ benchmarks! {
 	// Benchmark `unregister_enclave` enclave with the worst possible conditions:
 	// * enclave exists
 	// * enclave is not the most recently registered enclave
-	unregister_enclave {
+	unregister_sovereign_enclave {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
 		add_enclaves_to_registry::<T>(&accounts);
+		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxSilenceTime>::get() + 1);
 
-	}: _(RawOrigin::Signed(accounts[0].clone()))
+	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
 		assert!(!crate::SovereignEnclaves::<T>::contains_key(&accounts[0]));
 	}

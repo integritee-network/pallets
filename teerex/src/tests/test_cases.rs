@@ -52,7 +52,7 @@ fn add_and_remove_dcap_enclave_works() {
 
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
-		register_test_tcb_info::<Test>(alice);
+		register_test_tcb_info::<Test>(alice.clone());
 
 		let signer = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		assert_ok!(Teerex::register_sgx_enclave(
@@ -66,7 +66,11 @@ fn add_and_remove_dcap_enclave_works() {
 			Teerex::sovereign_enclaves(&signer).unwrap().attestation_timestamp(),
 			TEST_VALID_COLLATERAL_TIMESTAMP
 		);
-		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer.clone())));
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		assert_ok!(Teerex::unregister_sovereign_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			signer.clone()
+		));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
 		assert_eq!(list_enclaves(), vec![])
 	})
@@ -129,6 +133,7 @@ fn add_enclave_works() {
 fn add_and_remove_enclave_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		let alice = AccountKeyring::Alice.to_account_id();
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
@@ -137,7 +142,11 @@ fn add_and_remove_enclave_works() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
-		assert_ok!(Teerex::unregister_enclave(RuntimeOrigin::signed(signer.clone())));
+		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		assert_ok!(Teerex::unregister_sovereign_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			signer.clone()
+		));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
 		assert_eq!(list_enclaves(), vec![])
 	})
