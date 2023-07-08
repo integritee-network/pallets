@@ -77,6 +77,36 @@ fn add_and_remove_dcap_enclave_works() {
 }
 
 #[test]
+fn unregister_active_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		let alice = AccountKeyring::Alice.to_account_id();
+		register_test_quoting_enclave::<Test>(alice.clone());
+		register_test_tcb_info::<Test>(alice.clone());
+
+		let signer = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(signer.clone()),
+			TEST1_DCAP_QUOTE.to_vec(),
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Dcap { proxied: false }
+		));
+		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
+
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() / 2 + 1);
+
+		assert_err!(
+			Teerex::unregister_sovereign_enclave(
+				RuntimeOrigin::signed(alice.clone()),
+				signer.clone()
+			),
+			Error::<Test>::UnregisteringActiveEnclaveNotAllowed
+		);
+		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
+	})
+}
+
+#[test]
 fn register_quoting_enclave_works() {
 	new_test_ext().execute_with(|| {
 		let alice = AccountKeyring::Alice.to_account_id();

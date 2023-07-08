@@ -304,6 +304,8 @@ pub mod pallet {
 				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
+			} else {
+				return Err(<Error<T>>::UnregisteringActiveEnclaveNotAllowed.into())
 			}
 			Self::deposit_event(Event::RemovedEnclave(enclave_signer));
 			Ok(().into())
@@ -509,6 +511,8 @@ pub mod pallet {
 		TooManyTopics,
 		/// The length of the `data` passed to `publish_hash` exceeds the limit.
 		DataTooLong,
+		/// It is not allowed to unregister enclaves with recent activity
+		UnregisteringActiveEnclaveNotAllowed,
 	}
 }
 
