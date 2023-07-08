@@ -22,7 +22,6 @@
 use super::*;
 
 use crate::{
-	mock::{MaxSilenceTime, Timestamp},
 	test_helpers::{get_test_tcb_info, register_test_quoting_enclave},
 	Pallet as Teerex,
 };
@@ -34,6 +33,8 @@ use test_utils::{
 	get_signer,
 	test_data::{consts::*, dcap::*, ias::*},
 };
+
+const MAX_SILENCE_TIME: u64 = 172_800_000; // 48h
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]
@@ -125,7 +126,7 @@ benchmarks! {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
 		add_enclaves_to_registry::<T>(&accounts);
-		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
