@@ -103,14 +103,22 @@ pub enum AnySigner {
 	Opaque(OpaqueSigner),
 	Known(MultiSigner),
 }
+impl Default for AnySigner {
+	fn default() -> Self {
+		AnySigner::Opaque(OpaqueSigner::default())
+	}
+}
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum MultiEnclave<Url> {
 	Sgx(SgxEnclave<Url>),
 }
 
-impl<Url> MultiEnclave<Url> {
-	pub fn author(self) -> AnySigner {
+impl<Url> MultiEnclave<Url>
+where
+	Url: Clone,
+{
+	pub fn author(&self) -> AnySigner {
 		match self {
 			MultiEnclave::Sgx(enclave) => AnySigner::Opaque(
 				OpaqueSigner::try_from(enclave.mr_signer.to_vec()).unwrap_or_default(),
@@ -124,7 +132,7 @@ impl<Url> MultiEnclave<Url> {
 		}
 	}
 
-	pub fn instance_signer(self) -> AnySigner {
+	pub fn instance_signer(&self) -> AnySigner {
 		match self {
 			MultiEnclave::Sgx(enclave) => match enclave.maybe_pubkey() {
 				Some(pubkey) =>
@@ -136,19 +144,19 @@ impl<Url> MultiEnclave<Url> {
 		}
 	}
 
-	pub fn instance_url(self) -> Option<Url> {
+	pub fn instance_url(&self) -> Option<Url> {
 		match self {
-			MultiEnclave::Sgx(enclave) => enclave.url,
+			MultiEnclave::Sgx(enclave) => enclave.url.clone(),
 		}
 	}
 
-	pub fn attestation_timestamp(self) -> u64 {
+	pub fn attestation_timestamp(&self) -> u64 {
 		match self {
 			MultiEnclave::Sgx(enclave) => enclave.timestamp,
 		}
 	}
 
-	pub fn attestaion_proxied(self) -> bool {
+	pub fn attestaion_proxied(&self) -> bool {
 		match self {
 			MultiEnclave::Sgx(enclave) => matches!(
 				enclave.attestation_method,
@@ -357,6 +365,13 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 	pub signer: AccountId,
 	pub fingerprint: EnclaveFingerprint,
 	pub last_activity: BlockNumber,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct EnclaveInstanceAddress<AccountId> {
+	pub fingerprint: EnclaveFingerprint,
+	pub registrar: AccountId,
+	pub signer: AnySigner,
 }
 
 #[cfg(test)]

@@ -182,7 +182,7 @@ fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
 		Teerex::<T>::add_enclave(
 			a,
-			&MultiEnclave::from(SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave)),
+			MultiEnclave::from(SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave)),
 		)
 		.unwrap();
 	}
