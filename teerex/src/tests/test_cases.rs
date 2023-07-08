@@ -229,6 +229,7 @@ fn list_enclaves_works() {
 fn register_ias_enclave_with_different_signer_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST7_SIGNER_PUB);
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		assert_err!(
 			Teerex::register_sgx_enclave(
 				RuntimeOrigin::signed(signer),

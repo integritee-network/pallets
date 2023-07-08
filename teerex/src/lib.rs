@@ -189,6 +189,9 @@ pub mod pallet {
 					let report = sgx_verify::verify_ias_report(&proof)
 						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
 					log::info!("teerex: IAS report successfully verified");
+
+					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
+
 					let enclave = SgxEnclave::new(
 						report.report_data,
 						report.mr_enclave,
@@ -210,7 +213,6 @@ pub mod pallet {
 					//     "RA status is insufficient");
 					// log::info!("teerex: status is acceptable");
 
-					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 					enclave
 				},
 				SgxAttestationMethod::Dcap { proxied } => {
@@ -278,7 +280,7 @@ pub mod pallet {
 			};
 
 			Self::add_enclave(&sender, &MultiEnclave::from(enclave.clone()))?;
-			Self::poke_shard(enclave.mr_enclave.into(), &sender)?;
+			Self::touch_shard(enclave.mr_enclave.into(), &sender)?;
 
 			Self::deposit_event(Event::AddedEnclave {
 				registered_by: sender,
@@ -332,7 +334,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(enclave.fingerprint(), &sender)?;
+			Self::touch_shard(enclave.fingerprint(), &sender)?;
 
 			log::debug!(
 				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
@@ -383,7 +385,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let sender_enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(sender_enclave.fingerprint(), &sender)?;
+			Self::touch_shard(sender_enclave.fingerprint(), &sender)?;
 
 			ensure!(
 				sender_enclave.fingerprint().encode() == bonding_account.encode(),
@@ -465,7 +467,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(enclave.fingerprint(), &sender)?;
+			Self::touch_shard(enclave.fingerprint(), &sender)?;
 
 			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
 			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
@@ -498,10 +500,10 @@ pub mod pallet {
 		/// The bonding account doesn't match the enclave.
 		WrongMrenclaveForBondingAccount,
 		/// The shard doesn't match the enclave.
-		WrongMrenclaveForShard,
+		WrongFingerprintForShard,
 		/// The worker url is too long.
 		EnclaveUrlTooLong,
-		/// The Remote Attestation report is too long.
+		/// The Remote Attestation proof is too long.
 		RaProofTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
@@ -602,7 +604,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	pub fn poke_shard(
+	pub fn touch_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
 	) -> Result<ShardSignerStatuses<T>, DispatchErrorWithPostInfo> {
@@ -611,7 +613,7 @@ impl<T: Config> Pallet<T> {
 
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
 
-		let fresh_status = ShardSignerStatus {
+		let new_status = ShardSignerStatus {
 			signer: enclave_signer.clone(),
 			fingerprint: enclave.fingerprint(),
 			last_activity: current_block_number,
@@ -619,13 +621,13 @@ impl<T: Config> Pallet<T> {
 
 		let signer_statuses = if let Some(mut status_vec) = <ShardStatus<T>>::get(shard) {
 			if let Some(index) = status_vec.iter().position(|i| i.signer == *enclave_signer) {
-				status_vec[index] = fresh_status;
+				status_vec[index] = new_status;
 			} else {
-				status_vec.push(fresh_status)
+				status_vec.push(new_status)
 			}
 			status_vec
 		} else {
-			vec![fresh_status]
+			vec![new_status]
 		};
 		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
 		Ok(signer_statuses)

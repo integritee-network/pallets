@@ -98,7 +98,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 				block_number,
 				hash
 			),
-			pallet_teerex::Error::<Test>::WrongMrenclaveForShard
+			pallet_teerex::Error::<Test>::WrongFingerprintForShard
 		);
 	})
 }

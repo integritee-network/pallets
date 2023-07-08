@@ -90,9 +90,9 @@ pub mod pallet {
 				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
 			ensure!(
 				enclave.fingerprint().encode() == shard_id.encode(),
-				pallet_teerex::Error::<T>::WrongMrenclaveForShard
+				pallet_teerex::Error::<T>::WrongFingerprintForShard
 			);
-			let shard_status = Teerex::<T>::poke_shard(enclave.fingerprint(), &sender)?;
+			let shard_status = Teerex::<T>::touch_shard(enclave.fingerprint(), &sender)?;
 
 			// TODO: Simple logic for now: only accept blocks from first registered enclave.
 			if sender != shard_status[0].signer {
