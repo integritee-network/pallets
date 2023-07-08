@@ -619,16 +619,17 @@ impl<T: Config> Pallet<T> {
 			last_activity: current_block_number,
 		};
 
-		let signer_statuses = if let Some(mut status_vec) = <ShardStatus<T>>::get(shard) {
-			if let Some(index) = status_vec.iter().position(|i| i.signer == *enclave_signer) {
-				status_vec[index] = new_status;
-			} else {
-				status_vec.push(new_status)
-			}
-			status_vec
-		} else {
-			vec![new_status]
-		};
+		let signer_statuses = <ShardStatus<T>>::get(shard)
+			.map(|mut status_vec| {
+				if let Some(index) = status_vec.iter().position(|i| &i.signer == enclave_signer) {
+					status_vec[index] = new_status.clone();
+				} else {
+					status_vec.push(new_status.clone());
+				}
+				status_vec
+			})
+			.unwrap_or_else(|| vec![new_status]);
+
 		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
 		Ok(signer_statuses)
 	}
@@ -636,10 +637,12 @@ impl<T: Config> Pallet<T> {
 	pub fn most_recent_shard_update(
 		shard: &ShardIdentifier,
 	) -> Option<ShardSignerStatus<T::AccountId, T::BlockNumber>> {
-		<ShardStatus<T>>::get(shard).map(|statuses| {
-			statuses.sort_by_key(|a| a.last_activity);
-			statuses.last().cloned()
-		})
+		<ShardStatus<T>>::get(shard)
+			.map(|mut statuses| {
+				statuses.sort_by_key(|a| a.last_activity);
+				statuses.last().cloned()
+			})
+			.unwrap_or_default()
 	}
 }
 
