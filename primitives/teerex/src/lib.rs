@@ -109,6 +109,26 @@ impl Default for AnySigner {
 	}
 }
 
+impl From<[u8; 32]> for AnySigner {
+	fn from(pubkey: [u8; 32]) -> Self {
+		// zero padding is necessary because the chain storage does that anyway for bounded vec
+		let mut zero_padded_pubkey = pubkey.to_vec();
+		zero_padded_pubkey.append(&mut vec![0; 34]);
+		AnySigner::Opaque(
+			OpaqueSigner::try_from(zero_padded_pubkey).expect("66 >= 32 + 34. q.e.d."),
+		)
+	}
+}
+
+impl From<[u8; 64]> for AnySigner {
+	fn from(pubkey: [u8; 64]) -> Self {
+		// zero padding is necessary because the chain storage does that anyway for bounded vec
+		let mut zero_padded_pubkey = pubkey.to_vec();
+		zero_padded_pubkey.append(&mut vec![0; 2]);
+		AnySigner::Opaque(OpaqueSigner::try_from(zero_padded_pubkey).expect("66 > 64 + 2. q.e.d."))
+	}
+}
+
 #[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum MultiEnclave<Url> {
 	Sgx(SgxEnclave<Url>),
@@ -137,9 +157,7 @@ where
 			MultiEnclave::Sgx(enclave) => match enclave.maybe_pubkey() {
 				Some(pubkey) =>
 					AnySigner::from(MultiSigner::from(sp_core::ed25519::Public::from_raw(pubkey))),
-				None => AnySigner::Opaque(
-					OpaqueSigner::try_from(enclave.report_data.d.to_vec()).unwrap_or_default(),
-				),
+				None => AnySigner::try_from(enclave.report_data.d).unwrap_or_default(),
 			},
 		}
 	}
