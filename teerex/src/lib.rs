@@ -21,14 +21,14 @@ use codec::Encode;
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResult, DispatchResultWithPostInfo},
 	ensure,
-	traits::{Currency, ExistenceRequirement, Get, OnTimestampSet},
+	traits::{Currency, ExistenceRequirement, Get},
 };
 use frame_system::{self, ensure_signed};
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
 };
 use sp_core::H256;
-use sp_runtime::{traits::SaturatedConversion, Saturating};
+use sp_runtime::traits::SaturatedConversion;
 use sp_std::{prelude::*, str};
 use teerex_primitives::*;
 
