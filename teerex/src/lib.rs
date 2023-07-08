@@ -77,6 +77,8 @@ pub mod pallet {
 		type MaxSilenceTime: Get<Self::Moment>;
 	}
 
+	pub type ShardSignerStatuses = Vec<ShardSignerStatus<Self::AccountId, Self::BlockNumber>>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -233,7 +235,12 @@ pub mod pallet {
 					let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
 					ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
 
-					let enclave = SgxEnclave::new(
+					// TODO: activate state checks as soon as we've fixed our setup #83
+					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
+					//     "RA status is insufficient");
+					// log::info!("teerex: status is acceptable");
+
+					SgxEnclave::new(
 						report.report_data,
 						report.mr_enclave,
 						report.mr_signer,
@@ -241,13 +248,7 @@ pub mod pallet {
 						report.build_mode,
 						report.status,
 					)
-					.with_attestation_method(SgxAttestationMethod::Dcap { proxied });
-
-					// TODO: activate state checks as soon as we've fixed our setup #83
-					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
-					//     "RA status is insufficient");
-					// log::info!("teerex: status is acceptable");
-					enclave
+					.with_attestation_method(SgxAttestationMethod::Dcap { proxied })
 				},
 				SgxAttestationMethod::Skip { proxied } => SgxEnclave::new(
 					SgxReportData::default(),
@@ -316,7 +317,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(enclave.fingerprint().into(), &sender)?;
+			Self::poke_shard(enclave.fingerprint(), &sender)?;
 
 			log::debug!(
 				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
@@ -367,7 +368,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let sender_enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(sender_enclave.fingerprint().into(), &sender)?;
+			Self::poke_shard(sender_enclave.fingerprint(), &sender)?;
 
 			ensure!(
 				sender_enclave.fingerprint().encode() == bonding_account.encode(),
@@ -449,13 +450,13 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 			let enclave =
 				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::poke_shard(enclave.fingerprint().into(), &sender)?;
+			Self::poke_shard(enclave.fingerprint(), &sender)?;
 
 			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
 			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
 
 			let mut topics = extra_topics;
-			topics.push(T::Hash::from(enclave.clone().fingerprint().into()));
+			topics.push(T::Hash::from(enclave.fingerprint().into()));
 
 			Self::deposit_event_indexed(
 				&topics,
@@ -593,7 +594,7 @@ impl<T: Config> Pallet<T> {
 	pub fn poke_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
-	) -> Result<Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>, DispatchErrorWithPostInfo> {
+	) -> Result<ShardSignerStatuses, DispatchErrorWithPostInfo> {
 		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
 			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 
