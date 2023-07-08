@@ -21,15 +21,13 @@ use crate::{
 	Error, Event as TeerexEvent, ExecutedCalls, Request, SgxEnclave, ShardIdentifier,
 	SovereignEnclaves, DATA_LENGTH_LIMIT,
 };
-use codec::Encode;
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
 use sgx_verify::test_data::dcap::TEST1_DCAP_QUOTE_SIGNER;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
-use sp_runtime::{MultiSignature, MultiSigner};
 use teerex_primitives::{
-	AnySigner, MultiEnclave, SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus,
+	MultiEnclave, SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus,
 };
 use test_utils::test_data::{
 	consts::*,
@@ -100,7 +98,7 @@ fn unregister_active_enclave_fails() {
 				RuntimeOrigin::signed(alice.clone()),
 				signer.clone()
 			),
-			Error::<Test>::UnregisteringActiveEnclaveNotAllowed
+			Error::<Test>::UnregisterActiveEnclaveNotAllowed
 		);
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 	})

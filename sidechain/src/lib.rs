@@ -132,8 +132,6 @@ pub mod pallet {
 		ReceivedUnexpectedSidechainBlock,
 		/// The value for the next finalization candidate is invalid.
 		InvalidNextFinalizationCandidateBlockNumber,
-		/// A Shard has not been properly initialized
-		ShardNotInitialized,
 	}
 }
 

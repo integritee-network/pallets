@@ -23,7 +23,7 @@ use super::*;
 
 use crate::{
 	mock::{MaxSilenceTime, Timestamp},
-	test_helpers::{get_test_tcb_info, register_test_quoting_enclave, register_test_tcb_info},
+	test_helpers::{get_test_tcb_info, register_test_quoting_enclave},
 	Pallet as Teerex,
 };
 use frame_benchmarking::{account, benchmarks};

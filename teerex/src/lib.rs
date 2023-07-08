@@ -38,7 +38,7 @@ use teerex_primitives::{SgxBuildMode, SgxStatus};
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
-pub type ShardSignerStatuses<T> = Vec<
+pub type ShardSignerStatusVec<T> = Vec<
 	ShardSignerStatus<
 		<T as frame_system::Config>::AccountId,
 		<T as frame_system::Config>::BlockNumber,
@@ -307,7 +307,7 @@ pub mod pallet {
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
 			} else {
-				return Err(<Error<T>>::UnregisteringActiveEnclaveNotAllowed.into())
+				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
 			Self::deposit_event(Event::RemovedEnclave(enclave_signer));
 			Ok(().into())
@@ -514,7 +514,7 @@ pub mod pallet {
 		/// The length of the `data` passed to `publish_hash` exceeds the limit.
 		DataTooLong,
 		/// It is not allowed to unregister enclaves with recent activity
-		UnregisteringActiveEnclaveNotAllowed,
+		UnregisterActiveEnclaveNotAllowed,
 	}
 }
 
@@ -607,7 +607,7 @@ impl<T: Config> Pallet<T> {
 	pub fn touch_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
-	) -> Result<ShardSignerStatuses<T>, DispatchErrorWithPostInfo> {
+	) -> Result<ShardSignerStatusVec<T>, DispatchErrorWithPostInfo> {
 		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
 			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 

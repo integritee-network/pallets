@@ -21,7 +21,6 @@
 
 use super::*;
 
-use crate::Pallet as Sidechain;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use test_utils::test_data::ias::*;
