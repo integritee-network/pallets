@@ -60,12 +60,6 @@ pub mod pallet {
 		FinalizedSidechainBlock(T::AccountId, H256),
 	}
 
-	// Enclave index of the worker that recently committed an update.
-	#[pallet::storage]
-	#[pallet::getter(fn worker_for_shard)]
-	pub type WorkerForShard<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
-
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_confirmation)]
 	pub type LatestSidechainBlockConfirmation<T: Config> =
@@ -92,19 +86,19 @@ pub mod pallet {
 
 			let sender = ensure_signed(origin)?;
 			Teerex::<T>::ensure_registered_enclave(&sender)?;
-			let sender_enclave = Teerex::<T>::sovereign_enclaves(sender)
+			let enclave = Teerex::<T>::sovereign_enclaves(sender)
 				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
 			ensure!(
-				sender_enclave.fingerprint.encode() == shard_id.encode(),
+				enclave.fingerprint().encode() == shard_id.encode(),
 				pallet_teerex::Error::<T>::WrongMrenclaveForShard
 			);
+			let shard_status = Teerex::<T>::poke_shard(enclave.fingerprint().into(), &sender)?;
 
-			// TODO: fix this! this hardcodes that only a single sidechain can exist and only the firs ever registere enclave can finalize
-			// Simple logic for now: only accept blocks from first registered enclave.
-			if sender_index != 1 {
+			// TODO: Simple logic for now: only accept blocks from first registered enclave.
+			if sender != shard_status[0].signer {
 				log::debug!(
-					"Ignore block confirmation from registered enclave with index {:?}",
-					sender_index
+					"Ignore block confirmation from registered enclave with index > 1: {:}",
+					sender
 				);
 				return Ok(().into())
 			}
@@ -127,7 +121,7 @@ pub mod pallet {
 				next_finalization_candidate_block_number,
 			);
 
-			Self::finalize_block(shard_id, confirmation, &sender, sender_index);
+			Self::finalize_block(shard_id, confirmation, &sender);
 			Ok(().into())
 		}
 	}
@@ -138,6 +132,8 @@ pub mod pallet {
 		ReceivedUnexpectedSidechainBlock,
 		/// The value for the next finalization candidate is invalid.
 		InvalidNextFinalizationCandidateBlockNumber,
+		/// A Shard has not been properly initialized
+		ShardNotInitialized,
 	}
 }
 
@@ -146,10 +142,8 @@ impl<T: Config> Pallet<T> {
 		shard_id: ShardIdentifier,
 		confirmation: SidechainBlockConfirmation,
 		sender: &T::AccountId,
-		sender_index: u64,
 	) {
 		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, confirmation);
-		<WorkerForShard<T>>::insert(shard_id, sender_index);
 		let block_header_hash = confirmation.block_header_hash;
 		log::debug!(
 			"Imported sidechain block confirmed with shard {:?}, block header hash {:?}",

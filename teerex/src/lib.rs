@@ -590,10 +590,10 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn poke_shard(
+	pub fn poke_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
-	) -> DispatchResultWithPostInfo {
+	) -> Result<Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>, DispatchErrorWithPostInfo> {
 		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
 			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 
@@ -615,8 +615,8 @@ impl<T: Config> Pallet<T> {
 		} else {
 			vec![fresh_status]
 		};
-		<ShardStatus<T>>::insert(shard, signer_statuses);
-		Ok(().into())
+		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
+		Ok(signer_statuses)
 	}
 }
 
