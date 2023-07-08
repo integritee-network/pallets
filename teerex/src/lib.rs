@@ -38,6 +38,7 @@ use teerex_primitives::{SgxBuildMode, SgxStatus};
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
+pub type ShardSignerStatuses<T> = Vec<ShardSignerStatus<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber>>;
 
 pub use pallet::*;
 
@@ -76,8 +77,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxSilenceTime: Get<Self::Moment>;
 	}
-
-	pub type ShardSignerStatuses = Vec<ShardSignerStatus<Self::AccountId, Self::BlockNumber>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -594,7 +593,7 @@ impl<T: Config> Pallet<T> {
 	pub fn poke_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
-	) -> Result<ShardSignerStatuses, DispatchErrorWithPostInfo> {
+	) -> Result<ShardSignerStatuses::<T>, DispatchErrorWithPostInfo> {
 		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
 			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 
