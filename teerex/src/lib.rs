@@ -298,10 +298,10 @@ pub mod pallet {
 			enclave_signer: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			log::info!("teerex: called into runtime call unregister_sovereign_enclave()");
-			let sender = ensure_signed(origin)?;
+			ensure_signed(origin)?;
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
 				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			let now = <timestamp::Module<T>>::get();
+			let now = <timestamp::Pallet<T>>::get();
 			let oldest_acceptable_attestation_time =
 				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
