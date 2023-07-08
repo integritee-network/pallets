@@ -18,7 +18,7 @@ limitations under the License.
 use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use sp_core::H256;
-use teerex_primitives::MrSigner;
+use teerex_primitives::{MrSigner, SgxAttestationMethod};
 use test_utils::test_data::consts::*;
 
 // give get_signer a concrete type
@@ -187,8 +187,8 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
-		register_ias_enclave(TEST6_SIGNER_PUB, TEST6_CERT, 2);
+		register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
+		register_ias_enclave(TEST6_SIGNER_PUB, TEST6_CERT);
 
 		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
@@ -196,19 +196,20 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 }
 
 fn register_ias_enclave7() {
-	register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT, 1);
+	register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
 }
 
-fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8], expected_enclave_count: u64) {
-	let signer7 = get_signer(signer_pub_key);
+fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8]) {
+	let signer = get_signer(signer_pub_key);
 
 	//Ensure that enclave is registered
-	assert_ok!(Teerex::<Test>::register_ias_enclave(
-		RuntimeOrigin::signed(signer7),
+	assert_ok!(Teerex::<Test>::register_sgx_enclave(
+		RuntimeOrigin::signed(signer.clone()),
 		cert.to_vec(),
-		URL.to_vec(),
+		Some(URL.to_vec()),
+		SgxAttestationMethod::Ias,
 	));
-	assert_eq!(Teerex::<Test>::enclave_count(), expected_enclave_count);
+	assert!(Teerex::<Test>::sovereign_enclaves(signer).is_some());
 }
 
 fn confirm_block7(

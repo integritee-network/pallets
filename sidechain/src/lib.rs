@@ -86,7 +86,7 @@ pub mod pallet {
 
 			let sender = ensure_signed(origin)?;
 			Teerex::<T>::ensure_registered_enclave(&sender)?;
-			let enclave = Teerex::<T>::sovereign_enclaves(sender)
+			let enclave = Teerex::<T>::sovereign_enclaves(&sender)
 				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
 			ensure!(
 				enclave.fingerprint().encode() == shard_id.encode(),

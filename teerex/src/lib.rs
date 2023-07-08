@@ -618,6 +618,17 @@ impl<T: Config> Pallet<T> {
 		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
 		Ok(signer_statuses)
 	}
+
+	pub fn most_recent_shard_update(
+		shard: &ShardIdentifier,
+	) -> Option<ShardSignerStatus<T::AccountId, T::BlockNumber>> {
+		if let Some(mut statuses) = <ShardStatus<T>>::get(shard) {
+			statuses.sort_by_key(|a| a.last_activity);
+			statuses.last().cloned()
+		} else {
+			None
+		}
+	}
 }
 
 #[cfg(any(test, feature = "runtime-benchmarks"))]
