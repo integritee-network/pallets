@@ -21,6 +21,7 @@ use pallet_teerex::Error;
 use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
 use teeracle_primitives::*;
+use teerex_primitives::{EnclaveFingerprint, SgxAttestationMethod};
 use test_utils::test_data::consts::{
 	TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST5_MRENCLAVE,
 	TEST5_SIGNER_PUB, TEST8_MRENCLAVE, URL,
@@ -39,13 +40,14 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn register_ias_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 	Timestamp::set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
-	assert_ok!(Teerex::register_ias_enclave(
-		RuntimeOrigin::signed(signer),
+	assert_ok!(Teerex::register_sgx_enclave(
+		RuntimeOrigin::signed(signer.clone()),
 		TEST4_CERT.to_vec(),
-		URL.to_vec()
+		Some(URL.to_vec()),
+		SgxAttestationMethod::Ias,
 	));
-	let mrenclave = Teerex::enclave(1).unwrap().mr_enclave;
-	assert_ok!(Teeracle::add_to_whitelist(RuntimeOrigin::root(), src.to_owned(), mrenclave));
+	let fingerprint = Teerex::sovereign_enclaves(&signer).unwrap().fingerprint();
+	assert_ok!(Teeracle::add_to_whitelist(RuntimeOrigin::root(), src.to_owned(), fingerprint));
 }
 
 fn update_exchange_rate_dot_dollars_ok(src: &str, rate: Option<U32F32>) {
@@ -222,10 +224,11 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Teerex::register_ias_enclave(
+		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
-			URL.to_vec()
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias,
 		));
 
 		let rate = U32F32::from_num(43.65);
@@ -246,10 +249,11 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
-		assert_ok!(Teerex::register_ias_enclave(
+		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
-			URL.to_vec()
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias,
 		));
 
 		assert_noop!(
@@ -287,14 +291,15 @@ fn update_exchange_rate_with_too_long_trading_pair_fails() {
 #[test]
 fn add_to_whitelist_works() {
 	new_test_ext().execute_with(|| {
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist(
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE,
+			fingerprint,
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
@@ -304,19 +309,20 @@ fn add_to_whitelist_works() {
 #[test]
 fn add_mulitple_src_to_whitelists_works() {
 	new_test_ext().execute_with(|| {
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINMARKETCAP_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist(
 			COINMARKETCAP_SRC.to_owned(),
-			TEST4_MRENCLAVE,
+			fingerprint,
 		));
 
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -328,16 +334,17 @@ fn add_mulitple_src_to_whitelists_works() {
 #[test]
 fn add_two_times_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		assert_err!(
 			Teeracle::add_to_whitelist(
 				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
-				TEST4_MRENCLAVE
+				fingerprint
 			),
 			crate::Error::<Test>::ReleaseAlreadyWhitelisted
 		);
@@ -351,58 +358,74 @@ fn add_too_many_oracles_to_whitelist_fails() {
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			EnclaveFingerprint::from(TEST4_MRENCLAVE)
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST5_MRENCLAVE
+			EnclaveFingerprint::from(TEST5_MRENCLAVE)
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d2")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d2"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d3")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d3"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d4")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d4"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d5")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d5"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d6")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d6"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d7")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d7"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d8")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d8"
+			))
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			hex!("f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9")
+			EnclaveFingerprint::from(hex!(
+				"f4dedfc9e5fcc48443332bc9b23161c34a3c3f5a692eaffdb228db27b704d9d9"
+			))
 		));
 		assert_err!(
 			Teeracle::add_to_whitelist(
 				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
-				TEST8_MRENCLAVE
+				EnclaveFingerprint::from(TEST8_MRENCLAVE)
 			),
 			crate::Error::<Test>::ReleaseWhitelistOverflow
 		);
@@ -414,7 +437,11 @@ fn add_to_whitelist_too_long_source_fails() {
 	new_test_ext().execute_with(|| {
 		let too_long_source = "123456789_223456789_323456789_423456789_1".to_owned();
 		assert_err!(
-			Teeracle::add_to_whitelist(RuntimeOrigin::root(), too_long_source, TEST4_MRENCLAVE),
+			Teeracle::add_to_whitelist(
+				RuntimeOrigin::root(),
+				too_long_source,
+				EnclaveFingerprint::from(TEST4_MRENCLAVE)
+			),
 			crate::Error::<Test>::DataSourceStringTooLong
 		);
 	})
@@ -424,11 +451,12 @@ fn add_to_whitelist_too_long_source_fails() {
 fn non_root_add_to_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_err!(
 			Teeracle::add_to_whitelist(
 				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
-				TEST4_MRENCLAVE
+				fingerprint
 			),
 			BadOrigin
 		);
@@ -439,19 +467,20 @@ fn non_root_add_to_whitelist_fails() {
 #[test]
 fn remove_from_whitelist_works() {
 	new_test_ext().execute_with(|| {
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		assert_ok!(Teeracle::remove_from_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		let expected_event = RuntimeEvent::Teeracle(crate::Event::RemovedFromWhitelist(
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE,
+			fingerprint,
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 0);
@@ -464,13 +493,13 @@ fn remove_from_whitelist_not_whitelisted_fails() {
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			EnclaveFingerprint::from(TEST4_MRENCLAVE)
 		));
 		assert_err!(
 			Teeracle::remove_from_whitelist(
 				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
-				TEST5_MRENCLAVE
+				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
 			crate::Error::<Test>::ReleaseNotWhitelisted
 		);
@@ -486,7 +515,7 @@ fn remove_from_empty_whitelist_doesnt_crash() {
 			Teeracle::remove_from_whitelist(
 				RuntimeOrigin::root(),
 				COINGECKO_SRC.to_owned(),
-				TEST5_MRENCLAVE
+				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
 			crate::Error::<Test>::ReleaseNotWhitelisted
 		);
@@ -498,16 +527,17 @@ fn remove_from_empty_whitelist_doesnt_crash() {
 fn non_root_remove_from_whitelist_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST5_SIGNER_PUB);
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			TEST4_MRENCLAVE
+			fingerprint
 		));
 		assert_err!(
 			Teeracle::remove_from_whitelist(
 				RuntimeOrigin::signed(signer),
 				COINGECKO_SRC.to_owned(),
-				TEST4_MRENCLAVE
+				fingerprint
 			),
 			BadOrigin
 		);

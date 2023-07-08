@@ -32,8 +32,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
+use pallet_teerex::Pallet as Teerex;
 pub use substrate_fixed::types::U32F32;
 use teeracle_primitives::{DataSource, MAX_ORACLE_DATA_NAME_LEN};
+use teerex_primitives::EnclaveFingerprint;
 
 const MAX_TRADING_PAIR_LEN: usize = 11;
 const MAX_SOURCE_LEN: usize = 40;
@@ -97,7 +99,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		DataSource,
-		WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>,
+		WeakBoundedVec<EnclaveFingerprint, T::MaxWhitelistedReleases>,
 		ValueQuery,
 	>;
 
@@ -111,8 +113,8 @@ pub mod pallet {
 		ExchangeRateUpdated(DataSource, TradingPairString, Option<ExchangeRate>),
 		ExchangeRateDeleted(DataSource, TradingPairString),
 		OracleUpdated(OracleDataName, DataSource),
-		AddedToWhitelist(DataSource, [u8; 32]),
-		RemovedFromWhitelist(DataSource, [u8; 32]),
+		AddedToWhitelist(DataSource, EnclaveFingerprint),
+		RemovedFromWhitelist(DataSource, EnclaveFingerprint),
 	}
 
 	#[pallet::error]
@@ -138,19 +140,19 @@ pub mod pallet {
 		pub fn add_to_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
-			mrenclave: [u8; 32],
+			fingerprint: EnclaveFingerprint,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
 			ensure!(
-				!Self::is_whitelisted(&data_source, mrenclave),
+				!Self::is_whitelisted(&data_source, fingerprint),
 				<Error<T>>::ReleaseAlreadyWhitelisted
 			);
-			<Whitelists<T>>::try_mutate(data_source.clone(), |mrenclave_vec| {
-				mrenclave_vec.try_push(mrenclave)
+			<Whitelists<T>>::try_mutate(data_source.clone(), |fingerprints| {
+				fingerprints.try_push(fingerprint)
 			})
 			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
-			Self::deposit_event(Event::AddedToWhitelist(data_source, mrenclave));
+			Self::deposit_event(Event::AddedToWhitelist(data_source, fingerprint));
 			Ok(())
 		}
 		#[pallet::call_index(1)]
@@ -158,17 +160,17 @@ pub mod pallet {
 		pub fn remove_from_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
-			mrenclave: [u8; 32],
+			fingerprint: EnclaveFingerprint,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
-				Self::is_whitelisted(&data_source, mrenclave),
+				Self::is_whitelisted(&data_source, fingerprint),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
-			<Whitelists<T>>::mutate(&data_source, |mrenclave_vec| {
-				mrenclave_vec.retain(|m| *m != mrenclave)
+			<Whitelists<T>>::mutate(&data_source, |fingerprints| {
+				fingerprints.retain(|m| *m != fingerprint)
 			});
-			Self::deposit_event(Event::RemovedFromWhitelist(data_source, mrenclave));
+			Self::deposit_event(Event::RemovedFromWhitelist(data_source, fingerprint));
 			Ok(())
 		}
 
@@ -180,14 +182,12 @@ pub mod pallet {
 			data_source: DataSource,
 			new_blob: OracleDataBlob<T>,
 		) -> DispatchResultWithPostInfo {
-			let signer = ensure_signed(origin)?;
-			<pallet_teerex::Pallet<T>>::ensure_registered_enclave(&signer)?;
-			let signer_index = <pallet_teerex::Pallet<T>>::enclave_index(signer);
-			let signer_enclave = <pallet_teerex::Pallet<T>>::enclave(signer_index)
-				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
+			let sender = ensure_signed(origin)?;
+			let enclave = Teerex::<T>::sovereign_enclaves(&sender)
+				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
 
 			ensure!(
-				Self::is_whitelisted(&data_source, signer_enclave.mr_enclave),
+				Self::is_whitelisted(&data_source, enclave.fingerprint()),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			ensure!(
@@ -214,17 +214,16 @@ pub mod pallet {
 			new_value: Option<ExchangeRate>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			<pallet_teerex::Pallet<T>>::ensure_registered_enclave(&sender)?;
-			let sender_index = <pallet_teerex::Pallet<T>>::enclave_index(sender);
-			let sender_enclave = <pallet_teerex::Pallet<T>>::enclave(sender_index)
-				.ok_or(pallet_teerex::Error::<T>::EmptyEnclaveRegistry)?;
+			let enclave = Teerex::<T>::sovereign_enclaves(&sender)
+				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
+
 			// Todo: Never checks data source len
 			ensure!(
 				trading_pair.len() <= MAX_TRADING_PAIR_LEN,
 				Error::<T>::TradingPairStringTooLong
 			);
 			ensure!(
-				Self::is_whitelisted(&data_source, sender_enclave.mr_enclave),
+				Self::is_whitelisted(&data_source, enclave.fingerprint()),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
@@ -247,8 +246,8 @@ pub mod pallet {
 	}
 }
 impl<T: Config> Pallet<T> {
-	fn is_whitelisted(data_source: &DataSource, mrenclave: [u8; 32]) -> bool {
-		Self::whitelist(data_source).contains(&mrenclave)
+	fn is_whitelisted(data_source: &DataSource, fingerprint: EnclaveFingerprint) -> bool {
+		Self::whitelist(data_source).contains(&fingerprint)
 	}
 }
 

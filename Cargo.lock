@@ -2194,6 +2194,7 @@ dependencies = [
  "sp-std 5.0.0",
  "substrate-fixed",
  "teeracle-primitives",
+ "teerex-primitives",
  "test-utils",
 ]
 

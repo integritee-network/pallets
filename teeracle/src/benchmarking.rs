@@ -28,6 +28,7 @@ use pallet_teerex::Pallet as Teerex;
 use sp_runtime::traits::CheckedConversion;
 use sp_std::prelude::*;
 use teeracle_primitives::{DataSource, OracleDataName, TradingPairString};
+use teerex_primitives::SgxAttestationMethod;
 
 use test_utils::{
 	get_signer,
@@ -51,13 +52,14 @@ benchmarks! {
 		let data_source: DataSource = "https://api.coingecko.com".into();
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_ias_enclave(
+		Teerex::<T>::register_sgx_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
-			URL.to_vec()
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias,
 		).unwrap();
-		let mrenclave = Teerex::<T>::enclave(1).unwrap().mr_enclave;
-		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+		let fingerprint = Teerex::<T>::sovereign_enclaves(&signer).unwrap().fingerprint();
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), fingerprint).unwrap();
 
 	}: _(RawOrigin::Signed(signer), data_source.clone(), trading_pair.clone(), Some(rate))
 	verify {
@@ -74,34 +76,35 @@ benchmarks! {
 			vec![1].try_into().expect("Can Convert to OracleDataBlob<T>; QED");
 		// simply register the enclave before to make sure it already
 		// exists when running the benchmark
-		Teerex::<T>::register_ias_enclave(
+		Teerex::<T>::register_sgx_enclave(
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
-			URL.to_vec()
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias,
 		).unwrap();
-		let mrenclave = Teerex::<T>::enclave(1).unwrap().mr_enclave;
-		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+		let fingerprint = Teerex::<T>::sovereign_enclaves(&signer).unwrap().fingerprint();
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), fingerprint).unwrap();
 	}: _(RawOrigin::Signed(signer), oracle_name.clone(), data_source.clone(), oracle_blob.clone())
 	verify {
 		assert_eq!(Teeracle::<T>::oracle_data(oracle_name, data_source), oracle_blob);
 	}
 
 	add_to_whitelist {
-		let mrenclave = TEST4_MRENCLAVE;
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		let data_source: DataSource = "https://api.coingecko.com".into();
 
-	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
+	}: _(RawOrigin::Root, data_source.clone(), fingerprint)
 	verify {
 		assert_eq!(Teeracle::<T>::whitelist(data_source).len(), 1, "mrenclave not added to whitelist")
 	}
 
 	remove_from_whitelist {
-		let mrenclave = TEST4_MRENCLAVE;
+		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		let data_source: DataSource = "https://api.coingecko.com".into();
 
-		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), mrenclave).unwrap();
+		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), fingerprint).unwrap();
 
-	}: _(RawOrigin::Root, data_source.clone(), mrenclave)
+	}: _(RawOrigin::Root, data_source.clone(), fingerprint)
 	verify {
 		assert_eq!(Teeracle::<T>::whitelist(data_source).len(), 0, "mrenclave not removed from whitelist")
 	}
