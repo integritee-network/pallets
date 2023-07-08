@@ -86,7 +86,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		AddedEnclave {
+		AddedSgxEnclave {
 			registered_by: T::AccountId,
 			worker_url: Option<Vec<u8>>,
 			tcb_status: Option<SgxStatus>,
@@ -112,12 +112,20 @@ pub mod pallet {
 		},
 	}
 
-	// Watch out: we start indexing with 1 instead of zero in order to
-	// avoid ambiguity between Null and 0.
 	#[pallet::storage]
 	#[pallet::getter(fn sovereign_enclaves)]
 	pub type SovereignEnclaves<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, MultiEnclave<Vec<u8>>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn proxied_enclaves)]
+	pub type ProxiedEnclaves<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		EnclaveInstanceAddress<T::AccountId>,
+		MultiEnclave<Vec<u8>>,
+		OptionQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn shard_status)]
@@ -279,10 +287,10 @@ pub mod pallet {
 				None => enclave,
 			};
 
-			Self::add_enclave(&sender, &MultiEnclave::from(enclave.clone()))?;
+			Self::add_enclave(&sender, MultiEnclave::from(enclave.clone()))?;
 			Self::touch_shard(enclave.mr_enclave.into(), &sender)?;
 
-			Self::deposit_event(Event::AddedEnclave {
+			Self::deposit_event(Event::AddedSgxEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
@@ -521,14 +529,20 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	pub fn add_enclave(
 		sender: &T::AccountId,
-		multi_enclave: &MultiEnclave<Vec<u8>>,
+		multi_enclave: MultiEnclave<Vec<u8>>,
 	) -> DispatchResultWithPostInfo {
-		if multi_enclave.clone().attestaion_proxied() {
-			log::warn!("proxied enclaves not supported yet");
-			return Err(Error::<T>::SenderIsNotAttestedEnclave.into())
+		if multi_enclave.attestaion_proxied() {
+			<ProxiedEnclaves<T>>::insert(
+				EnclaveInstanceAddress {
+					fingerprint: multi_enclave.fingerprint(),
+					registrar: sender.clone(),
+					signer: multi_enclave.instance_signer(),
+				},
+				multi_enclave,
+			);
+		} else {
+			<SovereignEnclaves<T>>::insert(sender, multi_enclave);
 		}
-
-		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
 		Ok(().into())
 	}
 
