@@ -4056,6 +4056,7 @@ name = "teerex-primitives"
 version = "0.1.0"
 dependencies = [
  "common-primitives",
+ "derive_more",
  "hex-literal 0.3.4",
  "parity-scale-codec",
  "scale-info",

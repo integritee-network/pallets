@@ -17,7 +17,9 @@
 
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate derive_more;
 use codec::{Decode, Encode};
+use derive_more::From;
 use scale_info::TypeInfo;
 use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
 use sp_runtime::MultiSigner;
@@ -96,39 +98,15 @@ pub enum SgxStatus {
 pub type OpaqueSigner = BoundedVec<u8, ConstU32<66>>;
 pub type EnclaveFingerprint = H256;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, From, sp_core::RuntimeDebug, TypeInfo)]
 pub enum AnySigner {
 	Opaque(OpaqueSigner),
 	Known(MultiSigner),
 }
 
-impl From<MultiSigner> for AnySigner {
-	fn from(signer: MultiSigner) -> Self {
-		AnySigner::Known(signer)
-	}
-}
-
-impl From<sp_core::ed25519::Public> for AnySigner {
-	fn from(signer: sp_core::ed25519::Public) -> Self {
-		AnySigner::Known(MultiSigner::from(signer))
-	}
-}
-
-impl From<OpaqueSigner> for AnySigner {
-	fn from(signer_bytes: OpaqueSigner) -> Self {
-		AnySigner::Opaque(signer_bytes)
-	}
-}
-
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum MultiEnclave<Url> {
 	Sgx(SgxEnclave<Url>),
-}
-
-impl<Url> From<SgxEnclave<Url>> for MultiEnclave<Url> {
-	fn from(sgx_enclave: SgxEnclave<Url>) -> Self {
-		MultiEnclave::Sgx(sgx_enclave)
-	}
 }
 
 impl<Url> MultiEnclave<Url> {
