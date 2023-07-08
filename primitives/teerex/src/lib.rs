@@ -172,11 +172,11 @@ impl<Url> MultiEnclave<Url> {
 
 	pub fn attestaion_proxied(self) -> bool {
 		match self {
-			MultiEnclave::Sgx(enclave) => match enclave.attestation_method {
+			MultiEnclave::Sgx(enclave) => matches!(
+				enclave.attestation_method,
 				SgxAttestationMethod::Skip { proxied: true } |
-				SgxAttestationMethod::Dcap { proxied: true } => true,
-				_ => false,
-			},
+					SgxAttestationMethod::Dcap { proxied: true }
+			),
 		}
 	}
 }
