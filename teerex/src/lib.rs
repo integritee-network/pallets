@@ -636,12 +636,10 @@ impl<T: Config> Pallet<T> {
 	pub fn most_recent_shard_update(
 		shard: &ShardIdentifier,
 	) -> Option<ShardSignerStatus<T::AccountId, T::BlockNumber>> {
-		if let Some(mut statuses) = <ShardStatus<T>>::get(shard) {
+		<ShardStatus<T>>::get(shard).map(|statuses| {
 			statuses.sort_by_key(|a| a.last_activity);
 			statuses.last().cloned()
-		} else {
-			None
-		}
+		})
 	}
 }
 
