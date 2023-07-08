@@ -92,7 +92,8 @@ pub mod pallet {
 			tcb_status: Option<SgxStatus>,
 			attestation_method: SgxAttestationMethod,
 		},
-		RemovedEnclave(T::AccountId),
+		RemovedSovereignEnclave(T::AccountId),
+		RemovedProxiedEnclave(EnclaveInstanceAddress<T::AccountId>),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(T::AccountId),
@@ -288,7 +289,6 @@ pub mod pallet {
 			};
 
 			Self::add_enclave(&sender, MultiEnclave::from(enclave.clone()))?;
-			Self::touch_shard(enclave.mr_enclave.into(), &sender)?;
 
 			Self::deposit_event(Event::AddedSgxEnclave {
 				registered_by: sender,
@@ -317,7 +317,29 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
-			Self::deposit_event(Event::RemovedEnclave(enclave_signer));
+			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(10)]
+		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn unregister_proxied_enclave(
+			origin: OriginFor<T>,
+			address: EnclaveInstanceAddress<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_proxied_enclave()");
+			ensure_signed(origin)?;
+			let enclave =
+				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			let now = <timestamp::Pallet<T>>::get();
+			let oldest_acceptable_attestation_time =
+				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
+				<ProxiedEnclaves<T>>::remove(&address);
+			} else {
+				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
+			}
+			Self::deposit_event(Event::RemovedProxiedEnclave(address));
 			Ok(().into())
 		}
 
@@ -541,7 +563,9 @@ impl<T: Config> Pallet<T> {
 				multi_enclave,
 			);
 		} else {
+			let fingerprint = multi_enclave.fingerprint();
 			<SovereignEnclaves<T>>::insert(sender, multi_enclave);
+			Self::touch_shard(fingerprint, &sender)?;
 		}
 		Ok(().into())
 	}

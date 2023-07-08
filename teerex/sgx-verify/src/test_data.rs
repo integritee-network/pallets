@@ -65,7 +65,8 @@ pub mod dcap {
 		65, 89, 193, 118, 86, 172, 17, 149, 206, 160, 174, 75, 219, 151, 51, 235, 110, 135, 20, 55,
 		147, 162, 106, 110, 143, 207, 57, 64, 67, 63, 203, 95,
 	];
-
+	pub const TEST1_DCAP_QUOTE_MRENCLAVE: [u8; 32] =
+		hex!("6f90120b5c1f03619112eac855e29d6e0be4f35b2902aa169affff7719277ebc");
 	#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 	pub struct QuotingEnclave {
 		pub qe_identity_cert: &'static str,
