@@ -565,7 +565,7 @@ impl<T: Config> Pallet<T> {
 		} else {
 			let fingerprint = multi_enclave.fingerprint();
 			<SovereignEnclaves<T>>::insert(sender, multi_enclave);
-			Self::touch_shard(fingerprint, &sender)?;
+			Self::touch_shard(fingerprint, sender)?;
 		}
 		Ok(().into())
 	}
