@@ -114,7 +114,7 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 }
 
 #[test]
-fn unregister_active_enclave_fails() {
+fn unregister_active_sovereign_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		let alice = AccountKeyring::Alice.to_account_id();
@@ -140,6 +140,42 @@ fn unregister_active_enclave_fails() {
 			Error::<Test>::UnregisterActiveEnclaveNotAllowed
 		);
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
+	})
+}
+
+#[test]
+fn unregister_active_proxied_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+
+		let alice = AccountKeyring::Alice.to_account_id();
+		register_test_quoting_enclave::<Test>(alice.clone());
+		register_test_tcb_info::<Test>(alice.clone());
+
+		let instance_address = EnclaveInstanceAddress {
+			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
+			registrar: alice.clone(),
+			signer: AnySigner::try_from(TEST1_DCAP_QUOTE_SIGNER).unwrap(),
+		};
+
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			TEST1_DCAP_QUOTE.to_vec(),
+			None,
+			SgxAttestationMethod::Dcap { proxied: true }
+		));
+		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
+
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() / 2 + 1);
+
+		assert_err!(
+			Teerex::unregister_proxied_enclave(
+				RuntimeOrigin::signed(alice.clone()),
+				instance_address.clone(),
+			),
+			Error::<Test>::UnregisterActiveEnclaveNotAllowed
+		);
+		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 	})
 }
 
