@@ -132,7 +132,6 @@ parameter_types! {
 
 impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
 	type MaxSilenceTime = MaxSilenceTime;

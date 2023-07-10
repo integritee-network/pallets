@@ -1,6 +1,6 @@
 [package]
-name = "pallet-sidechain"
-description = "Pallet for integritee sidechains"
+name = "pallet-enclave-bridge"
+description = "The bridge between L1(integritee network) and L2(enclaves) for integritee blockchains and parachains"
 version = "0.9.0"
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
@@ -12,28 +12,26 @@ edition = "2021"
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 log = { version = "0.4.14", default-features = false }
 scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
-serde = { version = "1.0.13", features = ["derive"], optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
 
 # local
 pallet-teerex = { path = "../teerex", default-features = false }
-pallet-enclave-bridge = { path = "../enclave-bridge", default-features = false }
-sidechain-primitives = { path = "../primitives/sidechain", default-features = false }
+teerex-primitives = { path = "../primitives/teerex", default-features = false }
 enclave-bridge-primitives = { path = "../primitives/enclave-bridge", default-features = false }
 
 # substrate dependencies
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
-pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+timestamp = { package = "pallet-timestamp", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 
 # benchmarking
 frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 hex-literal = { version = "0.3.2", optional = true }
 pallet-balances = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
-teerex-primitives = { path = "../primitives/teerex", default-features = false}
 test-utils = { path = "../test-utils", default-features = false, optional = true }
 
 [dev-dependencies]
@@ -54,27 +52,22 @@ std = [
     "serde",
     # local
     "pallet-teerex/std",
-    "sidechain-primitives/std",
     "enclave-bridge-primitives/std",
-    "teerex-primitives/std",
     # substrate
     "frame-support/std",
     "frame-system/std",
-    "pallet-timestamp/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "timestamp/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
     "hex-literal",
     "pallet-balances",
-    "pallet-timestamp/runtime-benchmarks",
     "test-utils",
+    "timestamp/runtime-benchmarks",
 ]
-# Allow workers to register without remote attestation for dev purposes.
-# This pallet needs the flag only to run the tests, otherwise skip-ias-check should only be set in the pallet-teerex.
-skip-ias-check = []
 
 try-runtime = ["frame-support/try-runtime"]

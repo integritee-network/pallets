@@ -98,7 +98,7 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 				block_number,
 				hash
 			),
-			pallet_teerex::Error::<Test>::WrongFingerprintForShard
+			pallet_enclave_bridge::Error::<Test>::WrongFingerprintForShard
 		);
 	})
 }
@@ -111,19 +111,19 @@ fn confirm_imported_sidechain_block_correct_order() {
 
 		register_ias_enclave7();
 
-		assert_ok!(confirm_block7(1, 2, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
-		assert_ok!(confirm_block7(2, 3, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(2, 3, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 3);
-		assert_ok!(confirm_block7(3, 4, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(3, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 3);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
-		assert_ok!(confirm_block7(4, 5, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
-		assert_ok!(confirm_block7(5, 6, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(5, 6, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 5);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 6);
 	})
@@ -137,19 +137,19 @@ fn confirm_imported_sidechain_block_wrong_next() {
 
 		register_ias_enclave7();
 
-		assert_ok!(confirm_block7(1, 2, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
-		assert_ok!(confirm_block7(2, 4, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(2, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_err!(
-			confirm_block7(3, 4, H256::random(), true),
+			confirm_sidechain_block7(3, 4, H256::random(), true),
 			Error::<Test>::ReceivedUnexpectedSidechainBlock
 		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
-		assert_ok!(confirm_block7(4, 5, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
 	})
@@ -163,19 +163,19 @@ fn confirm_imported_sidechain_block_outdated() {
 
 		register_ias_enclave7();
 
-		assert_ok!(confirm_block7(1, 2, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(1, 2, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 2);
-		assert_ok!(confirm_block7(2, 4, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(2, 4, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
 		assert_err!(
-			confirm_block7(2, 4, H256::random(), true),
+			confirm_sidechain_block7(2, 4, H256::random(), true),
 			Error::<Test>::ReceivedUnexpectedSidechainBlock
 		);
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 2);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 4);
-		assert_ok!(confirm_block7(4, 5, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(4, 5, H256::random(), true));
 		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 4);
 		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard7), 5);
 	})
@@ -188,10 +188,17 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
+		assert_ok!(confirm_sidechain_block(shard7, TEST7_SIGNER_PUB, 1, 2, H256::default(), true));
+		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 1);
 		register_ias_enclave(TEST6_SIGNER_PUB, TEST6_CERT);
 
-		assert_ok!(confirm_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
-		assert_eq!(Sidechain::latest_sidechain_block_confirmation(shard7).block_number, 0);
+		System::reset_events();
+		assert_ok!(confirm_sidechain_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			get_signer(TEST6_SIGNER_PUB),
+			H256::default(),
+		));
+		assert!(!System::events().iter().any(|a| a.event == expected_event));
 	})
 }
 
@@ -212,44 +219,46 @@ fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8]) {
 	assert!(Teerex::<Test>::sovereign_enclaves(signer).is_some());
 }
 
-fn confirm_block7(
+fn confirm_sidechain_block7(
 	block_number: u64,
 	next_finalized_block_number: u64,
 	block_header_hash: H256,
-	check_for_event: bool,
+	assert_event: bool,
 ) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-	confirm_block(
+	confirm_sidechain_block(
 		shard7,
 		TEST7_SIGNER_PUB,
 		block_number,
 		next_finalized_block_number,
 		block_header_hash,
-		check_for_event,
+		assert_event,
 	)
 }
 
-fn confirm_block(
-	shard7: H256,
+fn confirm_sidechain_block(
+	shard: H256,
 	signer_pub_key: &[u8; 32],
 	block_number: u64,
 	next_finalized_block_number: u64,
 	block_header_hash: H256,
-	check_for_event: bool,
+	assert_event: bool,
 ) -> DispatchResultWithPostInfo {
-	let signer7 = get_signer(signer_pub_key);
-
+	let signer = get_signer(signer_pub_key);
+	if assert_event {
+		System::reset_events();
+	}
 	Sidechain::confirm_imported_sidechain_block(
-		RuntimeOrigin::signed(signer7.clone()),
-		shard7,
+		RuntimeOrigin::signed(signer.clone()),
+		shard,
 		block_number,
 		next_finalized_block_number,
 		block_header_hash,
 	)?;
 
-	if check_for_event {
+	if assert_event {
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			signer7,
+			signer,
 			block_header_hash,
 		));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
