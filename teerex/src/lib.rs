@@ -178,10 +178,9 @@ pub mod pallet {
 			log::info!("teerex: called into runtime call register_sgx_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, <Error<T>>::RaProofTooLong);
-			ensure!(
-				worker_url.clone().unwrap_or_default().len() <= MAX_URL_LEN,
-				<Error<T>>::EnclaveUrlTooLong
-			);
+if let Some(url) = worker_url {
+	ensure!(url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+}
 			log::info!("teerex: parameter length ok");
 
 			let enclave = match attestation_method {
