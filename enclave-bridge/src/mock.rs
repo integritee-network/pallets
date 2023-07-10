@@ -16,10 +16,10 @@
 */
 
 // Creating mock runtime here
-use crate as pallet_teerex;
+use crate as pallet_enclave_bridge;
+use crate::Config;
 use frame_support::{self, pallet_prelude::GenesisBuild, parameter_types};
 use frame_system as system;
-use pallet_teerex::Config;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -56,6 +56,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
+		EnclaveBridge: pallet_enclave_bridge::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -129,10 +130,16 @@ parameter_types! {
 	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
 }
 
-impl Config for Test {
+impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type MaxSilenceTime = MaxSilenceTime;
+	type WeightInfo = ();
+}
+
+impl Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type WeightInfo = ();
 }
 
@@ -145,40 +152,15 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: true };
+	let teerex_config = pallet_teerex::GenesisConfig { allow_sgx_debug_mode: true };
 	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
 
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));
 	ext
-}
-
-//Build genesis storage for mockup, where RA from enclave compiled in debug mode is NOT allowed
-#[cfg(not(feature = "skip-ias-check"))]
-pub fn new_test_production_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
-
-	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: false };
-	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
-
-	let mut ext: sp_io::TestExternalities = t.into();
-	ext.execute_with(|| System::set_block_number(1));
-	ext
-}
-
-/// Helper method for the OnTimestampSet to be called
-#[cfg(not(feature = "skip-ias-check"))]
-pub fn set_timestamp(t: u64) {
-	let _ = timestamp::Pallet::<Test>::set(RuntimeOrigin::none(), t);
 }
 
 /// Run until a particular block.
-#[cfg(not(feature = "skip-ias-check"))]
 #[allow(dead_code)]
 pub fn run_to_block(n: u32) {
 	use frame_support::traits::{OnFinalize, OnInitialize};

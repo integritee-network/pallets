@@ -18,13 +18,14 @@ limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
+use enclave_bridge_primitives::ShardIdentifier;
 use frame_support::dispatch::DispatchResultWithPostInfo;
 use frame_system::{self};
+use pallet_enclave_bridge::Pallet as EnclaveBridge;
 use pallet_teerex::Pallet as Teerex;
 use sidechain_primitives::SidechainBlockConfirmation;
 use sp_core::H256;
-use sp_std::{prelude::*, str};
-use teerex_primitives::ShardIdentifier;
+use sp_std::{prelude::*, str, vec};
 
 pub use crate::weights::WeightInfo;
 
@@ -48,7 +49,9 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_teerex::Config {
+	pub trait Config:
+		frame_system::Config + pallet_teerex::Config + pallet_enclave_bridge::Config
+	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 	}
@@ -85,14 +88,12 @@ pub mod pallet {
 			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
 
 			let sender = ensure_signed(origin)?;
-			Teerex::<T>::ensure_registered_enclave(&sender)?;
-			let enclave = Teerex::<T>::sovereign_enclaves(&sender)
-				.ok_or(pallet_teerex::Error::<T>::EnclaveIsNotRegistered)?;
+			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
 			ensure!(
 				enclave.fingerprint().encode() == shard_id.encode(),
-				pallet_teerex::Error::<T>::WrongFingerprintForShard
+				pallet_enclave_bridge::Error::<T>::WrongFingerprintForShard
 			);
-			let shard_status = Teerex::<T>::touch_shard(enclave.fingerprint(), &sender)?;
+			let shard_status = EnclaveBridge::<T>::touch_shard(enclave.fingerprint(), &sender)?;
 
 			// TODO: Simple logic for now: only accept blocks from first registered enclave.
 			if sender != shard_status[0].signer {

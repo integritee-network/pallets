@@ -19,9 +19,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate derive_more;
 use codec::{Decode, Encode};
+pub use common_primitives::{AnySigner, EnclaveFingerprint, OpaqueSigner};
 use derive_more::From;
 use scale_info::TypeInfo;
-use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
 use sp_runtime::MultiSigner;
 use sp_std::prelude::*;
 
@@ -93,40 +93,6 @@ pub enum SgxStatus {
 	GroupOutOfDate,
 	GroupRevoked,
 	ConfigurationNeeded,
-}
-
-pub type OpaqueSigner = BoundedVec<u8, ConstU32<66>>;
-pub type EnclaveFingerprint = H256;
-
-#[derive(Encode, Decode, Clone, PartialEq, Eq, From, sp_core::RuntimeDebug, TypeInfo)]
-pub enum AnySigner {
-	Opaque(OpaqueSigner),
-	Known(MultiSigner),
-}
-impl Default for AnySigner {
-	fn default() -> Self {
-		AnySigner::Opaque(OpaqueSigner::default())
-	}
-}
-
-impl From<[u8; 32]> for AnySigner {
-	fn from(pubkey: [u8; 32]) -> Self {
-		// zero padding is necessary because the chain storage does that anyway for bounded vec
-		let mut zero_padded_pubkey = pubkey.to_vec();
-		zero_padded_pubkey.append(&mut vec![0; 34]);
-		AnySigner::Opaque(
-			OpaqueSigner::try_from(zero_padded_pubkey).expect("66 >= 32 + 34. q.e.d."),
-		)
-	}
-}
-
-impl From<[u8; 64]> for AnySigner {
-	fn from(pubkey: [u8; 64]) -> Self {
-		// zero padding is necessary because the chain storage does that anyway for bounded vec
-		let mut zero_padded_pubkey = pubkey.to_vec();
-		zero_padded_pubkey.append(&mut vec![0; 2]);
-		AnySigner::Opaque(OpaqueSigner::try_from(zero_padded_pubkey).expect("66 > 64 + 2. q.e.d."))
-	}
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
@@ -370,20 +336,6 @@ pub type MrEnclave = [u8; 32];
 pub type Fmspc = [u8; 6];
 pub type Cpusvn = [u8; 16];
 pub type Pcesvn = u16;
-pub type ShardIdentifier = H256;
-
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct Request {
-	pub shard: ShardIdentifier,
-	pub cyphertext: Vec<u8>,
-}
-
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct ShardSignerStatus<AccountId, BlockNumber> {
-	pub signer: AccountId,
-	pub fingerprint: EnclaveFingerprint,
-	pub last_activity: BlockNumber,
-}
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct EnclaveInstanceAddress<AccountId> {
