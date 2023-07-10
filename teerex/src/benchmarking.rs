@@ -119,19 +119,36 @@ benchmarks! {
 		assert_eq!(Teerex::<T>::enclave_count(), 1);
 	}
 */
-	// Benchmark `unregister_enclave` enclave with the worst possible conditions:
+	// Benchmark `unregister_sovereign_enclave` enclave with the worst possible conditions:
 	// * enclave exists
 	// * enclave is not the most recently registered enclave
 	unregister_sovereign_enclave {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
-		add_enclaves_to_registry::<T>(&accounts);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
 		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
 		assert!(!crate::SovereignEnclaves::<T>::contains_key(&accounts[0]));
 	}
+
+	// Benchmark `unregister_proxied_enclave` enclave with the worst possible conditions:
+	// * enclave exists
+	// * enclave is not the most recently registered enclave
+	unregister_proxied_enclave {
+		let enclave_count = 3;
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
+		add_proxied_enclaves_to_registry::<T>(&accounts);
+		let (key0, value0) = <ProxiedEnclaves<T>>::iter()
+		.collect::<Vec<(EnclaveInstanceAddress<T::AccountId>, MultiEnclave<Vec<u8>>)>>()[0].clone();
+		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
+
+	}: _(RawOrigin::Signed(accounts[0].clone()), key0.clone())
+	verify {
+		assert!(!crate::ProxiedEnclaves::<T>::contains_key(&key0));
+	}
+
 
 	// Benchmark `call_worker`. There are no worst conditions. The benchmark showed that
 	// execution time is constant irrespective of cyphertext size.
@@ -144,7 +161,7 @@ benchmarks! {
 	// * sender enclave is registered
 	confirm_processed_parentchain_block {
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
 
 		let block_hash: H256 = [2; 32].into();
 		let merkle_root: H256 = [4; 32].into();
@@ -166,7 +183,7 @@ benchmarks! {
 		frame_system::Pallet::<T>::reset_events();
 
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
 		let account = accounts[0].clone();
 
 	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(t), get_data(l))
@@ -178,11 +195,25 @@ benchmarks! {
 	}
 }
 
-fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
+fn add_sovereign_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
 		Teerex::<T>::add_enclave(
 			a,
 			MultiEnclave::from(SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave)),
+		)
+		.unwrap();
+	}
+}
+
+fn add_proxied_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
+	for a in accounts.iter() {
+		Teerex::<T>::add_enclave(
+			a,
+			MultiEnclave::from(
+				SgxEnclave::test_enclave()
+					.with_mr_enclave(TEST4_SETUP.mrenclave)
+					.with_attestation_method(SgxAttestationMethod::Dcap { proxied: true }),
+			),
 		)
 		.unwrap();
 	}
