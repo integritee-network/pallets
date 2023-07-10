@@ -119,7 +119,7 @@ pub type Moment = u64;
 
 impl timestamp::Config for Test {
 	type Moment = Moment;
-	type OnTimestampSet = Teerex;
+	type OnTimestampSet = ();
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
 }

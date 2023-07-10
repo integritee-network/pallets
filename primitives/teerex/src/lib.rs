@@ -17,9 +17,12 @@
 
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate derive_more;
 use codec::{Decode, Encode};
+use derive_more::From;
 use scale_info::TypeInfo;
-use sp_core::H256;
+use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
+use sp_runtime::MultiSigner;
 use sp_std::prelude::*;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
@@ -75,7 +78,7 @@ impl AsRef<[u8; 64]> for SgxReportData {
 }
 
 impl SgxReportData {
-	fn lower32(&self) -> [u8; 32] {
+	pub fn lower32(&self) -> [u8; 32] {
 		let mut lower = [0u8; 32];
 		lower.copy_from_slice(&self.d[..32]);
 		lower
@@ -90,6 +93,70 @@ pub enum SgxStatus {
 	GroupOutOfDate,
 	GroupRevoked,
 	ConfigurationNeeded,
+}
+
+pub type OpaqueSigner = BoundedVec<u8, ConstU32<66>>;
+pub type EnclaveFingerprint = H256;
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, From, sp_core::RuntimeDebug, TypeInfo)]
+pub enum AnySigner {
+	Opaque(OpaqueSigner),
+	Known(MultiSigner),
+}
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub enum MultiEnclave<Url> {
+	Sgx(SgxEnclave<Url>),
+}
+
+impl<Url> MultiEnclave<Url> {
+	pub fn author(self) -> AnySigner {
+		match self {
+			MultiEnclave::Sgx(enclave) => AnySigner::Opaque(
+				OpaqueSigner::try_from(enclave.mr_signer.to_vec()).unwrap_or_default(),
+			),
+		}
+	}
+
+	pub fn fingerprint(&self) -> EnclaveFingerprint {
+		match self {
+			MultiEnclave::Sgx(enclave) => EnclaveFingerprint::from(enclave.mr_enclave),
+		}
+	}
+
+	pub fn instance_signer(self) -> AnySigner {
+		match self {
+			MultiEnclave::Sgx(enclave) => match enclave.maybe_pubkey() {
+				Some(pubkey) =>
+					AnySigner::from(MultiSigner::from(sp_core::ed25519::Public::from_raw(pubkey))),
+				None => AnySigner::Opaque(
+					OpaqueSigner::try_from(enclave.report_data.d.to_vec()).unwrap_or_default(),
+				),
+			},
+		}
+	}
+
+	pub fn instance_url(self) -> Option<Url> {
+		match self {
+			MultiEnclave::Sgx(enclave) => enclave.url,
+		}
+	}
+
+	pub fn attestation_timestamp(self) -> u64 {
+		match self {
+			MultiEnclave::Sgx(enclave) => enclave.timestamp,
+		}
+	}
+
+	pub fn attestaion_proxied(self) -> bool {
+		match self {
+			MultiEnclave::Sgx(enclave) => matches!(
+				enclave.attestation_method,
+				SgxAttestationMethod::Skip { proxied: true } |
+					SgxAttestationMethod::Dcap { proxied: true }
+			),
+		}
+	}
 }
 
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
@@ -283,6 +350,13 @@ pub type ShardIdentifier = H256;
 pub struct Request {
 	pub shard: ShardIdentifier,
 	pub cyphertext: Vec<u8>,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct ShardSignerStatus<AccountId, BlockNumber> {
+	pub signer: AccountId,
+	pub fingerprint: EnclaveFingerprint,
+	pub last_activity: BlockNumber,
 }
 
 #[cfg(test)]
