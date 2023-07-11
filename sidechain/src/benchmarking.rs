@@ -26,7 +26,7 @@ use frame_system::RawOrigin;
 use test_utils::test_data::ias::*;
 
 fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {
-	assert_eq!(Teerex::<T>::most_recent_shard_update(shard).unwrap().signer, *sender);
+	assert_eq!(EnclaveBridge::<T>::most_recent_shard_update(shard).unwrap().signer, *sender);
 }
 
 fn generate_accounts<T: Config>(amount: u32) -> Vec<T::AccountId> {

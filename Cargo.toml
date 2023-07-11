@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "claims",
+    "enclave-bridge",
     "teerex",
     "parentchain",
     "sidechain",
@@ -9,6 +10,7 @@ members = [
     "test-utils",
     "xcm-transactor",
     "primitives/claims",
+    "primitives/enclave-bridge",
     "primitives/teerex",
     "primitives/teeracle",
     "primitives/common",

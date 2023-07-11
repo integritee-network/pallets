@@ -4,8 +4,6 @@ Please note this pallet has a different [license](./LICENSE) than the rest of th
 
 A pallet for [Integritee](https://integritee.network) that acts as a verified registry for SGX enclaves. Its goal is to provide public auditability of remote attestation of SGX enclaves. Given deterministic builds of enclave code, this pallet closes the trust gap from source code to the MRENCLAVE of an enclave running on a genuine Intel SGX platfrom. Without the need for a license with Intel, everyone can verify what code is executed by registered service providers and that it is executed with confidentiality. A blockchain that integrates this pallet will, therefore, act as a public registry of remote attestated services.
 
-The pallet also acts as an indirect-invocation proxy for calls to the confidential state transition function executed in SGX enclaves off-chain.
-
 More documentation available at:
 * High-level: https://www.integritee.network/for-developer
 * In-depth: https://book.integritee.network/

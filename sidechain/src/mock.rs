@@ -56,6 +56,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
+		EnclaveBridge: pallet_enclave_bridge::{Pallet, Call, Storage, Event<T>},
 		Sidechain: pallet_sidechain::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -131,15 +132,20 @@ parameter_types! {
 
 impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
-	type MaxSilenceTime = MaxSilenceTime;
+	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
+}
+
+impl pallet_enclave_bridge::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type WeightInfo = ();
 }
 
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
-	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
+	pub const MaxAttestationRenewalPeriod: u64 = 172_800_000; // 48h
 }
 
 impl Config for Test {

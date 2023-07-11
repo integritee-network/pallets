@@ -16,6 +16,12 @@
 */
 #![cfg_attr(not(feature = "std"), no_std)]
 //!Primitives for all pallets
+extern crate derive_more;
+use codec::{Decode, Encode};
+use derive_more::From;
+use scale_info::TypeInfo;
+use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
+use sp_runtime::MultiSigner;
 
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
@@ -25,9 +31,12 @@ use sp_std::vec::Vec;
 /// utf8 decode bytes into a string.
 #[cfg(not(feature = "std"))]
 pub type PalletString = Vec<u8>;
-
 #[cfg(feature = "std")]
 pub type PalletString = String;
+
+pub type OpaqueSigner = BoundedVec<u8, ConstU32<66>>;
+pub type EnclaveFingerprint = H256;
+pub type ShardIdentifier = H256;
 
 pub trait AsByteOrNoop {
 	fn as_bytes_or_noop(&self) -> &[u8];
@@ -42,5 +51,36 @@ impl AsByteOrNoop for PalletString {
 	#[cfg(not(feature = "std"))]
 	fn as_bytes_or_noop(&self) -> &[u8] {
 		self
+	}
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, From, sp_core::RuntimeDebug, TypeInfo)]
+pub enum AnySigner {
+	Opaque(OpaqueSigner),
+	Known(MultiSigner),
+}
+impl Default for AnySigner {
+	fn default() -> Self {
+		AnySigner::Opaque(OpaqueSigner::default())
+	}
+}
+
+impl From<[u8; 32]> for AnySigner {
+	fn from(pubkey: [u8; 32]) -> Self {
+		// zero padding is necessary because the chain storage does that anyway for bounded vec
+		let mut zero_padded_pubkey = pubkey.to_vec();
+		zero_padded_pubkey.append(&mut vec![0; 34]);
+		AnySigner::Opaque(
+			OpaqueSigner::try_from(zero_padded_pubkey).expect("66 >= 32 + 34. q.e.d."),
+		)
+	}
+}
+
+impl From<[u8; 64]> for AnySigner {
+	fn from(pubkey: [u8; 64]) -> Self {
+		// zero padding is necessary because the chain storage does that anyway for bounded vec
+		let mut zero_padded_pubkey = pubkey.to_vec();
+		zero_padded_pubkey.append(&mut vec![0; 2]);
+		AnySigner::Opaque(OpaqueSigner::try_from(zero_padded_pubkey).expect("66 > 64 + 2. q.e.d."))
 	}
 }

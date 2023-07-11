@@ -126,14 +126,13 @@ impl timestamp::Config for Test {
 
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
-	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
+	pub const MaxAttestationRenewalPeriod: u64 = 172_800_000; // 48h
 }
 
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type MomentsPerDay = MomentsPerDay;
-	type MaxSilenceTime = MaxSilenceTime;
+	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 	type WeightInfo = ();
 }
 
@@ -176,18 +175,4 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 #[cfg(not(feature = "skip-ias-check"))]
 pub fn set_timestamp(t: u64) {
 	let _ = timestamp::Pallet::<Test>::set(RuntimeOrigin::none(), t);
-}
-
-/// Run until a particular block.
-#[cfg(not(feature = "skip-ias-check"))]
-pub fn run_to_block(n: u32) {
-	use frame_support::traits::{OnFinalize, OnInitialize};
-	while System::block_number() < n {
-		if System::block_number() > 1 {
-			System::on_finalize(System::block_number());
-		}
-		Timestamp::on_finalize(System::block_number());
-		System::set_block_number(System::block_number() + 1);
-		System::on_initialize(System::block_number());
-	}
 }

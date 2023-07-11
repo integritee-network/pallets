@@ -1,11 +1,11 @@
 /*
 	Copyright 2021 Integritee AG and Supercomputing Systems AG
 
-	Licensed under the Apache License, Version 2.0 (the "License");
+	Licensed under the MICROSOFT REFERENCE SOURCE LICENSE (MS-RSL) (the "License");
 	you may not use this file except in compliance with the License.
 	You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+		https://referencesource.microsoft.com/license.html
 
 	Unless required by applicable law or agreed to in writing, software
 	distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,10 +14,12 @@
 	limitations under the License.
 
 */
-use crate as pallet_teeracle;
-use frame_support::{pallet_prelude::GenesisBuild, parameter_types};
+
+// Creating mock runtime here
+use crate as pallet_enclave_bridge;
+use crate::Config;
+use frame_support::{self, pallet_prelude::GenesisBuild, parameter_types};
 use frame_system as system;
-use pallet_teeracle::Config;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -50,11 +52,11 @@ frame_support::construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
-		System: frame_system,
-		Balances: pallet_balances,
-		Timestamp: timestamp,
-		Teerex: pallet_teerex,
-		Teeracle: pallet_teeracle,
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
+		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
+		EnclaveBridge: pallet_enclave_bridge::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -126,22 +128,19 @@ impl timestamp::Config for Test {
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
 	pub const MaxAttestationRenewalPeriod: u64 = 172_800_000; // 48h
-	pub const MaxWhitelistedReleases: u32 = 10;
-	pub const MaxOracleBlobLen: u32 = 4096;
 }
 
 impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
-	type WeightInfo = ();
 	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
+	type WeightInfo = ();
 }
 
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
 	type WeightInfo = ();
-	type MaxWhitelistedReleases = MaxWhitelistedReleases;
-	type MaxOracleBlobLen = MaxOracleBlobLen;
 }
 
 // This function basically just builds a genesis storage key/value store according to

@@ -19,17 +19,16 @@
 
 use codec::Encode;
 use frame_support::{
-	dispatch::{DispatchErrorWithPostInfo, DispatchResult, DispatchResultWithPostInfo},
+	dispatch::{DispatchErrorWithPostInfo, DispatchResultWithPostInfo},
 	ensure,
-	traits::{Currency, ExistenceRequirement, Get},
+	traits::Get,
 };
 use frame_system::{self, ensure_signed};
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
 };
-use sp_core::H256;
 use sp_runtime::{traits::SaturatedConversion, Saturating};
-use sp_std::{prelude::*, str};
+use sp_std::{prelude::*, str, vec};
 use teerex_primitives::*;
 
 pub use crate::weights::WeightInfo;
@@ -37,23 +36,12 @@ use teerex_primitives::{SgxBuildMode, SgxStatus};
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
-pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
-pub type ShardSignerStatusVec<T> = Vec<
-	ShardSignerStatus<
-		<T as frame_system::Config>::AccountId,
-		<T as frame_system::Config>::BlockNumber,
-	>,
->;
 
 pub use pallet::*;
 
 const SGX_RA_PROOF_MAX_LEN: usize = 5000;
 
 const MAX_URL_LEN: usize = 256;
-/// Maximum number of topics for the `publish_hash` call.
-const TOPICS_LIMIT: usize = 5;
-/// Maximum number of bytes for the `data` in the `publish_hash` call.
-const DATA_LENGTH_LIMIT: usize = 100;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -71,16 +59,15 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config + timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
 
 		#[pallet::constant]
 		type MomentsPerDay: Get<Self::Moment>;
 
 		type WeightInfo: WeightInfo;
 
-		/// If a worker does not re-register within `MaxSilenceTime`, it can be unregistered by anyone.
+		/// If a worker does not re-register within `MaxAttestationRenewalPeriod`, it can be unregistered by anyone.
 		#[pallet::constant]
-		type MaxSilenceTime: Get<Self::Moment>;
+		type MaxAttestationRenewalPeriod: Get<Self::Moment>;
 	}
 
 	#[pallet::event]
@@ -94,16 +81,6 @@ pub mod pallet {
 		},
 		RemovedSovereignEnclave(T::AccountId),
 		RemovedProxiedEnclave(EnclaveInstanceAddress<T::AccountId>),
-		Forwarded(ShardIdentifier),
-		ShieldFunds(Vec<u8>),
-		UnshieldedFunds(T::AccountId),
-		ProcessedParentchainBlock(T::AccountId, H256, H256, T::BlockNumber),
-		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
-		PublishedHash {
-			fingerprint: EnclaveFingerprint,
-			hash: H256,
-			data: Vec<u8>,
-		},
 		SgxTcbInfoRegistered {
 			fmspc: Fmspc,
 			on_chain_info: SgxTcbInfoOnChain,
@@ -129,16 +106,6 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn shard_status)]
-	pub type ShardStatus<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		ShardIdentifier,
-		Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>,
-		OptionQuery,
-	>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn quoting_enclave)]
 	pub type SgxQuotingEnclaveRegistry<T: Config> = StorageValue<_, SgxQuotingEnclave, ValueQuery>;
 
@@ -146,10 +113,6 @@ pub mod pallet {
 	#[pallet::getter(fn tcb_info)]
 	pub type SgxTcbInfo<T: Config> =
 		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn confirmed_calls)]
-	pub type ExecutedCalls<T: Config> = StorageMap<_, Blake2_128Concat, H256, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
@@ -309,8 +272,9 @@ pub mod pallet {
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
 				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
-			let oldest_acceptable_attestation_time =
-				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			let oldest_acceptable_attestation_time = now
+				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
+				.saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
 			} else {
@@ -320,7 +284,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(10)]
+		#[pallet::call_index(2)]
 		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_proxied_enclave(
 			origin: OriginFor<T>,
@@ -331,8 +295,9 @@ pub mod pallet {
 			let enclave =
 				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
-			let oldest_acceptable_attestation_time =
-				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			let oldest_acceptable_attestation_time = now
+				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
+				.saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<ProxiedEnclaves<T>>::remove(&address);
 			} else {
@@ -342,104 +307,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(2)]
-		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
-		pub fn call_worker(origin: OriginFor<T>, request: Request) -> DispatchResult {
-			let _sender = ensure_signed(origin)?;
-			log::info!("call_worker with {:?}", request);
-			Self::deposit_event(Event::Forwarded(request.shard));
-			Ok(())
-		}
-
-		/// The integritee worker calls this function for every processed parentchain_block to confirm a state update.
 		#[pallet::call_index(3)]
-		#[pallet::weight((<T as Config>::WeightInfo::confirm_processed_parentchain_block(), DispatchClass::Normal, Pays::Yes))]
-		pub fn confirm_processed_parentchain_block(
-			origin: OriginFor<T>,
-			block_hash: H256,
-			block_number: T::BlockNumber,
-			trusted_calls_merkle_root: H256,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			let enclave =
-				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::touch_shard(enclave.fingerprint(), &sender)?;
-
-			log::debug!(
-				"Processed parentchain block confirmed for mrenclave {:?}, block hash {:?}",
-				sender,
-				block_hash
-			);
-			Self::deposit_event(Event::ProcessedParentchainBlock(
-				sender,
-				block_hash,
-				trusted_calls_merkle_root,
-				block_number,
-			));
-			Ok(().into())
-		}
-
-		/// Sent by a client who requests to get shielded funds managed by an enclave. For this on-chain balance is sent to the bonding_account of the enclave.
-		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
-		/// Note: The bonding_account is bit-equivalent to the worker shard.
-		#[pallet::call_index(4)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
-		pub fn shield_funds(
-			origin: OriginFor<T>,
-			incognito_account_encrypted: Vec<u8>,
-			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			T::Currency::transfer(
-				&sender,
-				&bonding_account,
-				amount,
-				ExistenceRequirement::AllowDeath,
-			)?;
-			Self::deposit_event(Event::ShieldFunds(incognito_account_encrypted));
-			Ok(().into())
-		}
-
-		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
-		#[pallet::call_index(5)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
-		pub fn unshield_funds(
-			origin: OriginFor<T>,
-			public_account: T::AccountId,
-			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
-			call_hash: H256,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			let sender_enclave =
-				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::touch_shard(sender_enclave.fingerprint(), &sender)?;
-
-			ensure!(
-				sender_enclave.fingerprint().encode() == bonding_account.encode(),
-				<Error<T>>::WrongMrenclaveForBondingAccount
-			);
-
-			if !<ExecutedCalls<T>>::contains_key(call_hash) {
-				log::info!("Executing unshielding call: {:?}", call_hash);
-				T::Currency::transfer(
-					&bonding_account,
-					&public_account,
-					amount,
-					ExistenceRequirement::AllowDeath,
-				)?;
-				<ExecutedCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(public_account));
-			} else {
-				log::info!("Already executed unshielding call: {:?}", call_hash);
-			}
-
-			<ExecutedCalls<T>>::mutate(call_hash, |confirmations| *confirmations += 1);
-			Ok(().into())
-		}
-
-		#[pallet::call_index(7)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_quoting_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_quoting_enclave(
 			origin: OriginFor<T>,
@@ -460,7 +328,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::call_index(8)]
+		#[pallet::call_index(4)]
 		#[pallet::weight((<T as Config>::WeightInfo::register_tcb_info(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_tcb_info(
 			origin: OriginFor<T>,
@@ -475,40 +343,6 @@ pub mod pallet {
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
 			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
-			Ok(().into())
-		}
-
-		/// Publish a hash as a result of an arbitrary enclave operation.
-		///
-		/// The `mrenclave` of the origin will be used as an event topic a client can subscribe to.
-		/// `extra_topics`, if any, will be used as additional event topics.
-		///
-		/// `data` can be anything worthwhile publishing related to the hash. If it is a
-		/// utf8-encoded string, the UIs will usually even render the text.
-		#[pallet::call_index(9)]
-		#[pallet::weight((<T as Config>::WeightInfo::publish_hash(extra_topics.len().saturated_into(), data.len().saturated_into()), DispatchClass::Normal, Pays::Yes))]
-		pub fn publish_hash(
-			origin: OriginFor<T>,
-			hash: H256,
-			extra_topics: Vec<T::Hash>,
-			data: Vec<u8>,
-		) -> DispatchResultWithPostInfo {
-			let sender = ensure_signed(origin)?;
-			let enclave =
-				<SovereignEnclaves<T>>::get(&sender).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-			Self::touch_shard(enclave.fingerprint(), &sender)?;
-
-			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
-			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
-
-			let mut topics = extra_topics;
-			topics.push(T::Hash::from(enclave.fingerprint().into()));
-
-			Self::deposit_event_indexed(
-				&topics,
-				Event::PublishedHash { fingerprint: enclave.fingerprint(), hash, data },
-			);
-
 			Ok(().into())
 		}
 	}
@@ -526,10 +360,6 @@ pub mod pallet {
 		SgxModeNotAllowed,
 		/// The enclave is not registered.
 		EnclaveIsNotRegistered,
-		/// The bonding account doesn't match the enclave.
-		WrongMrenclaveForBondingAccount,
-		/// The shard doesn't match the enclave.
-		WrongFingerprintForShard,
 		/// The worker url is too long.
 		EnclaveUrlTooLong,
 		/// The Remote Attestation proof is too long.
@@ -538,10 +368,6 @@ pub mod pallet {
 		EmptyEnclaveRegistry,
 		/// The provided collateral data is invalid
 		CollateralInvalid,
-		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
-		TooManyTopics,
-		/// The length of the `data` passed to `publish_hash` exceeds the limit.
-		DataTooLong,
 		/// It is not allowed to unregister enclaves with recent activity
 		UnregisterActiveEnclaveNotAllowed,
 	}
@@ -562,29 +388,15 @@ impl<T: Config> Pallet<T> {
 				multi_enclave,
 			);
 		} else {
-			let fingerprint = multi_enclave.fingerprint();
 			<SovereignEnclaves<T>>::insert(sender, multi_enclave);
-			Self::touch_shard(fingerprint, sender)?;
 		}
 		Ok(().into())
 	}
 
-	/// Check if the sender is a registered enclave
-	pub fn ensure_registered_enclave(
+	pub fn get_sovereign_enclave(
 		account: &T::AccountId,
-	) -> Result<(), DispatchErrorWithPostInfo> {
-		ensure!(<SovereignEnclaves<T>>::contains_key(account), <Error<T>>::EnclaveIsNotRegistered);
-		Ok(())
-	}
-
-	/// Deposit a pallets teerex event with the corresponding topics.
-	///
-	/// Handles the conversion to the overarching event type.
-	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
-		<frame_system::Pallet<T>>::deposit_event_indexed(
-			topics,
-			<T as Config>::RuntimeEvent::from(event).into(),
-		)
+	) -> Result<MultiEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
+		<SovereignEnclaves<T>>::get(account).ok_or(<Error<T>>::EnclaveIsNotRegistered.into())
 	}
 
 	fn verify_quoting_enclave(
@@ -639,47 +451,6 @@ impl<T: Config> Pallet<T> {
 		} else {
 			Err(<Error<T>>::RemoteAttestationTooOld.into())
 		}
-	}
-
-	pub fn touch_shard(
-		shard: ShardIdentifier,
-		enclave_signer: &T::AccountId,
-	) -> Result<ShardSignerStatusVec<T>, DispatchErrorWithPostInfo> {
-		let enclave = Self::sovereign_enclaves(enclave_signer.clone())
-			.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
-
-		let current_block_number = <frame_system::Pallet<T>>::block_number();
-
-		let new_status = ShardSignerStatus {
-			signer: enclave_signer.clone(),
-			fingerprint: enclave.fingerprint(),
-			last_activity: current_block_number,
-		};
-
-		let signer_statuses = <ShardStatus<T>>::get(shard)
-			.map(|mut status_vec| {
-				if let Some(index) = status_vec.iter().position(|i| &i.signer == enclave_signer) {
-					status_vec[index] = new_status.clone();
-				} else {
-					status_vec.push(new_status.clone());
-				}
-				status_vec
-			})
-			.unwrap_or_else(|| vec![new_status]);
-
-		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
-		Ok(signer_statuses)
-	}
-
-	pub fn most_recent_shard_update(
-		shard: &ShardIdentifier,
-	) -> Option<ShardSignerStatus<T::AccountId, T::BlockNumber>> {
-		<ShardStatus<T>>::get(shard)
-			.map(|mut statuses| {
-				statuses.sort_by_key(|a| a.last_activity);
-				statuses.last().cloned()
-			})
-			.unwrap_or_default()
 	}
 }
 
