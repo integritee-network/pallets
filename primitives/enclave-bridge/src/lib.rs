@@ -34,3 +34,25 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 	pub fingerprint: EnclaveFingerprint,
 	pub last_activity: BlockNumber,
 }
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct ShardConfig<AccountId, BlockNumber> {
+	/// enclave fingerprint which may perform state transitions on this shard
+	pub enclave_fingerprint: EnclaveFingerprint,
+	/// an optional limit on the number of validateers
+	pub max_instances: Option<u32>,
+	/// an optional set of authorities for permissioned sidechains
+	pub authorities: Option<Vec<AccountId>>,
+	/// maintenance mode blocks any upcoming state transitions on this shard
+	pub maintenance_mode: bool,
+	/// temporary store for an upcoming updated shard config with enactment time
+	pub pending_update: Option<Box<ShardUpdate<AccountId, BlockNumber>>>,
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+pub struct ShardUpdate<AccountId, BlockNumber> {
+	/// the new config that shall be enacted
+	pub new_shard_config: ShardConfig<AccountId, BlockNumber>,
+	/// enact after importing this parentchain block on the sidechain
+	pub enact_after: BlockNumber,
+}
