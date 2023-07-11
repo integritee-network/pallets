@@ -282,6 +282,26 @@ fn confirm_processed_parentchain_block_from_unregistered_enclave_fails() {
 }
 
 #[test]
+fn confirm_processed_parentchain_block_from_wrong_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let _enclave = register_sovereign_test_enclave(&enclave_signer);
+		let shard = ShardIdentifier::from([42u8; 32]);
+
+		assert_err!(
+			EnclaveBridge::confirm_processed_parentchain_block(
+				RuntimeOrigin::signed(enclave_signer),
+				shard,
+				H256::default(),
+				3,
+				H256::default(),
+			),
+			Error::<Test>::WrongFingerprintForShard
+		);
+	})
+}
+
+#[test]
 fn publish_hash_works() {
 	use frame_system::{EventRecord, Phase};
 
