@@ -82,6 +82,7 @@ pub mod pallet {
 			hash: H256,
 			data: Vec<u8>,
 		},
+		ShardConfigUpdated(ShardIdentifier),
 	}
 
 	#[pallet::storage]
@@ -91,6 +92,16 @@ pub mod pallet {
 		Blake2_128Concat,
 		ShardIdentifier,
 		Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn shard_config)]
+	pub type ShardConfigRegistry<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		ShardIdentifier,
+		ShardConfig<T::AccountId, T::BlockNumber>,
 		OptionQuery,
 	>;
 
@@ -233,6 +244,29 @@ pub mod pallet {
 				Event::PublishedHash { fingerprint: enclave.fingerprint(), hash, data },
 			);
 
+			Ok(().into())
+		}
+
+		/// Publish a hash as a result of an arbitrary enclave operation.
+		///
+		#[pallet::call_index(5)]
+		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		pub fn update_shard_config(
+			origin: OriginFor<T>,
+			shard: ShardIdentifier,
+			shard_config: ShardConfig<T::AccountId, T::BlockNumber>,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
+			let new_shard_config = Self::shard_config(shard)
+				.or(Some(shard_config))
+				.filter(|config| config.enclave_fingerprint == enclave.fingerprint())
+				.or_else(Error::<T>::WrongFingerprintForShard.into());
+			Self::touch_shard(shard, &sender)?;
+			<ShardConfigRegistry<T>>::insert(shard, new_shard_config);
+
+			Self::deposit_event(Event::ShardConfigUpdated(shard));
+			log::info!("shard config updated for {:?}, new config: {:?}", shard, new_shard_config);
 			Ok(().into())
 		}
 	}
