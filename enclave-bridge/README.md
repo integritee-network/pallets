@@ -1,4 +1,4 @@
-# pallet-teerex
+# pallet-enclave-bridge
 
 Please note this pallet has a different [license](./LICENSE) than the rest of this repository: MS-RSL
 
