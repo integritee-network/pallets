@@ -86,13 +86,14 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		AddedEnclave {
+		AddedSgxEnclave {
 			registered_by: T::AccountId,
 			worker_url: Option<Vec<u8>>,
 			tcb_status: Option<SgxStatus>,
 			attestation_method: SgxAttestationMethod,
 		},
-		RemovedEnclave(T::AccountId),
+		RemovedSovereignEnclave(T::AccountId),
+		RemovedProxiedEnclave(EnclaveInstanceAddress<T::AccountId>),
 		Forwarded(ShardIdentifier),
 		ShieldFunds(Vec<u8>),
 		UnshieldedFunds(T::AccountId),
@@ -112,12 +113,20 @@ pub mod pallet {
 		},
 	}
 
-	// Watch out: we start indexing with 1 instead of zero in order to
-	// avoid ambiguity between Null and 0.
 	#[pallet::storage]
 	#[pallet::getter(fn sovereign_enclaves)]
 	pub type SovereignEnclaves<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, MultiEnclave<Vec<u8>>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn proxied_enclaves)]
+	pub type ProxiedEnclaves<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		EnclaveInstanceAddress<T::AccountId>,
+		MultiEnclave<Vec<u8>>,
+		OptionQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn shard_status)]
@@ -278,10 +287,9 @@ pub mod pallet {
 				None => enclave,
 			};
 
-			Self::add_enclave(&sender, &MultiEnclave::from(enclave.clone()))?;
-			Self::touch_shard(enclave.mr_enclave.into(), &sender)?;
+			Self::add_enclave(&sender, MultiEnclave::from(enclave.clone()))?;
 
-			Self::deposit_event(Event::AddedEnclave {
+			Self::deposit_event(Event::AddedSgxEnclave {
 				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
@@ -308,7 +316,29 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
-			Self::deposit_event(Event::RemovedEnclave(enclave_signer));
+			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
+			Ok(().into())
+		}
+
+		#[pallet::call_index(10)]
+		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
+		pub fn unregister_proxied_enclave(
+			origin: OriginFor<T>,
+			address: EnclaveInstanceAddress<T::AccountId>,
+		) -> DispatchResultWithPostInfo {
+			log::info!("teerex: called into runtime call unregister_proxied_enclave()");
+			ensure_signed(origin)?;
+			let enclave =
+				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+			let now = <timestamp::Pallet<T>>::get();
+			let oldest_acceptable_attestation_time =
+				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
+				<ProxiedEnclaves<T>>::remove(&address);
+			} else {
+				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
+			}
+			Self::deposit_event(Event::RemovedProxiedEnclave(address));
 			Ok(().into())
 		}
 
@@ -520,14 +550,22 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	pub fn add_enclave(
 		sender: &T::AccountId,
-		multi_enclave: &MultiEnclave<Vec<u8>>,
+		multi_enclave: MultiEnclave<Vec<u8>>,
 	) -> DispatchResultWithPostInfo {
-		if multi_enclave.clone().attestaion_proxied() {
-			log::warn!("proxied enclaves not supported yet");
-			return Err(Error::<T>::SenderIsNotAttestedEnclave.into())
+		if multi_enclave.attestaion_proxied() {
+			<ProxiedEnclaves<T>>::insert(
+				EnclaveInstanceAddress {
+					fingerprint: multi_enclave.fingerprint(),
+					registrar: sender.clone(),
+					signer: multi_enclave.instance_signer(),
+				},
+				multi_enclave,
+			);
+		} else {
+			let fingerprint = multi_enclave.fingerprint();
+			<SovereignEnclaves<T>>::insert(sender, multi_enclave);
+			Self::touch_shard(fingerprint, sender)?;
 		}
-
-		<SovereignEnclaves<T>>::insert(sender, multi_enclave);
 		Ok(().into())
 	}
 

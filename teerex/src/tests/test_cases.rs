@@ -18,24 +18,30 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	Error, Event as TeerexEvent, ExecutedCalls, Request, SgxEnclave, ShardIdentifier,
-	SovereignEnclaves, DATA_LENGTH_LIMIT,
+	Error, Event as TeerexEvent, ExecutedCalls, ProxiedEnclaves, Request, SgxEnclave,
+	ShardIdentifier, SovereignEnclaves, DATA_LENGTH_LIMIT,
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
-use sgx_verify::test_data::dcap::TEST1_DCAP_QUOTE_SIGNER;
+use sgx_verify::test_data::dcap::{TEST1_DCAP_QUOTE_MRENCLAVE, TEST1_DCAP_QUOTE_SIGNER};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use teerex_primitives::{
-	MultiEnclave, SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus,
+	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
+	SgxReportData, SgxStatus,
 };
 use test_utils::test_data::{
 	consts::*,
 	dcap::{TEST1_DCAP_QUOTE, TEST_VALID_COLLATERAL_TIMESTAMP},
 };
 
-fn list_enclaves() -> Vec<(AccountId, MultiEnclave<Vec<u8>>)> {
+fn list_sovereign_enclaves() -> Vec<(AccountId, MultiEnclave<Vec<u8>>)> {
 	<SovereignEnclaves<Test>>::iter().collect::<Vec<(AccountId, MultiEnclave<Vec<u8>>)>>()
+}
+
+fn list_proxied_enclaves() -> Vec<(EnclaveInstanceAddress<AccountId>, MultiEnclave<Vec<u8>>)> {
+	<ProxiedEnclaves<Test>>::iter()
+		.collect::<Vec<(EnclaveInstanceAddress<AccountId>, MultiEnclave<Vec<u8>>)>>()
 }
 
 // give get_signer a concrete type
@@ -70,12 +76,45 @@ fn add_and_remove_dcap_enclave_works() {
 			signer.clone()
 		));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
-		assert_eq!(list_enclaves(), vec![])
+		assert_eq!(list_sovereign_enclaves(), vec![])
 	})
 }
 
 #[test]
-fn unregister_active_enclave_fails() {
+fn add_and_remove_dcap_proxied_enclave_works() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+
+		let alice = AccountKeyring::Alice.to_account_id();
+		register_test_quoting_enclave::<Test>(alice.clone());
+		register_test_tcb_info::<Test>(alice.clone());
+
+		let instance_address = EnclaveInstanceAddress {
+			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
+			registrar: alice.clone(),
+			signer: AnySigner::try_from(TEST1_DCAP_QUOTE_SIGNER).unwrap(),
+		};
+
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			TEST1_DCAP_QUOTE.to_vec(),
+			None,
+			SgxAttestationMethod::Dcap { proxied: true }
+		));
+		assert_eq!(list_proxied_enclaves().len(), 1);
+		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		assert_ok!(Teerex::unregister_proxied_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			instance_address.clone()
+		));
+		assert!(!<ProxiedEnclaves<Test>>::contains_key(&instance_address));
+		assert_eq!(list_proxied_enclaves(), vec![])
+	})
+}
+
+#[test]
+fn unregister_active_sovereign_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		let alice = AccountKeyring::Alice.to_account_id();
@@ -101,6 +140,42 @@ fn unregister_active_enclave_fails() {
 			Error::<Test>::UnregisterActiveEnclaveNotAllowed
 		);
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
+	})
+}
+
+#[test]
+fn unregister_active_proxied_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+
+		let alice = AccountKeyring::Alice.to_account_id();
+		register_test_quoting_enclave::<Test>(alice.clone());
+		register_test_tcb_info::<Test>(alice.clone());
+
+		let instance_address = EnclaveInstanceAddress {
+			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
+			registrar: alice.clone(),
+			signer: AnySigner::try_from(TEST1_DCAP_QUOTE_SIGNER).unwrap(),
+		};
+
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(alice.clone()),
+			TEST1_DCAP_QUOTE.to_vec(),
+			None,
+			SgxAttestationMethod::Dcap { proxied: true }
+		));
+		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
+
+		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() / 2 + 1);
+
+		assert_err!(
+			Teerex::unregister_proxied_enclave(
+				RuntimeOrigin::signed(alice.clone()),
+				instance_address.clone(),
+			),
+			Error::<Test>::UnregisterActiveEnclaveNotAllowed
+		);
+		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 	})
 }
 
@@ -176,7 +251,7 @@ fn add_and_remove_enclave_works() {
 			signer.clone()
 		));
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
-		assert_eq!(list_enclaves(), vec![])
+		assert_eq!(list_sovereign_enclaves(), vec![])
 	})
 }
 
@@ -218,7 +293,7 @@ fn list_enclaves_works() {
 			SgxAttestationMethod::Ias,
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
-		let enclaves = list_enclaves();
+		let enclaves = list_sovereign_enclaves();
 		assert_eq!(enclaves[0].1, MultiEnclave::from(e_1));
 	})
 }
@@ -439,7 +514,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer4));
-		let enclaves = list_enclaves();
+		let enclaves = list_sovereign_enclaves();
 		assert!(enclaves.contains(&(signer4, MultiEnclave::from(e_0))));
 	})
 }
@@ -469,7 +544,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 				SgxAttestationMethod::Ias
 			));
 			assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
-			let enclaves = list_enclaves();
+			let enclaves = list_sovereign_enclaves();
 			assert!(enclaves.contains(&(signer8, MultiEnclave::from(e_0))));
 		})
 	})
@@ -517,7 +592,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
-		let enclaves = list_enclaves();
+		let enclaves = list_sovereign_enclaves();
 		assert!(enclaves.contains(&(signer8, MultiEnclave::from(e_0))));
 	})
 }
@@ -577,7 +652,7 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 		let signer4 = get_signer(TEST4_SIGNER_PUB);
 		let call_hash: H256 = H256::from([1u8; 32]);
 
-		assert_eq!(list_enclaves().len(), 0);
+		assert_eq!(list_sovereign_enclaves().len(), 0);
 
 		assert_err!(
 			Teerex::unshield_funds(
