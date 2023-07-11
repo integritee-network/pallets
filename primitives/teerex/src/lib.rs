@@ -125,7 +125,7 @@ impl From<[u8; 64]> for AnySigner {
 		// zero padding is necessary because the chain storage does that anyway for bounded vec
 		let mut zero_padded_pubkey = pubkey.to_vec();
 		zero_padded_pubkey.append(&mut vec![0; 2]);
-		AnySigner::Opaque(OpaqueSigner::try_from(zero_padded_pubkey).expect("66 > 64 + 2. q.e.d."))
+		AnySigner::Opaque(OpaqueSigner::try_from(zero_padded_pubkey).expect("66 >= 64 + 2. q.e.d."))
 	}
 }
 
