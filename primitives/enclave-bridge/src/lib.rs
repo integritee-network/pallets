@@ -36,7 +36,7 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 }
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct ShardConfig<AccountId, BlockNumber> {
+pub struct ShardConfig<AccountId> {
 	/// enclave fingerprint which may perform state transitions on this shard
 	pub enclave_fingerprint: EnclaveFingerprint,
 	/// an optional limit on the number of validateers
@@ -45,14 +45,36 @@ pub struct ShardConfig<AccountId, BlockNumber> {
 	pub authorities: Option<Vec<AccountId>>,
 	/// maintenance mode blocks any upcoming state transitions on this shard
 	pub maintenance_mode: bool,
-	/// temporary store for an upcoming updated shard config with enactment time
-	pub pending_update: Option<Box<ShardUpdate<AccountId, BlockNumber>>>,
 }
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
-pub struct ShardUpdate<AccountId, BlockNumber> {
-	/// the new config that shall be enacted
-	pub new_shard_config: ShardConfig<AccountId, BlockNumber>,
+pub struct UpgradableShardConfig<AccountId, BlockNumber> {
+	/// the currently active config
+	pub active_config: ShardConfig<AccountId>,
+	/// temporary store for an upcoming updated shard config with enactment time
+	pub pending_update: Option<ShardConfig<AccountId>>,
 	/// enact after importing this parentchain block on the sidechain
-	pub enact_after: BlockNumber,
+	pub update_at: Option<BlockNumber>,
+}
+
+impl<AccountId, BlockNumber> From<ShardConfig<AccountId>>
+	for UpgradableShardConfig<AccountId, BlockNumber>
+{
+	fn from(shard_config: ShardConfig<AccountId>) -> Self {
+		UpgradableShardConfig { active_config: shard_config, pending_update: None, update_at: None }
+	}
+}
+
+impl<AccountId, BlockNumber> UpgradableShardConfig<AccountId, BlockNumber> {
+	pub fn with_pending_update(
+		&self,
+		new_shard_config: ShardConfig<AccountId>,
+		block_number: BlockNumber,
+	) -> Self {
+		Self {
+			active_config: self.active_config.clone(),
+			pending_update: Some(new_shard_config),
+			update_at: Some(block_number),
+		}
+	}
 }

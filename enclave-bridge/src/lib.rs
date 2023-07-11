@@ -101,7 +101,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		ShardIdentifier,
-		ShardConfig<T::AccountId, T::BlockNumber>,
+		UpgradableShardConfig<T::AccountId, T::BlockNumber>,
 		OptionQuery,
 	>;
 
@@ -261,9 +261,12 @@ pub mod pallet {
 			let new_shard_config = Self::shard_config(shard)
 				.or(Some(shard_config))
 				.filter(|config| config.enclave_fingerprint == enclave.fingerprint())
-				.or_else(Error::<T>::WrongFingerprintForShard.into());
+				.ok_or(Error::<T>::WrongFingerprintForShard)?;
 			Self::touch_shard(shard, &sender)?;
-			<ShardConfigRegistry<T>>::insert(shard, new_shard_config);
+			<ShardConfigRegistry<T>>::insert(
+				UpgradableShardConfig::from(shard),
+				new_shard_config.clone(),
+			);
 
 			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			log::info!("shard config updated for {:?}, new config: {:?}", shard, new_shard_config);
