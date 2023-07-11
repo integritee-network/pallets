@@ -68,7 +68,9 @@ fn add_and_remove_dcap_enclave_works() {
 			Teerex::sovereign_enclaves(&signer).unwrap().attestation_timestamp(),
 			TEST_VALID_COLLATERAL_TIMESTAMP
 		);
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		Timestamp::set_timestamp(
+			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1,
+		);
 		assert_ok!(Teerex::unregister_sovereign_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			signer.clone()
@@ -101,7 +103,9 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 		));
 		assert_eq!(list_proxied_enclaves().len(), 1);
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		Timestamp::set_timestamp(
+			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1,
+		);
 		assert_ok!(Teerex::unregister_proxied_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			instance_address.clone()
@@ -128,7 +132,9 @@ fn unregister_active_sovereign_enclave_fails() {
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() / 2 + 1);
+		Timestamp::set_timestamp(
+			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() / 2 + 1,
+		);
 
 		assert_err!(
 			Teerex::unregister_sovereign_enclave(
@@ -164,7 +170,9 @@ fn unregister_active_proxied_enclave_fails() {
 		));
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxSilenceTime>::get() / 2 + 1);
+		Timestamp::set_timestamp(
+			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() / 2 + 1,
+		);
 
 		assert_err!(
 			Teerex::unregister_proxied_enclave(
@@ -243,7 +251,7 @@ fn add_and_remove_enclave_works() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
-		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxSilenceTime>::get() + 1);
+		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
 		assert_ok!(Teerex::unregister_sovereign_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			signer.clone()

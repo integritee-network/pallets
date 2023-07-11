@@ -134,7 +134,7 @@ impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
-	type MaxSilenceTime = MaxSilenceTime;
+	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 }
 
 impl pallet_enclave_bridge::Config for Test {
@@ -145,7 +145,7 @@ impl pallet_enclave_bridge::Config for Test {
 
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
-	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
+	pub const MaxAttestationRenewalPeriod: u64 = 172_800_000; // 48h
 }
 
 impl Config for Test {

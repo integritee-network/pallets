@@ -54,6 +54,7 @@ std = [
     "serde",
     # local
     "pallet-teerex/std",
+    "pallet-enclave-bridge/std",
     "sidechain-primitives/std",
     "enclave-bridge-primitives/std",
     "teerex-primitives/std",

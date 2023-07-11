@@ -263,6 +263,25 @@ fn confirm_processed_parentchain_block_works() {
 }
 
 #[test]
+fn confirm_processed_parentchain_block_from_unregistered_enclave_fails() {
+	new_test_ext().execute_with(|| {
+		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
+
+		assert_err!(
+			EnclaveBridge::confirm_processed_parentchain_block(
+				RuntimeOrigin::signed(enclave_signer),
+				shard,
+				H256::default(),
+				3,
+				H256::default(),
+			),
+			pallet_teerex::Error::<Test>::EnclaveIsNotRegistered
+		);
+	})
+}
+
+#[test]
 fn publish_hash_works() {
 	use frame_system::{EventRecord, Phase};
 
@@ -384,56 +403,6 @@ fn publish_hash_with_too_much_data_fails() {
 		assert_err!(
 			EnclaveBridge::publish_hash(RuntimeOrigin::signed(enclave_signer), hash, vec![], data),
 			Error::<Test>::DataTooLong
-		);
-	})
-}
-
-#[test]
-fn update_ipfs_hash_works() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(NOW);
-		let block_hash = H256::default();
-		let merkle_root = H256::default();
-		let block_number = 3;
-
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
-		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
-
-		assert_ok!(EnclaveBridge::confirm_processed_parentchain_block(
-			RuntimeOrigin::signed(enclave_signer.clone()),
-			shard,
-			block_hash,
-			block_number,
-			merkle_root,
-		));
-
-		let expected_event =
-			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ProcessedParentchainBlock(
-				shard,
-				block_hash,
-				merkle_root,
-				block_number,
-			));
-		assert!(System::events().iter().any(|a| a.event == expected_event));
-	})
-}
-
-#[test]
-fn ipfs_update_from_unregistered_enclave_fails() {
-	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
-
-		assert_err!(
-			EnclaveBridge::confirm_processed_parentchain_block(
-				RuntimeOrigin::signed(enclave_signer),
-				shard,
-				H256::default(),
-				3,
-				H256::default(),
-			),
-			pallet_teerex::Error::<Test>::EnclaveIsNotRegistered
 		);
 	})
 }

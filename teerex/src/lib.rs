@@ -65,9 +65,9 @@ pub mod pallet {
 
 		type WeightInfo: WeightInfo;
 
-		/// If a worker does not re-register within `MaxSilenceTime`, it can be unregistered by anyone.
+		/// If a worker does not re-register within `MaxAttestationRenewalPeriod`, it can be unregistered by anyone.
 		#[pallet::constant]
-		type MaxSilenceTime: Get<Self::Moment>;
+		type MaxAttestationRenewalPeriod: Get<Self::Moment>;
 	}
 
 	#[pallet::event]
@@ -272,8 +272,9 @@ pub mod pallet {
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
 				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
-			let oldest_acceptable_attestation_time =
-				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			let oldest_acceptable_attestation_time = now
+				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
+				.saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
 			} else {
@@ -294,8 +295,9 @@ pub mod pallet {
 			let enclave =
 				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
-			let oldest_acceptable_attestation_time =
-				now.saturating_sub(T::MaxSilenceTime::get()).saturated_into::<u64>();
+			let oldest_acceptable_attestation_time = now
+				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
+				.saturated_into::<u64>();
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<ProxiedEnclaves<T>>::remove(&address);
 			} else {
