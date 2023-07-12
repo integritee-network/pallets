@@ -20,6 +20,7 @@ use codec::Encode;
 use enclave_bridge_primitives::{ShardConfig, ShardIdentifier};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use pallet_teerex::Pallet as Teerex;
+use sidechain_primitives::SidechainBlockConfirmation;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use teerex_primitives::{
@@ -281,6 +282,77 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 		let expected_event =
 			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(enclave_signer, hash));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
+	})
+}
+
+#[test]
+fn two_sidechains_with_different_fingerprint_works() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		run_to_block(1);
+		let enclave_signer1 = AccountKeyring::Eve.to_account_id();
+		let enclave1 =
+			register_sovereign_test_enclave(&enclave_signer1, EnclaveFingerprint::default());
+		let shard1 = ShardIdentifier::from(enclave1.fingerprint());
+		let hash1 = H256::default();
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(enclave_signer1.clone()),
+			shard1,
+			1,
+			2,
+			hash1
+		));
+
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			enclave_signer1.clone(),
+			hash1,
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		run_to_block(2);
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		let enclave_signer2 = AccountKeyring::Ferdie.to_account_id();
+		let enclave2 =
+			register_sovereign_test_enclave(&enclave_signer2, EnclaveFingerprint::from([1u8; 32]));
+		let shard2 = ShardIdentifier::from(enclave2.fingerprint());
+		let hash2 = H256::from([2u8; 32]);
+
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(enclave_signer2.clone()),
+			shard2,
+			1,
+			10,
+			hash2
+		));
+
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			enclave_signer2.clone(),
+			hash2,
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		let shard_status1 = EnclaveBridge::shard_status(shard1).unwrap();
+		let shard_status2 = EnclaveBridge::shard_status(shard2).unwrap();
+		assert_eq!(shard_status1.len(), 1);
+		assert_eq!(shard_status2.len(), 1);
+		assert_eq!(shard_status1[0].signer, enclave_signer1);
+		assert_eq!(shard_status2[0].signer, enclave_signer2);
+		assert_eq!(shard_status1[0].fingerprint, enclave1.fingerprint());
+		assert_eq!(shard_status2[0].fingerprint, enclave2.fingerprint());
+		assert_eq!(shard_status1[0].fingerprint, enclave1.fingerprint());
+		assert_eq!(shard_status2[0].fingerprint, enclave2.fingerprint());
+		assert_eq!(shard_status1[0].last_activity, 1u32);
+		assert_eq!(shard_status2[0].last_activity, 2u32);
+		assert_eq!(
+			Sidechain::latest_sidechain_block_confirmation(shard1),
+			SidechainBlockConfirmation { block_number: 1, block_header_hash: hash1 }
+		);
+		assert_eq!(
+			Sidechain::latest_sidechain_block_confirmation(shard2),
+			SidechainBlockConfirmation { block_number: 1, block_header_hash: hash2 }
+		);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard1), 2);
+		assert_eq!(Sidechain::sidechain_block_finalization_candidate(shard2), 10);
 	})
 }
 
