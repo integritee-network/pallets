@@ -318,7 +318,7 @@ impl<T: Config> Pallet<T> {
 	) -> Option<ShardConfig<T::AccountId>> {
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
 		Self::shard_config(shard).map(|current| {
-			current.update_at.clone().filter(|&at| at <= current_block_number).map_or_else(
+			current.update_at.filter(|&at| at <= current_block_number).map_or_else(
 				|| current.active_config.clone(),
 				|_| {
 					current.pending_update.map_or(current.active_config.clone(), |due_update| {
@@ -335,6 +335,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	#[allow(clippy::type_complexity)]
 	pub fn get_sovereign_enclave_and_touch_shard(
 		enclave_signer: &T::AccountId,
 		shard: ShardIdentifier,
@@ -346,11 +347,11 @@ impl<T: Config> Pallet<T> {
 		ensure!(
 			enclave.fingerprint() ==
 				Self::get_maybe_updated_shard_config(shard, true)
-					.unwrap_or(ShardConfig::new(shard))
+					.unwrap_or_else(|| ShardConfig::new(shard))
 					.enclave_fingerprint,
 			<Error<T>>::WrongFingerprintForShard
 		);
-		let shard_status = Self::touch_shard(shard, &enclave_signer)?;
+		let shard_status = Self::touch_shard(shard, enclave_signer)?;
 		Ok((enclave, shard_status))
 	}
 
