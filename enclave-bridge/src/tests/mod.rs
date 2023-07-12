@@ -25,11 +25,6 @@ mod test_indirect_invocation;
 mod test_publish_hash;
 mod test_shard_config;
 
-// give get_signer a concrete type
-fn get_signer(pubkey: &[u8; 32]) -> AccountId {
-	test_utils::get_signer(pubkey)
-}
-
 fn get_bonding_account(enclave: &MultiEnclave<Vec<u8>>) -> AccountId {
 	AccountId::decode(&mut enclave.fingerprint().encode().as_ref()).unwrap()
 }

@@ -192,7 +192,7 @@ fn get_maybe_updated_shard_config_works() {
 		));
 
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
 				.unwrap()
 				.enclave_fingerprint,
 			initial_fingerprint
@@ -214,11 +214,11 @@ fn get_maybe_updated_shard_config_works() {
 				.collect::<Vec<(ShardIdentifier, UpgradableShardConfig<AccountId, BlockNumber>)>>()[0]
 				.1,
 			UpgradableShardConfig::from(ShardConfig::new(initial_fingerprint))
-				.with_pending_upgrade(new_shard_config, 2)
+				.with_pending_upgrade(new_shard_config.clone(), 2)
 		);
 		// should still work with old enclave because update not yet enacted
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
 				.unwrap()
 				.enclave_fingerprint,
 			enclave.fingerprint()
@@ -228,10 +228,33 @@ fn get_maybe_updated_shard_config_works() {
 
 		assert_eq!(<frame_system::Pallet<Test>>::block_number(), 2);
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
 				.unwrap()
 				.enclave_fingerprint,
 			new_fingerprint
+		);
+
+		// verify the due update hasn't been applied because we stated `false`
+		assert_eq!(
+			<ShardConfigRegistry<Test>>::iter()
+				.collect::<Vec<(ShardIdentifier, UpgradableShardConfig<AccountId, BlockNumber>)>>()[0]
+				.1,
+			UpgradableShardConfig::from(ShardConfig::new(initial_fingerprint))
+				.with_pending_upgrade(new_shard_config.clone(), 2)
+		);
+
+		// now the update should get applied
+		assert_eq!(
+			EnclaveBridge::get_maybe_updated_shard_config(shard, true)
+				.unwrap()
+				.enclave_fingerprint,
+			new_fingerprint
+		);
+		assert_eq!(
+			<ShardConfigRegistry<Test>>::iter()
+				.collect::<Vec<(ShardIdentifier, UpgradableShardConfig<AccountId, BlockNumber>)>>()[0]
+				.1,
+			UpgradableShardConfig::from(ShardConfig::new(new_fingerprint))
 		);
 	})
 }

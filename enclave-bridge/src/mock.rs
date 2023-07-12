@@ -161,8 +161,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 /// Run until a particular block.
-#[cfg(not(feature = "skip-ias-check"))]
-#[allow(dead_code)]
 pub fn run_to_block(n: u32) {
 	use frame_support::traits::{OnFinalize, OnInitialize};
 	while System::block_number() < n {

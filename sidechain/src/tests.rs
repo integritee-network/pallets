@@ -15,11 +15,17 @@
 
 */
 
-use crate::{mock::*, Error, Event as SidechainEvent, Teerex};
+use crate::{mock::*, Error, Event as SidechainEvent};
+use codec::Encode;
+use enclave_bridge_primitives::{ShardConfig, ShardIdentifier};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
+use pallet_teerex::Pallet as Teerex;
 use sp_core::H256;
-use teerex_primitives::{MrSigner, SgxAttestationMethod};
-use test_utils::test_data::consts::*;
+use sp_keyring::AccountKeyring;
+use teerex_primitives::{
+	EnclaveFingerprint, MrSigner, MultiEnclave, SgxAttestationMethod, SgxEnclave,
+};
+use test_utils::{test_data::consts::*, TestEnclave};
 
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
@@ -202,6 +208,82 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 	})
 }
 
+#[test]
+fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerprint() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		run_to_block(1);
+		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
+		let shard = ShardIdentifier::from(enclave.fingerprint());
+		let hash = H256::default();
+		// initialize shard
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			ShardConfig::new(enclave.fingerprint()),
+			0,
+		));
+
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			1,
+			2,
+			hash
+		));
+
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			enclave_signer.clone(),
+			hash,
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		let new_fingerprint = EnclaveFingerprint::from([2u8; 32]);
+
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			ShardConfig::new(new_fingerprint),
+			1,
+		));
+
+		// should still work with old enclave because update not yet enacted
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			2,
+			3,
+			hash
+		));
+
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
+			enclave_signer.clone(),
+			hash,
+		));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		run_to_block(2);
+
+		// enclave upgrade of instance takes place
+		register_sovereign_test_enclave(&enclave_signer, new_fingerprint);
+
+		// now retry as new enclave with same signer
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			3,
+			4,
+			hash
+		));
+
+		let expected_event =
+			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(enclave_signer, hash));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+	})
+}
+
 fn register_ias_enclave7() {
 	register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
 }
@@ -264,4 +346,35 @@ fn confirm_sidechain_block(
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())
+}
+
+fn register_sovereign_test_enclave(
+	signer: &AccountId,
+	fingerprint: EnclaveFingerprint,
+) -> MultiEnclave<Vec<u8>> {
+	let enclave = MultiEnclave::from(
+		SgxEnclave::test_enclave()
+			.with_mr_enclave(fingerprint.into())
+			.with_pubkey(&signer.encode()[..])
+			.with_timestamp(now()),
+	);
+	assert_ok!(Teerex::<Test>::add_enclave(signer, enclave.clone()));
+	enclave
+}
+
+/// Run until a particular block.
+pub fn run_to_block(n: u32) {
+	use frame_support::traits::{OnFinalize, OnInitialize};
+	while System::block_number() < n {
+		if System::block_number() > 1 {
+			System::on_finalize(System::block_number());
+		}
+		Timestamp::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+	}
+}
+
+fn now() -> u64 {
+	<pallet_timestamp::Pallet<Test>>::get()
 }

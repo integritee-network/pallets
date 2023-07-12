@@ -260,7 +260,7 @@ pub mod pallet {
 			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
 			let new_upgradable_shard_config: UpgradableShardConfig<T::AccountId, T::BlockNumber> =
-				match Self::get_maybe_updated_shard_config(shard) {
+				match Self::get_maybe_updated_shard_config(shard, false) {
 					Some(old_config) => {
 						ensure!(
 							old_config.enclave_fingerprint == enclave.fingerprint(),
@@ -314,12 +314,23 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_maybe_updated_shard_config(
 		shard: ShardIdentifier,
+		apply_due_update: bool,
 	) -> Option<ShardConfig<T::AccountId>> {
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
 		Self::shard_config(shard).map(|current| {
 			current.update_at.clone().filter(|&at| at <= current_block_number).map_or_else(
 				|| current.active_config.clone(),
-				|_| current.pending_update.unwrap_or(current.active_config.clone()),
+				|_| {
+					current.pending_update.map_or(current.active_config.clone(), |due_update| {
+						if apply_due_update {
+							<ShardConfigRegistry<T>>::insert(
+								shard,
+								UpgradableShardConfig::from(due_update.clone()),
+							);
+						}
+						due_update
+					})
+				},
 			)
 		})
 	}
@@ -327,17 +338,20 @@ impl<T: Config> Pallet<T> {
 	pub fn get_sovereign_enclave_and_touch_shard(
 		enclave_signer: &T::AccountId,
 		shard: ShardIdentifier,
-	) -> Result<MultiEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
+	) -> Result<
+		(MultiEnclave<Vec<u8>>, Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>),
+		DispatchErrorWithPostInfo,
+	> {
 		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
 		ensure!(
 			enclave.fingerprint() ==
-				Self::get_maybe_updated_shard_config(shard)
+				Self::get_maybe_updated_shard_config(shard, true)
 					.unwrap_or(ShardConfig::new(shard))
 					.enclave_fingerprint,
 			<Error<T>>::WrongFingerprintForShard
 		);
-		Self::touch_shard(shard, &enclave_signer)?;
-		Ok(enclave)
+		let shard_status = Self::touch_shard(shard, &enclave_signer)?;
+		Ok((enclave, shard_status))
 	}
 
 	pub fn touch_shard(
