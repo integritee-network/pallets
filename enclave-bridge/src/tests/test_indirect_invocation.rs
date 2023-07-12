@@ -15,41 +15,12 @@
 
 */
 
-use crate::{
-	mock::*, Error, Event as EnclaveBridgeEvent, ExecutedUnshieldCalls, Request, DATA_LENGTH_LIMIT,
-};
-use codec::{Decode, Encode};
+use super::*;
+use crate::{Error, Event as EnclaveBridgeEvent, ExecutedUnshieldCalls, Request, ShardConfig};
 use enclave_bridge_primitives::{EnclaveFingerprint, ShardIdentifier};
 use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
-use teerex_primitives::{MultiEnclave, SgxEnclave};
-use test_utils::TestEnclave;
-
-// give get_signer a concrete type
-fn get_signer(pubkey: &[u8; 32]) -> AccountId {
-	test_utils::get_signer(pubkey)
-}
-
-fn get_bonding_account(enclave: &MultiEnclave<Vec<u8>>) -> AccountId {
-	AccountId::decode(&mut enclave.fingerprint().encode().as_ref()).unwrap()
-}
-
-fn now() -> u64 {
-	<timestamp::Pallet<Test>>::get()
-}
-
-fn register_sovereign_test_enclave(signer: &AccountId) -> MultiEnclave<Vec<u8>> {
-	let enclave = MultiEnclave::from(
-		SgxEnclave::test_enclave()
-			.with_pubkey(&signer.encode()[..])
-			.with_timestamp(now()),
-	);
-	assert_ok!(Teerex::add_enclave(signer, enclave.clone()));
-	enclave
-}
-
-pub const NOW: u64 = 1587899785000;
 
 #[test]
 fn invoke_works() {
@@ -77,8 +48,10 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 
 		let call_hash: H256 = H256::from([1u8; 32]);
 
-		let enclave = register_sovereign_test_enclave(&enclave_signer);
+		let enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let bonding_account = get_bonding_account(&enclave);
+		let shard = ShardIdentifier::from(enclave.fingerprint());
 
 		let amount = 50;
 
@@ -92,7 +65,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 			RuntimeOrigin::signed(enclave_signer.clone()),
 			beneficiary.clone(),
 			amount,
-			bonding_account.clone(),
+			shard,
 			call_hash
 		)
 		.is_ok());
@@ -108,7 +81,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 			RuntimeOrigin::signed(enclave_signer),
 			beneficiary,
 			amount,
-			bonding_account,
+			shard,
 			call_hash
 		)
 		.is_ok());
@@ -128,15 +101,17 @@ fn verify_unshield_funds_works() {
 
 		let call_hash: H256 = H256::from([1u8; 32]);
 
-		let enclave = register_sovereign_test_enclave(&enclave_signer);
+		let enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let bonding_account = get_bonding_account(&enclave);
+		let shard = ShardIdentifier::from(enclave.fingerprint());
 
 		let incognito_account_encrypted = vec![1, 2, 3];
 		assert!(EnclaveBridge::shield_funds(
 			RuntimeOrigin::signed(shielder.clone()),
 			incognito_account_encrypted.clone(),
 			100,
-			bonding_account.clone(),
+			shard,
 		)
 		.is_ok());
 
@@ -152,7 +127,7 @@ fn verify_unshield_funds_works() {
 			RuntimeOrigin::signed(enclave_signer),
 			beneficiary.clone(),
 			50,
-			bonding_account.clone(),
+			shard,
 			call_hash
 		)
 		.is_ok());
@@ -170,15 +145,14 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 		Timestamp::set_timestamp(NOW);
 		let enclave_signer = AccountKeyring::Eve.to_account_id();
 		let beneficiary = AccountKeyring::Bob.to_account_id();
-		let bonding_account = get_signer(&[111u8; 32]);
 		let call_hash: H256 = H256::from([1u8; 32]);
-
+		let shard = ShardIdentifier::default();
 		assert_err!(
 			EnclaveBridge::unshield_funds(
 				RuntimeOrigin::signed(enclave_signer),
 				beneficiary,
 				51,
-				bonding_account,
+				shard,
 				call_hash
 			),
 			pallet_teerex::Error::<Test>::EnclaveIsNotRegistered
@@ -187,7 +161,7 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 }
 
 #[test]
-fn unshield_funds_from_enclave_neq_bonding_account_errs() {
+fn unshield_funds_from_enclave_on_wrong_shard_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
 		let enclave_signer = AccountKeyring::Eve.to_account_id();
@@ -197,16 +171,19 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 
 		let call_hash: H256 = H256::from([1u8; 32]);
 
-		let enclave = register_sovereign_test_enclave(&enclave_signer);
-		let not_bonding_account = get_bonding_account(&enclave);
-		let bonding_account = get_signer(&[222u8; 32]);
+		let enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
+		let shard = ShardIdentifier::from(enclave.fingerprint());
+		let not_shard = ShardIdentifier::from([222u8; 32]);
+		let bonding_account = AccountId::decode(&mut shard.as_ref()).unwrap();
+		let not_bonding_account = AccountId::decode(&mut not_shard.as_ref()).unwrap();
 
 		//Ensure that both bonding account have funds
 		assert!(EnclaveBridge::shield_funds(
 			RuntimeOrigin::signed(shielder.clone()),
 			incognito_account_encrypted.clone(),
 			100,
-			bonding_account.clone(),
+			shard,
 		)
 		.is_ok());
 
@@ -214,7 +191,7 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 			RuntimeOrigin::signed(shielder.clone()),
 			incognito_account_encrypted.clone(),
 			100,
-			not_bonding_account.clone(),
+			not_shard,
 		)
 		.is_ok());
 
@@ -223,10 +200,10 @@ fn unshield_funds_from_enclave_neq_bonding_account_errs() {
 				RuntimeOrigin::signed(enclave_signer),
 				beneficiary,
 				50,
-				bonding_account.clone(),
+				not_shard,
 				call_hash
 			),
-			Error::<Test>::WrongFingerprintForBondingAccount
+			Error::<Test>::WrongFingerprintForShard
 		);
 
 		assert_eq!(Balances::free_balance(bonding_account), 100);
@@ -241,7 +218,8 @@ fn confirm_processed_parentchain_block_works() {
 		let merkle_root = H256::default();
 		let block_number = 3;
 		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
+		let _enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
 		assert_ok!(EnclaveBridge::confirm_processed_parentchain_block(
 			RuntimeOrigin::signed(enclave_signer.clone()),
@@ -285,7 +263,8 @@ fn confirm_processed_parentchain_block_from_unregistered_enclave_fails() {
 fn confirm_processed_parentchain_block_from_wrong_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
+		let _enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from([42u8; 32]);
 
 		assert_err!(
@@ -302,127 +281,60 @@ fn confirm_processed_parentchain_block_from_wrong_enclave_fails() {
 }
 
 #[test]
-fn publish_hash_works() {
-	use frame_system::{EventRecord, Phase};
-
+fn confirm_processed_parentchain_block_from_updated_enclave_works() {
 	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(NOW);
+		run_to_block(1);
 		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
-
-		// There are no events emitted at the genesis block.
-		System::set_block_number(1);
-		System::reset_events();
-
-		let hash = H256::from([1u8; 32]);
-		let extra_topics = vec![H256::from([2u8; 32]), H256::from([3u8; 32])];
-		let data = b"hello world".to_vec();
-
-		// publish with extra topics and data
-		assert_ok!(EnclaveBridge::publish_hash(
+		let enclave =
+			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
+		let shard = ShardIdentifier::from(enclave.fingerprint());
+		// initialize shard
+		assert_ok!(EnclaveBridge::update_shard_config(
 			RuntimeOrigin::signed(enclave_signer.clone()),
-			hash,
-			extra_topics.clone(),
-			data.clone()
+			shard,
+			ShardConfig::new(enclave.fingerprint()),
+			0,
 		));
 
-		// publish without extra topics and data
-		assert_ok!(EnclaveBridge::publish_hash(
+		assert_ok!(EnclaveBridge::confirm_processed_parentchain_block(
 			RuntimeOrigin::signed(enclave_signer.clone()),
-			hash,
-			vec![],
-			vec![]
+			ShardIdentifier::default(),
+			H256::default(),
+			1,
+			H256::default(),
 		));
 
-		let fingerprint = Teerex::sovereign_enclaves(&enclave_signer).unwrap().fingerprint();
-		let mut topics = extra_topics;
-		topics.push(fingerprint.into());
+		let new_fingerprint = EnclaveFingerprint::from([2u8; 32]);
 
-		// Check that topics are reflected in the event record.
-		assert_eq!(
-			System::events(),
-			vec![
-				EventRecord {
-					phase: Phase::Initialization,
-					event: EnclaveBridgeEvent::PublishedHash {
-						fingerprint: fingerprint.into(),
-						hash,
-						data
-					}
-					.into(),
-					topics,
-				},
-				EventRecord {
-					phase: Phase::Initialization,
-					event: EnclaveBridgeEvent::PublishedHash {
-						fingerprint: fingerprint.into(),
-						hash,
-						data: vec![]
-					}
-					.into(),
-					topics: vec![fingerprint.into()],
-				},
-			]
-		);
-	})
-}
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
+			ShardConfig::new(new_fingerprint),
+			1,
+		));
 
-#[test]
-fn publish_hash_with_unregistered_enclave_fails() {
-	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		// should still work with old enclave because update not yet enacted
+		assert_ok!(EnclaveBridge::confirm_processed_parentchain_block(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			ShardIdentifier::default(),
+			H256::default(),
+			1,
+			H256::default(),
+		));
 
-		assert_err!(
-			EnclaveBridge::publish_hash(
-				RuntimeOrigin::signed(enclave_signer),
-				[1u8; 32].into(),
-				vec![],
-				vec![]
-			),
-			pallet_teerex::Error::<Test>::EnclaveIsNotRegistered
-		);
-	})
-}
+		run_to_block(2);
 
-#[test]
-fn publish_hash_with_too_many_topics_fails() {
-	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
+		// enclave upgrade of instance takes place
+		register_sovereign_test_enclave(&enclave_signer, new_fingerprint);
 
-		let hash = H256::from([1u8; 32]);
-		let extra_topics = vec![
-			H256::from([0u8; 32]),
-			H256::from([1u8; 32]),
-			H256::from([2u8; 32]),
-			H256::from([3u8; 32]),
-			H256::from([4u8; 32]),
-			H256::from([5u8; 32]),
-		];
-
-		assert_err!(
-			EnclaveBridge::publish_hash(
-				RuntimeOrigin::signed(enclave_signer),
-				hash,
-				extra_topics,
-				vec![]
-			),
-			Error::<Test>::TooManyTopics
-		);
-	})
-}
-
-#[test]
-fn publish_hash_with_too_much_data_fails() {
-	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let _enclave = register_sovereign_test_enclave(&enclave_signer);
-
-		let hash = H256::from([1u8; 32]);
-		let data = vec![0u8; DATA_LENGTH_LIMIT + 1];
-
-		assert_err!(
-			EnclaveBridge::publish_hash(RuntimeOrigin::signed(enclave_signer), hash, vec![], data),
-			Error::<Test>::DataTooLong
-		);
+		// now retry as new enclave with same signer
+		assert_ok!(EnclaveBridge::confirm_processed_parentchain_block(
+			RuntimeOrigin::signed(enclave_signer.clone()),
+			ShardIdentifier::default(),
+			H256::default(),
+			2,
+			H256::default(),
+		));
 	})
 }

@@ -43,6 +43,7 @@ pub type ShardSignerStatusVec<T> = Vec<
 
 pub use pallet::*;
 use pallet_teerex::Pallet as Teerex;
+use teerex_primitives::MultiEnclave;
 
 /// Maximum number of topics for the `publish_hash` call.
 const TOPICS_LIMIT: usize = 5;
@@ -137,9 +138,7 @@ pub mod pallet {
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			ensure!(shard == enclave.fingerprint(), <Error<T>>::WrongFingerprintForShard);
-			Self::touch_shard(shard, &sender)?;
+			Self::get_sovereign_enclave_and_touch_shard(&sender, shard)?;
 
 			log::debug!(
 				"Processed parentchain block confirmed by sovereign enclave {:?} for shard {:}, block hash {:?}",
@@ -165,9 +164,11 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			incognito_account_encrypted: Vec<u8>,
 			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
+			shard: ShardIdentifier,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref())
+				.expect("always possible to decode [u8;32]");
 			T::Currency::transfer(
 				&sender,
 				&bonding_account,
@@ -183,29 +184,25 @@ pub mod pallet {
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn unshield_funds(
 			origin: OriginFor<T>,
-			public_account: T::AccountId,
+			beneficiary: T::AccountId,
 			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
+			shard: ShardIdentifier,
 			call_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			Self::touch_shard(enclave.fingerprint(), &sender)?;
-			ensure!(
-				enclave.fingerprint().encode() == bonding_account.encode(),
-				<Error<T>>::WrongFingerprintForBondingAccount
-			);
-
+			Self::get_sovereign_enclave_and_touch_shard(&sender, shard)?;
+			let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref())
+				.expect("always possible to decode [u8;32]");
 			if !<ExecutedUnshieldCalls<T>>::contains_key(call_hash) {
 				log::info!("Executing unshielding call: {:?}", call_hash);
 				T::Currency::transfer(
 					&bonding_account,
-					&public_account,
+					&beneficiary,
 					amount,
 					ExistenceRequirement::AllowDeath,
 				)?;
 				<ExecutedUnshieldCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(public_account, amount));
+				Self::deposit_event(Event::UnshieldedFunds(beneficiary, amount));
 			} else {
 				log::info!("Already executed unshielding call: {:?}", call_hash);
 			}
@@ -263,18 +260,21 @@ pub mod pallet {
 			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
 			let new_upgradable_shard_config: UpgradableShardConfig<T::AccountId, T::BlockNumber> =
-				match Self::shard_config(shard) {
+				match Self::get_maybe_updated_shard_config(shard) {
 					Some(old_config) => {
 						ensure!(
-							old_config.active_config.enclave_fingerprint == enclave.fingerprint(),
+							old_config.enclave_fingerprint == enclave.fingerprint(),
 							Error::<T>::WrongFingerprintForShard
 						);
-						old_config.with_pending_upgrade(
+						UpgradableShardConfig::from(old_config).with_pending_upgrade(
 							shard_config,
 							current_block_number.saturating_add(enactment_delay),
 						)
 					},
-					None => shard_config.into(),
+					None => {
+						// if shard does not exist, we allow any ShardIdentifier to be created by any registered enclave
+						shard_config.into()
+					},
 				};
 
 			Self::touch_shard(shard, &sender)?;
@@ -292,8 +292,6 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The bonding account doesn't match the enclave.
-		WrongFingerprintForBondingAccount,
 		/// The shard doesn't match the enclave.
 		WrongFingerprintForShard,
 		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
@@ -312,6 +310,34 @@ impl<T: Config> Pallet<T> {
 			topics,
 			<T as Config>::RuntimeEvent::from(event).into(),
 		)
+	}
+
+	pub fn get_maybe_updated_shard_config(
+		shard: ShardIdentifier,
+	) -> Option<ShardConfig<T::AccountId>> {
+		let current_block_number = <frame_system::Pallet<T>>::block_number();
+		Self::shard_config(shard).map(|current| {
+			current.update_at.clone().filter(|&at| at <= current_block_number).map_or_else(
+				|| current.active_config.clone(),
+				|_| current.pending_update.unwrap_or(current.active_config.clone()),
+			)
+		})
+	}
+
+	pub fn get_sovereign_enclave_and_touch_shard(
+		enclave_signer: &T::AccountId,
+		shard: ShardIdentifier,
+	) -> Result<MultiEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
+		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
+		ensure!(
+			enclave.fingerprint() ==
+				Self::get_maybe_updated_shard_config(shard)
+					.unwrap_or(ShardConfig::new(shard))
+					.enclave_fingerprint,
+			<Error<T>>::WrongFingerprintForShard
+		);
+		Self::touch_shard(shard, &enclave_signer)?;
+		Ok(enclave)
 	}
 
 	pub fn touch_shard(

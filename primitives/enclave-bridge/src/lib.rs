@@ -35,7 +35,7 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 	pub last_activity: BlockNumber,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct ShardConfig<AccountId> {
 	/// enclave fingerprint which may perform state transitions on this shard
 	pub enclave_fingerprint: EnclaveFingerprint,
@@ -47,7 +47,18 @@ pub struct ShardConfig<AccountId> {
 	pub maintenance_mode: bool,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+impl<AccountId> ShardConfig<AccountId> {
+	pub fn new(fingerprint: EnclaveFingerprint) -> Self {
+		ShardConfig {
+			enclave_fingerprint: fingerprint,
+			max_instances: None,
+			authorities: None,
+			maintenance_mode: false,
+		}
+	}
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct UpgradableShardConfig<AccountId, BlockNumber> {
 	/// the currently active config
 	pub active_config: ShardConfig<AccountId>,
