@@ -20,7 +20,6 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
-
 use codec::Encode;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
@@ -80,6 +79,26 @@ benchmarks! {
 		let account = accounts[0].clone();
 
 	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(t), get_data(l))
+	verify {
+		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
+		// does not implement `PartialEq`. So we only verify that the event is emitted here,
+		// and we do more thorough checks in the normal cargo tests.
+		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
+	}
+
+	// worst case is updating an existing shard config
+	update_shard_config {
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
+
+		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
+		let shard_config = ShardConfig::new(EnclaveFingerprint::default());
+		// initialize
+		//Pallet::<T>::update_shard_config(RuntimeOrigin::signed(accounts[0].clone()), shard, shard_config, 0);
+		<ShardConfigRegistry<T>>::insert(shard, UpgradableShardConfig::from(shard_config.clone()));
+		let new_shard_config = ShardConfig::new(EnclaveFingerprint::from([1u8; 32]));
+
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, new_shard_config, 11u8.into())
 	verify {
 		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
 		// does not implement `PartialEq`. So we only verify that the event is emitted here,
