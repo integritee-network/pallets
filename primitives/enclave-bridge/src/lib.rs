@@ -66,15 +66,13 @@ impl<AccountId, BlockNumber> From<ShardConfig<AccountId>>
 }
 
 impl<AccountId, BlockNumber> UpgradableShardConfig<AccountId, BlockNumber> {
-	pub fn with_pending_update(
-		&self,
+	pub fn with_pending_upgrade(
+		mut self,
 		new_shard_config: ShardConfig<AccountId>,
 		block_number: BlockNumber,
 	) -> Self {
-		Self {
-			active_config: self.active_config.clone(),
-			pending_update: Some(new_shard_config),
-			update_at: Some(block_number),
-		}
+		self.pending_update = Some(new_shard_config);
+		self.update_at = Some(block_number);
+		self
 	}
 }

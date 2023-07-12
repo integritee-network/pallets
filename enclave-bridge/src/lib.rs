@@ -26,7 +26,7 @@ use frame_support::{
 };
 use frame_system::{self, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::traits::{SaturatedConversion, Saturating};
 use sp_std::{prelude::*, str, vec};
 
 pub use crate::weights::WeightInfo;
@@ -247,29 +247,45 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Publish a hash as a result of an arbitrary enclave operation.
-		///
+		/// Update shard config
+		/// To be respected by L2 instances after `enactment_delay` parentchain blocks
+		/// If no previous config exists, the `enactment_delay` parameter will be ignored
+		/// and the `shard_config` will be active immediately
 		#[pallet::call_index(5)]
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn update_shard_config(
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
-			shard_config: ShardConfig<T::AccountId, T::BlockNumber>,
+			shard_config: ShardConfig<T::AccountId>,
+			enactment_delay: T::BlockNumber,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			let new_shard_config = Self::shard_config(shard)
-				.or(Some(shard_config))
-				.filter(|config| config.enclave_fingerprint == enclave.fingerprint())
-				.ok_or(Error::<T>::WrongFingerprintForShard)?;
+			let current_block_number = <frame_system::Pallet<T>>::block_number();
+			let new_upgradable_shard_config: UpgradableShardConfig<T::AccountId, T::BlockNumber> =
+				match Self::shard_config(shard) {
+					Some(old_config) => {
+						ensure!(
+							old_config.active_config.enclave_fingerprint == enclave.fingerprint(),
+							Error::<T>::WrongFingerprintForShard
+						);
+						old_config.with_pending_upgrade(
+							shard_config,
+							current_block_number.saturating_add(enactment_delay),
+						)
+					},
+					None => shard_config.into(),
+				};
+
 			Self::touch_shard(shard, &sender)?;
-			<ShardConfigRegistry<T>>::insert(
-				UpgradableShardConfig::from(shard),
-				new_shard_config.clone(),
-			);
+			<ShardConfigRegistry<T>>::insert(shard, new_upgradable_shard_config.clone());
 
 			Self::deposit_event(Event::ShardConfigUpdated(shard));
-			log::info!("shard config updated for {:?}, new config: {:?}", shard, new_shard_config);
+			log::info!(
+				"shard config updated for {:?}, new config: {:?}",
+				shard,
+				new_upgradable_shard_config
+			);
 			Ok(().into())
 		}
 	}
