@@ -318,10 +318,10 @@ impl<T: Config> Pallet<T> {
 	) -> Option<ShardConfig<T::AccountId>> {
 		let current_block_number = <frame_system::Pallet<T>>::block_number();
 		Self::shard_config(shard).map(|current| {
-			current.update_at.filter(|&at| at <= current_block_number).map_or_else(
+			current.upgrade_at.filter(|&at| at <= current_block_number).map_or_else(
 				|| current.active_config.clone(),
 				|_| {
-					current.pending_update.map_or(current.active_config.clone(), |due_update| {
+					current.pending_upgrade.map_or(current.active_config.clone(), |due_update| {
 						if apply_due_update {
 							<ShardConfigRegistry<T>>::insert(
 								shard,

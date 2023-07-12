@@ -62,17 +62,21 @@ impl<AccountId> ShardConfig<AccountId> {
 pub struct UpgradableShardConfig<AccountId, BlockNumber> {
 	/// the currently active config
 	pub active_config: ShardConfig<AccountId>,
-	/// temporary store for an upcoming updated shard config with enactment time
-	pub pending_update: Option<ShardConfig<AccountId>>,
+	/// temporary store for an upcoming upgraded shard config with enactment time
+	pub pending_upgrade: Option<ShardConfig<AccountId>>,
 	/// enact after importing this parentchain block on the sidechain
-	pub update_at: Option<BlockNumber>,
+	pub upgrade_at: Option<BlockNumber>,
 }
 
 impl<AccountId, BlockNumber> From<ShardConfig<AccountId>>
 	for UpgradableShardConfig<AccountId, BlockNumber>
 {
 	fn from(shard_config: ShardConfig<AccountId>) -> Self {
-		UpgradableShardConfig { active_config: shard_config, pending_update: None, update_at: None }
+		UpgradableShardConfig {
+			active_config: shard_config,
+			pending_upgrade: None,
+			upgrade_at: None,
+		}
 	}
 }
 
@@ -82,8 +86,8 @@ impl<AccountId, BlockNumber> UpgradableShardConfig<AccountId, BlockNumber> {
 		new_shard_config: ShardConfig<AccountId>,
 		block_number: BlockNumber,
 	) -> Self {
-		self.pending_update = Some(new_shard_config);
-		self.update_at = Some(block_number);
+		self.pending_upgrade = Some(new_shard_config);
+		self.upgrade_at = Some(block_number);
 		self
 	}
 }
