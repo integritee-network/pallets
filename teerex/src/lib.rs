@@ -140,7 +140,7 @@ pub mod pallet {
 	{
 		// the integritee-service wants to register his enclave
 		#[pallet::call_index(0)]
-		#[pallet::weight((<T as Config>::WeightInfo::register_ias_enclave(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::register_sgx_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn register_sgx_enclave(
 			origin: OriginFor<T>,
 			proof: Vec<u8>,
@@ -262,7 +262,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::unregister_sovereign_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_sovereign_enclave(
 			origin: OriginFor<T>,
 			enclave_signer: T::AccountId,
@@ -285,7 +285,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight((<T as Config>::WeightInfo::unregister_enclave(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::unregister_proxied_enclave(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unregister_proxied_enclave(
 			origin: OriginFor<T>,
 			address: EnclaveInstanceAddress<T::AccountId>,
