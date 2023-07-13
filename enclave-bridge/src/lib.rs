@@ -119,7 +119,7 @@ pub mod pallet {
 		<T as frame_system::Config>::Hash: From<[u8; 32]>,
 	{
 		#[pallet::call_index(0)]
-		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::invoke(), DispatchClass::Normal, Pays::Yes))]
 		pub fn invoke(origin: OriginFor<T>, request: Request) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
 			log::info!("invoke with {:?}", request);

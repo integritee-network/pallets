@@ -92,7 +92,7 @@ pub mod pallet {
 			// TODO: Simple logic for now: only accept blocks from first registered enclave.
 			if sender != shard_status[0].signer {
 				log::debug!(
-					"Ignore block confirmation from registered enclave with index > 1: {:}",
+					"Ignore block confirmation from registered enclave with index > 1: {:?}",
 					sender
 				);
 				return Ok(().into())
