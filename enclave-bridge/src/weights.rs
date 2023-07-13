@@ -53,6 +53,7 @@ pub trait WeightInfo {
 	fn invoke() -> Weight;
 	fn confirm_processed_parentchain_block() -> Weight;
 	fn publish_hash(l: u32, t: u32) -> Weight;
+	fn update_shard_config() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
@@ -101,6 +102,22 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().writes((1_u64).saturating_mul(t.into())))
 			.saturating_add(Weight::from_parts(0u64, 2475).saturating_mul(t.into()))
 	}
+	/// Storage: Teerex SovereignEnclaves (r:1 w:0)
+	/// Proof Skipped: Teerex SovereignEnclaves (max_values: None, max_size: None, mode: Measured)
+	/// Storage: EnclaveBridge ShardConfigRegistry (r:1 w:1)
+	/// Proof Skipped: EnclaveBridge ShardConfigRegistry (max_values: None, max_size: None, mode: Measured)
+	/// Storage: EnclaveBridge ShardStatus (r:1 w:1)
+	/// Proof Skipped: EnclaveBridge ShardStatus (max_values: None, max_size: None, mode: Measured)
+	fn update_shard_config() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `463`
+		//  Estimated: `3928`
+		// Minimum execution time: 27_734_000 picoseconds.
+		Weight::from_parts(28_742_000, 0)
+			.saturating_add(Weight::from_parts(0, 3928))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 }
 
 /// For tests, weights have been generated with the integritee-node.
@@ -147,5 +164,16 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().writes(1))
 			.saturating_add(RocksDbWeight::get().writes((1_u64).saturating_mul(t.into())))
 			.saturating_add(Weight::from_parts(0u64, 2475).saturating_mul(t.into()))
+	}
+
+	fn update_shard_config() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `463`
+		//  Estimated: `3928`
+		// Minimum execution time: 27_734_000 picoseconds.
+		Weight::from_parts(28_742_000, 0)
+			.saturating_add(Weight::from_parts(0, 3928))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 }
