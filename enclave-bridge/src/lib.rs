@@ -96,6 +96,10 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	/// this registry holds shard configurations as well as pending updates thereof.
+	/// We decided to put config and update data in the same storage for performance reasons.
+	/// see argumentation and benchmarks here:
+	/// https://github.com/integritee-network/pallets/pull/201#discussion_r1263668271
 	#[pallet::storage]
 	#[pallet::getter(fn shard_config)]
 	pub type ShardConfigRegistry<T: Config> = StorageMap<
