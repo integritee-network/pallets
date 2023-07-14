@@ -35,13 +35,6 @@ use test_utils::{
 
 const MAX_SILENCE_TIME: u64 = 172_800_000; // 48h
 
-fn ensure_not_skipping_ra_check() {
-	#[cfg(not(test))]
-	if cfg!(feature = "skip-ias-check") {
-		panic!("Benchmark does not allow the `skip-ias-check` flag.");
-	};
-}
-
 fn generate_accounts<T: Config>(amount: u32) -> Vec<T::AccountId> {
 	(0..amount).map(|n| account("dummy name", n, n)).collect()
 }
@@ -57,7 +50,6 @@ benchmarks! {
 	// Benchmark `register_sgx_enclave` with the worst possible conditions (DCAP sovereign is more involved than Ias or proxied DCAP):
 	// * dcap registration succeeds with `proxied: false`
 	register_sgx_enclave {
-		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
@@ -74,7 +66,6 @@ benchmarks! {
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
 	// * quoting enclave registration succeeds
 	register_quoting_enclave {
-		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
@@ -87,7 +78,6 @@ benchmarks! {
 	// Benchmark `register_tcb_info` with the worst possible conditions:
 	// * tcb registration succeeds
 	register_tcb_info {
-		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		register_test_quoting_enclave::<T>(signer.clone());

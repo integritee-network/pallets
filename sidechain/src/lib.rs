@@ -153,6 +153,6 @@ impl<T: Config> Pallet<T> {
 mod benchmarking;
 #[cfg(test)]
 mod mock;
-#[cfg(all(test, not(feature = "skip-ias-check")))]
+#[cfg(test)]
 mod tests;
 pub mod weights;

@@ -74,8 +74,5 @@ runtime-benchmarks = [
     "pallet-timestamp/runtime-benchmarks",
     "test-utils",
 ]
-# Allow workers to register without remote attestation for dev purposes.
-# This pallet needs the flag only to run the tests, otherwise skip-ias-check should only be set in the pallet-teerex.
-skip-ias-check = []
 
 try-runtime = ["frame-support/try-runtime"]

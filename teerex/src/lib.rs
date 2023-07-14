@@ -118,16 +118,22 @@ pub mod pallet {
 	#[pallet::getter(fn allow_sgx_debug_mode)]
 	pub type SgxAllowDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn allow_skipping_attestation)]
+	pub type AllowSkippingAttestation<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::genesis_config]
 	#[cfg_attr(feature = "std", derive(Default))]
 	pub struct GenesisConfig {
 		pub allow_sgx_debug_mode: bool,
+		pub allow_skipping_attestation: bool,
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
 			SgxAllowDebugMode::<T>::put(self.allow_sgx_debug_mode);
+			AllowSkippingAttestation::<T>::put(self.allow_skipping_attestation);
 		}
 	}
 
@@ -231,17 +237,24 @@ pub mod pallet {
 					)
 					.with_attestation_method(SgxAttestationMethod::Dcap { proxied })
 				},
-				SgxAttestationMethod::Skip { proxied } => SgxEnclave::new(
-					SgxReportData::default(),
-					// insert mrenclave if the ra_report represents one, otherwise insert default
-					<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
-					MrSigner::default(),
-					<timestamp::Pallet<T>>::get().saturated_into(),
-					SgxBuildMode::default(),
-					SgxStatus::Invalid,
-				)
-				.with_pubkey(sender.encode().as_ref())
-				.with_attestation_method(SgxAttestationMethod::Skip { proxied }),
+				SgxAttestationMethod::Skip { proxied } => {
+					if !Self::allow_skipping_attestation() {
+						log::debug!(target: TEEREX, "skipping attestation not allowed",);
+						return Err(<Error<T>>::SkippingAttestationNotAllowed.into())
+					}
+					log::debug!(target: TEEREX, "skipping attestation verification",);
+					SgxEnclave::new(
+						SgxReportData::default(),
+						// insert mrenclave if the ra_report represents one, otherwise insert default
+						<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
+						MrSigner::default(),
+						<timestamp::Pallet<T>>::get().saturated_into(),
+						SgxBuildMode::default(),
+						SgxStatus::Invalid,
+					)
+					.with_pubkey(sender.encode().as_ref())
+					.with_attestation_method(SgxAttestationMethod::Skip { proxied })
+				},
 			};
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
@@ -385,6 +398,8 @@ pub mod pallet {
 		CollateralInvalid,
 		/// It is not allowed to unregister enclaves with recent activity
 		UnregisterActiveEnclaveNotAllowed,
+		/// skipping attestation not allowed by configuration
+		SkippingAttestationNotAllowed,
 	}
 }
 

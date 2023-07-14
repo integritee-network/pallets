@@ -145,7 +145,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: true };
+	let teerex_config =
+		crate::GenesisConfig { allow_sgx_debug_mode: true, allow_skipping_attestation: true };
 	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
 
 	let mut ext: sp_io::TestExternalities = t.into();
@@ -154,7 +155,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 //Build genesis storage for mockup, where RA from enclave compiled in debug mode is NOT allowed
-#[cfg(not(feature = "skip-ias-check"))]
 pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
@@ -163,7 +163,8 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	.assimilate_storage(&mut t)
 	.unwrap();
 
-	let teerex_config = crate::GenesisConfig { allow_sgx_debug_mode: false };
+	let teerex_config =
+		crate::GenesisConfig { allow_sgx_debug_mode: false, allow_skipping_attestation: false };
 	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
 
 	let mut ext: sp_io::TestExternalities = t.into();
@@ -172,7 +173,6 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 }
 
 /// Helper method for the OnTimestampSet to be called
-#[cfg(not(feature = "skip-ias-check"))]
 pub fn set_timestamp(t: u64) {
 	let _ = timestamp::Pallet::<Test>::set(RuntimeOrigin::none(), t);
 }

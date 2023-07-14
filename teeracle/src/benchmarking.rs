@@ -35,16 +35,9 @@ use test_utils::{
 	test_data::{consts::*, ias::*},
 };
 
-fn ensure_not_skipping_ra_check() {
-	#[cfg(not(test))]
-	if cfg!(feature = "skip-ias-check") {
-		panic!("Benchmark does not allow the `skip-ias-check` flag.");
-	};
-}
 benchmarks! {
 	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
 	update_exchange_rate {
-		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".into();
@@ -67,7 +60,6 @@ benchmarks! {
 	}
 
 	update_oracle {
-		ensure_not_skipping_ra_check();
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let oracle_name = OracleDataName::from("Test_Oracle_Name");
