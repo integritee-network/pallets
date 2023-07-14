@@ -256,18 +256,18 @@ pub mod pallet {
 
 			Self::add_enclave(&sender, MultiEnclave::from(enclave.clone()))?;
 
-			Self::deposit_event(Event::AddedSgxEnclave {
-				registered_by: sender,
-				worker_url,
-				tcb_status: Some(enclave.status),
-				attestation_method: enclave.attestation_method,
-			});
 			log::info!(
 				target: TEEREX,
 				"registered sgx enclave. sender: {:?}, attestation method: {:?}",
 				sender,
 				enclave.attestation_method
 			);
+			Self::deposit_event(Event::AddedSgxEnclave {
+				registered_by: sender.clone(),
+				worker_url,
+				tcb_status: Some(enclave.status),
+				attestation_method: enclave.attestation_method,
+			});
 			Ok(().into())
 		}
 
@@ -290,8 +290,8 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
-			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
 			log::debug!(target: TEEREX, "removed sovereign enclave {:?}", enclave_signer);
+			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
 			Ok(().into())
 		}
 
@@ -314,8 +314,8 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
-			Self::deposit_event(Event::RemovedProxiedEnclave(address));
 			log::info!(target: TEEREX, "removed proxied enclave {:?}", address);
+			Self::deposit_event(Event::RemovedProxiedEnclave(address));
 			Ok(().into())
 		}
 
@@ -336,8 +336,8 @@ pub mod pallet {
 				certificate_chain,
 			)?;
 			<SgxQuotingEnclaveRegistry<T>>::put(&quoting_enclave);
-			Self::deposit_event(Event::SgxQuotingEnclaveRegistered { quoting_enclave });
 			log::info!(target: TEEREX, "registered quoting enclave");
+			Self::deposit_event(Event::SgxQuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
 
@@ -356,8 +356,8 @@ pub mod pallet {
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
+			log::info!(target: TEEREX, "registered tcb info for fmspc: {:?}", fmspc);
 			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
-			log::info!(target: TEEREX, "registered tcb info for fmspc: {:}", fmspc);
 			Ok(().into())
 		}
 	}
