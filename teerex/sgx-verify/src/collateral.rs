@@ -23,7 +23,7 @@ use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
 use teerex_primitives::{
-	Fmspc, MrSigner, Pcesvn, QeTcb, QuotingEnclave, TcbInfoOnChain, TcbVersionStatus, TEEREX,
+	Fmspc, MrSigner, Pcesvn, QeTcb, SgxQuotingEnclave, SgxTcbInfoOnChain, TcbVersionStatus, TEEREX,
 };
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
@@ -147,14 +147,14 @@ where
 
 impl EnclaveIdentity {
 	/// This extracts the necessary information into the struct that we actually store in the chain
-	pub fn to_quoting_enclave(&self) -> QuotingEnclave {
+	pub fn to_quoting_enclave(&self) -> SgxQuotingEnclave {
 		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
 		for tcb in &self.tcb_levels {
 			if tcb.is_valid() {
 				valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
 			}
 		}
-		QuotingEnclave::new(
+		SgxQuotingEnclave::new(
 			self.issue_date
 				.timestamp_millis()
 				.try_into()
@@ -199,7 +199,7 @@ pub struct TcbInfo {
 
 impl TcbInfo {
 	/// This extracts the necessary information into a tuple (`(Key, Value)`) that we actually store in the chain
-	pub fn to_chain_tcb_info(&self) -> (Fmspc, TcbInfoOnChain) {
+	pub fn to_chain_tcb_info(&self) -> (Fmspc, SgxTcbInfoOnChain) {
 		let valid_tcbs: Vec<TcbVersionStatus> = self
 			.tcb_levels
 			.iter()
@@ -215,7 +215,7 @@ impl TcbInfo {
 			.collect();
 		(
 			self.fmspc,
-			TcbInfoOnChain::new(
+			SgxTcbInfoOnChain::new(
 				self.issue_date
 					.timestamp_millis()
 					.try_into()

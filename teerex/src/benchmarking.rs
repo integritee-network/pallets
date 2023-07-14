@@ -27,12 +27,13 @@ use crate::{
 };
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-use sp_runtime::traits::{CheckedConversion, Hash};
-use sp_std::vec;
+use sp_runtime::traits::CheckedConversion;
 use test_utils::{
 	get_signer,
 	test_data::{consts::*, dcap::*, ias::*},
 };
+
+const MAX_SILENCE_TIME: u64 = 172_800_000; // 48h
 
 fn ensure_not_skipping_ra_check() {
 	#[cfg(not(test))]
@@ -53,25 +54,21 @@ benchmarks! {
 
 	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]>,}
 
-	// Benchmark `register_ias_enclave` with the worst possible conditions:
-	// * remote attestation is valid
-	// * enclave already exists
-	register_ias_enclave {
+	// Benchmark `register_sgx_enclave` with the worst possible conditions (DCAP sovereign is more involved than Ias or proxied DCAP):
+	// * dcap registration succeeds with `proxied: false`
+	register_sgx_enclave {
 		ensure_not_skipping_ra_check();
-		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
-		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
+		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
-		// simply register the enclave before to make sure it already
-		// exists when running the benchmark
-		Teerex::<T>::register_ias_enclave(
-			RawOrigin::Signed(signer.clone()).into(),
-			TEST4_SETUP.cert.to_vec(),
-			URL.to_vec()
-		).unwrap();
+		register_test_quoting_enclave::<T>(signer.clone());
+		register_test_tcb_info::<T>(signer.clone());
 
-	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec(), URL.to_vec())
+	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), Some(URL.to_vec()), SgxAttestationMethod::Dcap { proxied: false })
 	verify {
-		assert_eq!(Teerex::<T>::enclave_count(), 1);
+		let enclave_vec = <SovereignEnclaves<T>>::iter()
+		.collect::<Vec<(T::AccountId, MultiEnclave<Vec<u8>>)>>();
+		assert_eq!(enclave_vec.len(), 1);
 	}
 
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
@@ -101,105 +98,59 @@ benchmarks! {
 		assert_eq!(get_test_tcb_info::<T>().next_update, 1681649132000);
 	}
 
-	// Benchmark `register_dcap_enclave` with the worst possible conditions:
-	// * dcap registration succeeds
-	register_dcap_enclave {
-		ensure_not_skipping_ra_check();
-		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
-		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
-
-		register_test_quoting_enclave::<T>(signer.clone());
-		register_test_tcb_info::<T>(signer.clone());
-
-	}: _(RawOrigin::Signed(signer), TEST1_DCAP_QUOTE.to_vec(), URL.to_vec())
-	verify {
-		assert_eq!(Teerex::<T>::enclave_count(), 1);
-	}
-
-	// Benchmark `unregister_enclave` enclave with the worst possible conditions:
+	// Benchmark `unregister_sovereign_enclave` enclave with the worst possible conditions:
 	// * enclave exists
 	// * enclave is not the most recently registered enclave
-	unregister_enclave {
+	unregister_sovereign_enclave {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
-		add_enclaves_to_registry::<T>(&accounts);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
+		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
-	}: _(RawOrigin::Signed(accounts[0].clone()))
+	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
-		assert!(!crate::EnclaveIndex::<T>::contains_key(&accounts[0]));
-		assert_eq!(Teerex::<T>::enclave_count(), enclave_count as u64 - 1);
+		assert!(!crate::SovereignEnclaves::<T>::contains_key(&accounts[0]));
 	}
 
-	// Benchmark `call_worker`. There are no worst conditions. The benchmark showed that
-	// execution time is constant irrespective of cyphertext size.
-	call_worker {
-		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		let req = Request { shard:H256::from_slice(&TEST4_SETUP.mrenclave), cyphertext: vec![1u8; 2000]};
-	}: _(RawOrigin::Signed(accounts[0].clone()), req)
+	// Benchmark `unregister_proxied_enclave` enclave with the worst possible conditions:
+	// * enclave exists
+	// * enclave is not the most recently registered enclave
+	unregister_proxied_enclave {
+		let enclave_count = 3;
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
+		add_proxied_enclaves_to_registry::<T>(&accounts);
+		let (key0, value0) = <ProxiedEnclaves<T>>::iter()
+		.collect::<Vec<(EnclaveInstanceAddress<T::AccountId>, MultiEnclave<Vec<u8>>)>>()[0].clone();
+		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
-	// Benchmark `confirm_processed_parentchain_block` with the worst possible conditions:
-	// * sender enclave is registered
-	confirm_processed_parentchain_block {
-		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
-
-		let block_hash: H256 = [2; 32].into();
-		let merkle_root: H256 = [4; 32].into();
-		let block_number: u32 = 0;
-
-	}: _(RawOrigin::Signed(accounts[0].clone()), block_hash, block_number.into(), merkle_root)
-
-	// Benchmark `publish_hash` with the worst possible conditions:
-	// * sender enclave is registered
-	//
-	// and parametrize the benchmark with the variably sized parameters. Note: The initialization
-	// of `l`/`t` includes the upper borders.
-	publish_hash {
-		let l in 0 .. DATA_LENGTH_LIMIT as u32;
-		let t in 1 .. TOPICS_LIMIT as u32;
-
-		// There are no events emitted at the genesis block.
-		frame_system::Pallet::<T>::set_block_number(1u32.into());
-		frame_system::Pallet::<T>::reset_events();
-
-		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
-		add_enclaves_to_registry::<T>(&accounts);
-		let account = accounts[0].clone();
-
-	}: _(RawOrigin::Signed(account), [1u8; 32].into(), topics::<T>(t), get_data(l))
+	}: _(RawOrigin::Signed(accounts[0].clone()), key0.clone())
 	verify {
-		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
-		// does not implement `PartialEq`. So we only verify that the event is emitted here,
-		// and we do more thorough checks in the normal cargo tests.
-		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
+		assert!(!crate::ProxiedEnclaves::<T>::contains_key(&key0));
 	}
 }
 
-fn add_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
+fn add_sovereign_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
 	for a in accounts.iter() {
 		Teerex::<T>::add_enclave(
 			a,
-			&Enclave::test_enclave(a.clone()).with_mr_enclave(TEST4_SETUP.mrenclave),
+			MultiEnclave::from(SgxEnclave::test_enclave().with_mr_enclave(TEST4_SETUP.mrenclave)),
 		)
 		.unwrap();
 	}
 }
 
-fn get_data(x: u32) -> Vec<u8> {
-	vec![0u8; x.try_into().unwrap()]
-}
-
-/// Returns [number] unique topics.
-fn topics<T: frame_system::Config>(number: u32) -> Vec<T::Hash> {
-	let vec = vec![
-		T::Hashing::hash(&[0u8; 32]),
-		T::Hashing::hash(&[1u8; 32]),
-		T::Hashing::hash(&[2u8; 32]),
-		T::Hashing::hash(&[3u8; 32]),
-		T::Hashing::hash(&[4u8; 32]),
-	];
-
-	vec[..number.try_into().unwrap()].to_vec()
+fn add_proxied_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {
+	for a in accounts.iter() {
+		Teerex::<T>::add_enclave(
+			a,
+			MultiEnclave::from(
+				SgxEnclave::test_enclave()
+					.with_mr_enclave(TEST4_SETUP.mrenclave)
+					.with_attestation_method(SgxAttestationMethod::Dcap { proxied: true }),
+			),
+		)
+		.unwrap();
+	}
 }
 
 #[cfg(test)]

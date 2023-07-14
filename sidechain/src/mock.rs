@@ -1,11 +1,11 @@
 /*
 	Copyright 2021 Integritee AG and Supercomputing Systems AG
 
-	Licensed under the Apache License, Version 2.0 (the "License");
+	Licensed under the MICROSOFT REFERENCE SOURCE LICENSE (MS-RSL) (the "License");
 	you may not use this file except in compliance with the License.
 	You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+		https://referencesource.microsoft.com/license.html
 
 	Unless required by applicable law or agreed to in writing, software
 	distributed under the License is distributed on an "AS IS" BASIS,
@@ -56,6 +56,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
+		EnclaveBridge: pallet_enclave_bridge::{Pallet, Call, Storage, Event<T>},
 		Sidechain: pallet_sidechain::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -120,7 +121,7 @@ pub type Moment = u64;
 
 impl pallet_timestamp::Config for Test {
 	type Moment = Moment;
-	type OnTimestampSet = Teerex;
+	type OnTimestampSet = ();
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
 }
@@ -131,15 +132,20 @@ parameter_types! {
 
 impl pallet_teerex::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
-	type MaxSilenceTime = MaxSilenceTime;
+	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
+}
+
+impl pallet_enclave_bridge::Config for Test {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type WeightInfo = ();
 }
 
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
-	pub const MaxSilenceTime: u64 = 172_800_000; // 48h
+	pub const MaxAttestationRenewalPeriod: u64 = 172_800_000; // 48h
 }
 
 impl Config for Test {

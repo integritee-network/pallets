@@ -5,7 +5,7 @@ version = "0.9.0"
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
-license = "GPL-3.0"
+license = "MS-RSL"
 edition = "2021"
 
 [dependencies]
@@ -68,7 +68,5 @@ runtime-benchmarks = [
     "test-utils",
     "timestamp/runtime-benchmarks",
 ]
-# allow workers to register without remote attestation for dev purposes
-skip-ias-check = []
 
 try-runtime = ["frame-support/try-runtime"]
