@@ -26,7 +26,7 @@ use frame_support::{
 };
 use frame_system::{self, ensure_signed};
 use sp_core::H256;
-use sp_runtime::traits::SaturatedConversion;
+use sp_runtime::traits::{SaturatedConversion, Saturating};
 use sp_std::{prelude::*, str, vec};
 
 pub use crate::weights::WeightInfo;
@@ -43,6 +43,7 @@ pub type ShardSignerStatusVec<T> = Vec<
 
 pub use pallet::*;
 use pallet_teerex::Pallet as Teerex;
+use teerex_primitives::MultiEnclave;
 
 /// Maximum number of topics for the `publish_hash` call.
 const TOPICS_LIMIT: usize = 5;
@@ -82,6 +83,7 @@ pub mod pallet {
 			hash: H256,
 			data: Vec<u8>,
 		},
+		ShardConfigUpdated(ShardIdentifier),
 	}
 
 	#[pallet::storage]
@@ -91,6 +93,20 @@ pub mod pallet {
 		Blake2_128Concat,
 		ShardIdentifier,
 		Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>,
+		OptionQuery,
+	>;
+
+	/// this registry holds shard configurations as well as pending updates thereof.
+	/// We decided to put config and update data in the same storage for performance reasons.
+	/// see argumentation and benchmarks here:
+	/// https://github.com/integritee-network/pallets/pull/201#discussion_r1263668271
+	#[pallet::storage]
+	#[pallet::getter(fn shard_config)]
+	pub type ShardConfigRegistry<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		ShardIdentifier,
+		UpgradableShardConfig<T::AccountId, T::BlockNumber>,
 		OptionQuery,
 	>;
 
@@ -107,7 +123,7 @@ pub mod pallet {
 		<T as frame_system::Config>::Hash: From<[u8; 32]>,
 	{
 		#[pallet::call_index(0)]
-		#[pallet::weight((<T as Config>::WeightInfo::call_worker(), DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((<T as Config>::WeightInfo::invoke(), DispatchClass::Normal, Pays::Yes))]
 		pub fn invoke(origin: OriginFor<T>, request: Request) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
 			log::info!("invoke with {:?}", request);
@@ -126,9 +142,11 @@ pub mod pallet {
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			ensure!(shard == enclave.fingerprint(), <Error<T>>::WrongFingerprintForShard);
-			Self::touch_shard(shard, &sender)?;
+			Self::get_sovereign_enclave_and_touch_shard(
+				&sender,
+				shard,
+				<frame_system::Pallet<T>>::block_number(),
+			)?;
 
 			log::debug!(
 				"Processed parentchain block confirmed by sovereign enclave {:?} for shard {:}, block hash {:?}",
@@ -152,11 +170,13 @@ pub mod pallet {
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn shield_funds(
 			origin: OriginFor<T>,
+			shard: ShardIdentifier,
 			incognito_account_encrypted: Vec<u8>,
 			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref())
+				.expect("always possible to decode [u8;32]");
 			T::Currency::transfer(
 				&sender,
 				&bonding_account,
@@ -172,29 +192,29 @@ pub mod pallet {
 		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
 		pub fn unshield_funds(
 			origin: OriginFor<T>,
-			public_account: T::AccountId,
+			shard: ShardIdentifier,
+			beneficiary: T::AccountId,
 			amount: BalanceOf<T>,
-			bonding_account: T::AccountId,
 			call_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			Self::touch_shard(enclave.fingerprint(), &sender)?;
-			ensure!(
-				enclave.fingerprint().encode() == bonding_account.encode(),
-				<Error<T>>::WrongFingerprintForBondingAccount
-			);
-
+			Self::get_sovereign_enclave_and_touch_shard(
+				&sender,
+				shard,
+				<frame_system::Pallet<T>>::block_number(),
+			)?;
+			let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref())
+				.expect("always possible to decode [u8;32]");
 			if !<ExecutedUnshieldCalls<T>>::contains_key(call_hash) {
 				log::info!("Executing unshielding call: {:?}", call_hash);
 				T::Currency::transfer(
 					&bonding_account,
-					&public_account,
+					&beneficiary,
 					amount,
 					ExistenceRequirement::AllowDeath,
 				)?;
 				<ExecutedUnshieldCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(public_account, amount));
+				Self::deposit_event(Event::UnshieldedFunds(beneficiary, amount));
 			} else {
 				log::info!("Already executed unshielding call: {:?}", call_hash);
 			}
@@ -206,6 +226,10 @@ pub mod pallet {
 		/// Publish a hash as a result of an arbitrary enclave operation.
 		///
 		/// The `mrenclave` of the origin will be used as an event topic a client can subscribe to.
+		/// The concept of shards isn't applied here because a proof of computation should be bound
+		/// to the fingerprint of the enclave. A shard would only be necessary if state needs to be
+		/// persisted across upgrades.
+		///
 		/// `extra_topics`, if any, will be used as additional event topics.
 		///
 		/// `data` can be anything worthwhile publishing related to the hash. If it is a
@@ -220,7 +244,12 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			Self::touch_shard(enclave.fingerprint(), &sender)?;
+			Self::touch_shard(
+				enclave.fingerprint(),
+				&sender,
+				enclave.fingerprint(),
+				<frame_system::Pallet<T>>::block_number(),
+			)?;
 
 			ensure!(extra_topics.len() <= TOPICS_LIMIT, <Error<T>>::TooManyTopics);
 			ensure!(data.len() <= DATA_LENGTH_LIMIT, <Error<T>>::DataTooLong);
@@ -235,12 +264,55 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// Update shard config
+		/// To be respected by L2 instances after `enactment_delay` parentchain blocks
+		/// If no previous config exists, the `enactment_delay` parameter will be ignored
+		/// and the `shard_config` will be active immediately
+		#[pallet::call_index(5)]
+		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		pub fn update_shard_config(
+			origin: OriginFor<T>,
+			shard: ShardIdentifier,
+			shard_config: ShardConfig<T::AccountId>,
+			enactment_delay: T::BlockNumber,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
+			let current_block_number = <frame_system::Pallet<T>>::block_number();
+			let new_upgradable_shard_config: UpgradableShardConfig<T::AccountId, T::BlockNumber> =
+				match Self::get_maybe_updated_shard_config(shard, current_block_number, false) {
+					Some(old_config) => {
+						ensure!(
+							old_config.enclave_fingerprint == enclave.fingerprint(),
+							Error::<T>::WrongFingerprintForShard
+						);
+						UpgradableShardConfig::from(old_config).with_pending_upgrade(
+							shard_config,
+							current_block_number.saturating_add(enactment_delay),
+						)
+					},
+					None => {
+						// if shard does not exist, we allow any ShardIdentifier to be created by any registered enclave
+						shard_config.into()
+					},
+				};
+
+			Self::touch_shard(shard, &sender, enclave.fingerprint(), current_block_number)?;
+			<ShardConfigRegistry<T>>::insert(shard, new_upgradable_shard_config.clone());
+
+			Self::deposit_event(Event::ShardConfigUpdated(shard));
+			log::info!(
+				"shard config updated for {:?}, new config: {:?}",
+				shard,
+				new_upgradable_shard_config
+			);
+			Ok(().into())
+		}
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// The bonding account doesn't match the enclave.
-		WrongFingerprintForBondingAccount,
 		/// The shard doesn't match the enclave.
 		WrongFingerprintForShard,
 		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
@@ -251,27 +323,61 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	/// Deposit a pallets teerex event with the corresponding topics.
-	///
-	/// Handles the conversion to the overarching event type.
-	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
-		<frame_system::Pallet<T>>::deposit_event_indexed(
-			topics,
-			<T as Config>::RuntimeEvent::from(event).into(),
-		)
+	#[allow(clippy::type_complexity)]
+	pub fn get_sovereign_enclave_and_touch_shard(
+		enclave_signer: &T::AccountId,
+		shard: ShardIdentifier,
+		current_block_number: T::BlockNumber,
+	) -> Result<
+		(MultiEnclave<Vec<u8>>, Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>),
+		DispatchErrorWithPostInfo,
+	> {
+		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
+		ensure!(
+			enclave.fingerprint() ==
+				Self::get_maybe_updated_shard_config(shard, current_block_number, true)
+					.unwrap_or_else(|| ShardConfig::new(shard))
+					.enclave_fingerprint,
+			<Error<T>>::WrongFingerprintForShard
+		);
+		let shard_status =
+			Self::touch_shard(shard, enclave_signer, enclave.fingerprint(), current_block_number)?;
+		Ok((enclave, shard_status))
 	}
 
+	pub fn get_maybe_updated_shard_config(
+		shard: ShardIdentifier,
+		current_block_number: T::BlockNumber,
+		apply_due_update: bool,
+	) -> Option<ShardConfig<T::AccountId>> {
+		Self::shard_config(shard).map(|current| {
+			current.upgrade_at.filter(|&at| at <= current_block_number).map_or_else(
+				|| current.active_config.clone(),
+				|_| {
+					current.pending_upgrade.map_or(current.active_config.clone(), |due_update| {
+						if apply_due_update {
+							<ShardConfigRegistry<T>>::insert(
+								shard,
+								UpgradableShardConfig::from(due_update.clone()),
+							);
+						}
+						due_update
+					})
+				},
+			)
+		})
+	}
+
+	/// will update the `last_activity` field for `enclave_signer` in a shard's status
 	pub fn touch_shard(
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
+		enclave_fingerprint: EnclaveFingerprint,
+		current_block_number: T::BlockNumber,
 	) -> Result<ShardSignerStatusVec<T>, DispatchErrorWithPostInfo> {
-		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
-
-		let current_block_number = <frame_system::Pallet<T>>::block_number();
-
 		let new_status = ShardSignerStatus {
 			signer: enclave_signer.clone(),
-			fingerprint: enclave.fingerprint(),
+			fingerprint: enclave_fingerprint,
 			last_activity: current_block_number,
 		};
 
@@ -299,6 +405,16 @@ impl<T: Config> Pallet<T> {
 				statuses.last().cloned()
 			})
 			.unwrap_or_default()
+	}
+
+	/// Deposit a pallets teerex event with the corresponding topics.
+	///
+	/// Handles the conversion to the overarching event type.
+	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
+		<frame_system::Pallet<T>>::deposit_event_indexed(
+			topics,
+			<T as Config>::RuntimeEvent::from(event).into(),
+		)
 	}
 }
 

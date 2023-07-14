@@ -17,12 +17,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
 use enclave_bridge_primitives::ShardIdentifier;
 use frame_support::dispatch::DispatchResultWithPostInfo;
 use frame_system::{self};
 use pallet_enclave_bridge::Pallet as EnclaveBridge;
-use pallet_teerex::Pallet as Teerex;
 use sidechain_primitives::SidechainBlockConfirmation;
 use sp_core::H256;
 use sp_std::{prelude::*, str, vec};
@@ -80,33 +78,29 @@ pub mod pallet {
 		#[pallet::weight((<T as Config>::WeightInfo::confirm_imported_sidechain_block(), DispatchClass::Normal, Pays::Yes))]
 		pub fn confirm_imported_sidechain_block(
 			origin: OriginFor<T>,
-			shard_id: ShardIdentifier,
+			shard: ShardIdentifier,
 			block_number: u64,
 			next_finalization_candidate_block_number: u64,
 			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
-			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
-
 			let sender = ensure_signed(origin)?;
-			let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-			ensure!(
-				enclave.fingerprint().encode() == shard_id.encode(),
-				pallet_enclave_bridge::Error::<T>::WrongFingerprintForShard
-			);
-			let shard_status = EnclaveBridge::<T>::touch_shard(enclave.fingerprint(), &sender)?;
+			let (_enclave, shard_status) =
+				EnclaveBridge::<T>::get_sovereign_enclave_and_touch_shard(
+					&sender,
+					shard,
+					<frame_system::Pallet<T>>::block_number(),
+				)?;
 
 			// TODO: Simple logic for now: only accept blocks from first registered enclave.
 			if sender != shard_status[0].signer {
 				log::debug!(
-					"Ignore block confirmation from registered enclave with index > 1: {:}",
+					"Ignore block confirmation from registered enclave with index > 1: {:?}",
 					sender
 				);
 				return Ok(().into())
 			}
-
-			let block_number = confirmation.block_number;
 			let finalization_candidate_block_number =
-				<SidechainBlockFinalizationCandidate<T>>::try_get(shard_id).unwrap_or(1);
+				<SidechainBlockFinalizationCandidate<T>>::try_get(shard).unwrap_or(1);
 
 			ensure!(
 				block_number == finalization_candidate_block_number,
@@ -118,11 +112,14 @@ pub mod pallet {
 			);
 
 			<SidechainBlockFinalizationCandidate<T>>::insert(
-				shard_id,
+				shard,
 				next_finalization_candidate_block_number,
 			);
-
-			Self::finalize_block(shard_id, confirmation, &sender);
+			Self::finalize_block(
+				shard,
+				SidechainBlockConfirmation { block_number, block_header_hash },
+				&sender,
+			);
 			Ok(().into())
 		}
 	}
@@ -138,15 +135,15 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	fn finalize_block(
-		shard_id: ShardIdentifier,
+		shard: ShardIdentifier,
 		confirmation: SidechainBlockConfirmation,
 		sender: &T::AccountId,
 	) {
-		<LatestSidechainBlockConfirmation<T>>::insert(shard_id, confirmation);
+		<LatestSidechainBlockConfirmation<T>>::insert(shard, confirmation);
 		let block_header_hash = confirmation.block_header_hash;
 		log::debug!(
 			"Imported sidechain block confirmed with shard {:?}, block header hash {:?}",
-			shard_id,
+			shard,
 			block_header_hash
 		);
 		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));

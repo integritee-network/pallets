@@ -20,9 +20,10 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
-
+use codec::Encode;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
+use pallet_teerex::Pallet as Teerex;
 use test_utils::test_data::ias::*;
 
 fn assert_latest_worker_update<T: Config>(sender: &T::AccountId, shard: &ShardIdentifier) {

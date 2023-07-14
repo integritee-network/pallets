@@ -20,8 +20,9 @@ extern crate derive_more;
 use codec::{Decode, Encode};
 use derive_more::From;
 use scale_info::TypeInfo;
-use sp_core::{bounded_vec::BoundedVec, ConstU32, H256};
+use sp_core::{bounded::BoundedVec, ConstU32, H256};
 use sp_runtime::MultiSigner;
+use sp_std::vec;
 
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
