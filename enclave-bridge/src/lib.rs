@@ -167,7 +167,7 @@ pub mod pallet {
 		/// The bonding_account does not have a private key as the balance on this account is exclusively managed from withing the pallet_teerex.
 		/// Note: The bonding_account is bit-equivalent to the worker shard.
 		#[pallet::call_index(2)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		#[pallet::weight((<T as Config>::WeightInfo::shield_funds(), DispatchClass::Normal, Pays::Yes))]
 		pub fn shield_funds(
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
@@ -189,7 +189,7 @@ pub mod pallet {
 
 		/// Sent by enclaves only as a result of an `unshield` request from a client to an enclave.
 		#[pallet::call_index(3)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		#[pallet::weight((<T as Config>::WeightInfo::unshield_funds(), DispatchClass::Normal, Pays::Yes))]
 		pub fn unshield_funds(
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
@@ -274,7 +274,7 @@ pub mod pallet {
 		/// If no previous config exists, the `enactment_delay` parameter will be ignored
 		/// and the `shard_config` will be active immediately
 		#[pallet::call_index(5)]
-		#[pallet::weight((1000, DispatchClass::Normal, Pays::No))]
+		#[pallet::weight((<T as Config>::WeightInfo::update_shard_config(), DispatchClass::Normal, Pays::Yes))]
 		pub fn update_shard_config(
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,

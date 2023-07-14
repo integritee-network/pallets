@@ -136,7 +136,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
-		#[pallet::weight(<T as Config>::WeightInfo::add_to_whitelist())]
+		#[pallet::weight((<T as Config>::WeightInfo::add_to_whitelist(), DispatchClass::Normal, Pays::Yes))]
 		pub fn add_to_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
@@ -156,7 +156,7 @@ pub mod pallet {
 			Ok(())
 		}
 		#[pallet::call_index(1)]
-		#[pallet::weight(<T as Config>::WeightInfo::remove_from_whitelist())]
+		#[pallet::weight((<T as Config>::WeightInfo::remove_from_whitelist(), DispatchClass::Normal, Pays::Yes))]
 		pub fn remove_from_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
@@ -175,7 +175,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(<T as Config>::WeightInfo::update_oracle())]
+		#[pallet::weight((<T as Config>::WeightInfo::update_oracle(), DispatchClass::Normal, Pays::Yes))]
 		pub fn update_oracle(
 			origin: OriginFor<T>,
 			oracle_name: OracleDataName,
@@ -206,7 +206,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(<T as Config>::WeightInfo::update_exchange_rate())]
+		#[pallet::weight((<T as Config>::WeightInfo::update_exchange_rate(), DispatchClass::Normal, Pays::Yes))]
 		pub fn update_exchange_rate(
 			origin: OriginFor<T>,
 			data_source: DataSource,
