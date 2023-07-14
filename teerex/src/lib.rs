@@ -147,19 +147,19 @@ pub mod pallet {
 			worker_url: Option<Vec<u8>>,
 			attestation_method: SgxAttestationMethod,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_sgx_enclave()");
+			log::debug!(target: TEEREX, "called into runtime call register_sgx_enclave()");
 			let sender = ensure_signed(origin)?;
 			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, <Error<T>>::RaProofTooLong);
 			if let Some(ref url) = worker_url {
 				ensure!(url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
 			}
-			log::info!("teerex: parameter length ok");
+			log::debug!(target: TEEREX, "parameter length ok");
 
 			let enclave = match attestation_method {
 				SgxAttestationMethod::Ias => {
 					let report = sgx_verify::verify_ias_report(&proof)
 						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
-					log::info!("teerex: IAS report successfully verified");
+					log::debug!(target: TEEREX, "IAS report successfully verified");
 
 					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
 
@@ -182,7 +182,7 @@ pub mod pallet {
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 					//     "RA status is insufficient");
-					// log::info!("teerex: status is acceptable");
+					// log::info!(target: TEEREX, "status is acceptable");
 
 					enclave
 				},
@@ -196,7 +196,7 @@ pub mod pallet {
 						&qe,
 					)
 					.map_err(|e| {
-						log::warn!("verify_dcap_quote failed: {:?}", e);
+						log::info!(target: TEEREX, "verify_dcap_quote failed: {:?}", e);
 						<Error<T>>::RemoteAttestationVerificationFailed
 					})?;
 
@@ -208,14 +208,18 @@ pub mod pallet {
 						);
 					}
 
-					log::info!("teerex: DCAP quote verified. FMSPC from quote: {:?}", fmspc);
+					log::debug!(
+						target: TEEREX,
+						"DCAP quote verified. FMSPC from quote: {:?}",
+						fmspc
+					);
 					let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
 					ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
 
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 					//     "RA status is insufficient");
-					// log::info!("teerex: status is acceptable");
+					// log::info!(target: TEEREX, "status is acceptable");
 
 					SgxEnclave::new(
 						report.report_data,
@@ -241,7 +245,7 @@ pub mod pallet {
 			};
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
-				log::warn!("teerex: debug mode is not allowed to attest!");
+				log::info!(target: TEEREX, "debug mode is not allowed to attest!");
 				return Err(<Error<T>>::SgxModeNotAllowed.into())
 			}
 
@@ -252,6 +256,12 @@ pub mod pallet {
 
 			Self::add_enclave(&sender, MultiEnclave::from(enclave.clone()))?;
 
+			log::info!(
+				target: TEEREX,
+				"registered sgx enclave. sender: {:?}, attestation method: {:?}",
+				sender,
+				enclave.attestation_method
+			);
 			Self::deposit_event(Event::AddedSgxEnclave {
 				registered_by: sender,
 				worker_url,
@@ -267,7 +277,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			enclave_signer: T::AccountId,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call unregister_sovereign_enclave()");
+			log::debug!(target: TEEREX, "called into runtime call unregister_sovereign_enclave()");
 			ensure_signed(origin)?;
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
 				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
@@ -280,6 +290,7 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
+			log::debug!(target: TEEREX, "removed sovereign enclave {:?}", enclave_signer);
 			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
 			Ok(().into())
 		}
@@ -290,7 +301,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			address: EnclaveInstanceAddress<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call unregister_proxied_enclave()");
+			log::debug!(target: TEEREX, "called into runtime call unregister_proxied_enclave()");
 			ensure_signed(origin)?;
 			let enclave =
 				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
@@ -303,6 +314,7 @@ pub mod pallet {
 			} else {
 				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
 			}
+			log::info!(target: TEEREX, "removed proxied enclave {:?}", address);
 			Self::deposit_event(Event::RemovedProxiedEnclave(address));
 			Ok(().into())
 		}
@@ -315,7 +327,7 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_quoting_enclave()");
+			log::debug!(target: TEEREX, "Called into runtime call register_quoting_enclave()");
 			// Quoting enclaves are registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
 			let quoting_enclave = Self::verify_quoting_enclave(
@@ -324,6 +336,7 @@ pub mod pallet {
 				certificate_chain,
 			)?;
 			<SgxQuotingEnclaveRegistry<T>>::put(&quoting_enclave);
+			log::info!(target: TEEREX, "registered quoting enclave");
 			Self::deposit_event(Event::SgxQuotingEnclaveRegistered { quoting_enclave });
 			Ok(().into())
 		}
@@ -336,12 +349,14 @@ pub mod pallet {
 			signature: Vec<u8>,
 			certificate_chain: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
-			log::info!("teerex: called into runtime call register_tcb_info()");
+			log::debug!(target: TEEREX, "Called into runtime call register_tcb_info()");
 			// TCB info is registered globally and not for a specific sender
 			let _sender = ensure_signed(origin)?;
+			log::trace!(target: TEEREX, "In register_tcb_info(), origin is ensured to be signed");
 			let (fmspc, on_chain_info) =
 				Self::verify_tcb_info(tcb_info, signature, certificate_chain)?;
 			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
+			log::info!(target: TEEREX, "registered tcb info for fmspc: {:?}", fmspc);
 			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
@@ -428,10 +443,12 @@ impl<T: Config> Pallet<T> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+		log::debug!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
 		} else {

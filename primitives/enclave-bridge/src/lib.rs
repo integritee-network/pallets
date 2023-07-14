@@ -22,6 +22,8 @@ pub use common_primitives::{EnclaveFingerprint, ShardIdentifier};
 use scale_info::TypeInfo;
 use sp_std::prelude::*;
 
+pub const ENCLAVE_BRIDGE: &str = "enclave_bridge";
+
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct Request {
 	pub shard: ShardIdentifier,

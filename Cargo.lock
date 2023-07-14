@@ -863,6 +863,7 @@ version = "0.1.0"
 dependencies = [
  "common-primitives",
  "hex-literal 0.3.4",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -3217,6 +3218,7 @@ dependencies = [
  "frame-support",
  "hex",
  "hex-literal 0.3.4",
+ "log",
  "parity-scale-codec",
  "ring 0.16.20 (git+https://github.com/Niederb/ring-xous.git?branch=0.16.20-cleanup)",
  "scale-info",
@@ -4107,6 +4109,7 @@ dependencies = [
  "common-primitives",
  "derive_more",
  "hex-literal 0.3.4",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "serde",

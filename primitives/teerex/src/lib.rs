@@ -25,6 +25,8 @@ use scale_info::TypeInfo;
 use sp_runtime::MultiSigner;
 use sp_std::prelude::*;
 
+pub const TEEREX: &str = "teerex";
+
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxBuildMode {
 	Debug,
@@ -297,10 +299,17 @@ impl TcbVersionStatus {
 
 	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
+			log::debug!(target: TEEREX, "verify_examinee: v={:#?},r={:#?}", v, r);
 			if *v > *r {
 				return false
 			}
 		}
+		log::debug!(
+			target: TEEREX,
+			"verify_examinee: self.pcesvn={:#?},examinee.pcesvn={:#?}",
+			&self.pcesvn,
+			&examinee.pcesvn
+		);
 		self.pcesvn <= examinee.pcesvn
 	}
 }
@@ -322,7 +331,10 @@ impl SgxTcbInfoOnChain {
 	}
 
 	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: self={:#?}", &self,);
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:#?}", &examinee,);
 		for tb in &self.tcb_levels {
+			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:#?}", &tb,);
 			if tb.verify_examinee(examinee) {
 				return true
 			}
