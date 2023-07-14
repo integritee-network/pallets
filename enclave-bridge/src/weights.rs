@@ -52,6 +52,8 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
 	fn invoke() -> Weight;
 	fn confirm_processed_parentchain_block() -> Weight;
+	fn shield_funds() -> Weight;
+	fn unshield_funds() -> Weight;
 	fn publish_hash(l: u32, t: u32) -> Weight;
 	fn update_shard_config() -> Weight;
 }
@@ -77,6 +79,15 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(Weight::from_parts(0u64, 2717))
 			.saturating_add(T::DbWeight::get().reads(1))
 	}
+
+	fn shield_funds() -> Weight {
+		Weight::from_parts(26_600_000, 0u64).saturating_add(Weight::from_parts(0u64, 0))
+	}
+
+	fn unshield_funds() -> Weight {
+		Weight::from_parts(26_600_000, 0u64).saturating_add(Weight::from_parts(0u64, 0))
+	}
+
 	/// Storage: Teerex EnclaveIndex (r:1 w:0)
 	/// Proof Skipped: Teerex EnclaveIndex (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Teerex EnclaveRegistry (r:1 w:0)
@@ -140,6 +151,15 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0u64, 2717))
 			.saturating_add(RocksDbWeight::get().reads(1))
 	}
+
+	fn shield_funds() -> Weight {
+		Weight::from_parts(26_600_000, 0u64).saturating_add(Weight::from_parts(0u64, 0))
+	}
+
+	fn unshield_funds() -> Weight {
+		Weight::from_parts(26_600_000, 0u64).saturating_add(Weight::from_parts(0u64, 0))
+	}
+
 	/// Storage: Teerex EnclaveIndex (r:1 w:0)
 	/// Proof Skipped: Teerex EnclaveIndex (max_values: None, max_size: None, mode: Measured)
 	/// Storage: Teerex EnclaveRegistry (r:1 w:0)

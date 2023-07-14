@@ -20,11 +20,11 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
-use codec::Encode;
-use frame_benchmarking::{account, benchmarks};
+use codec::{Decode, Encode};
+use frame_benchmarking::{benchmarks, v2::*};
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
-use sp_runtime::traits::Hash;
+use sp_runtime::traits::{Bounded, Hash, StaticLookup};
 use sp_std::vec;
 use teerex_primitives::{MultiEnclave, SgxEnclave};
 use test_utils::test_data::ias::*;
@@ -60,6 +60,46 @@ benchmarks! {
 		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_hash, block_number.into(), merkle_root)
+
+	// worst case: assuming the shard's bonding account doesn't exist yet
+	shield_funds {
+		let caller: T::AccountId = whitelisted_caller();
+		let caller_lookup = T::Lookup::unlookup(caller.clone());
+		let amount = BalanceOf::<T>::max_value() >> 2 ;
+		T::Currency::make_free_balance_be(&caller, amount << 1);
+		let shard = ShardIdentifier::default();
+		let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref()).unwrap();
+		let incognito_account_encrypted = [0u8; 4096].to_vec();
+	}: _(RawOrigin::Signed(caller.clone()), shard, incognito_account_encrypted, amount)
+	verify {
+		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
+		// does not implement `PartialEq`. So we only verify that the event is emitted here,
+		// and we do more thorough checks in the normal cargo tests.
+		assert_eq!(amount, T::Currency::free_balance(&bonding_account));
+	}
+
+	// worst case: assuming the beneficiary account doesn't exist yet
+	unshield_funds {
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
+		let beneficiary = accounts[0].clone();
+
+		let caller: T::AccountId = whitelisted_caller();
+		let caller_lookup = T::Lookup::unlookup(caller.clone());
+		add_sovereign_enclaves_to_registry::<T>(&[caller.clone()]);
+
+		let amount = BalanceOf::<T>::max_value() >> 2 ;
+		let shard = ShardIdentifier::default();
+		let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref()).unwrap();
+		T::Currency::make_free_balance_be(&bonding_account, amount << 1);
+
+	}: _(RawOrigin::Signed(caller.clone()), shard, beneficiary.clone(), amount, H256::default())
+	verify {
+		// Event comparison in an actual node is way too cumbersome as the `RuntimeEvent`
+		// does not implement `PartialEq`. So we only verify that the event is emitted here,
+		// and we do more thorough checks in the normal cargo tests.
+		assert_eq!(amount, T::Currency::free_balance(&beneficiary));
+	}
+
 
 	// Benchmark `publish_hash` with the worst possible conditions:
 	// * sender enclave is registered
