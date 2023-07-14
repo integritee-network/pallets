@@ -83,11 +83,13 @@ pub mod pallet {
 			next_finalization_candidate_block_number: u64,
 			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
-			let confirmation = SidechainBlockConfirmation { block_number, block_header_hash };
-
 			let sender = ensure_signed(origin)?;
 			let (_enclave, shard_status) =
-				EnclaveBridge::<T>::get_sovereign_enclave_and_touch_shard(&sender, shard)?;
+				EnclaveBridge::<T>::get_sovereign_enclave_and_touch_shard(
+					&sender,
+					shard,
+					<frame_system::Pallet<T>>::block_number(),
+				)?;
 
 			// TODO: Simple logic for now: only accept blocks from first registered enclave.
 			if sender != shard_status[0].signer {
@@ -97,8 +99,6 @@ pub mod pallet {
 				);
 				return Ok(().into())
 			}
-
-			let block_number = confirmation.block_number;
 			let finalization_candidate_block_number =
 				<SidechainBlockFinalizationCandidate<T>>::try_get(shard).unwrap_or(1);
 
@@ -115,8 +115,11 @@ pub mod pallet {
 				shard,
 				next_finalization_candidate_block_number,
 			);
-
-			Self::finalize_block(shard, confirmation, &sender);
+			Self::finalize_block(
+				shard,
+				SidechainBlockConfirmation { block_number, block_header_hash },
+				&sender,
+			);
 			Ok(().into())
 		}
 	}

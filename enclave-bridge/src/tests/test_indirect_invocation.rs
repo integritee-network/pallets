@@ -63,9 +63,9 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 
 		assert!(EnclaveBridge::unshield_funds(
 			RuntimeOrigin::signed(enclave_signer.clone()),
+			shard,
 			beneficiary.clone(),
 			amount,
-			shard,
 			call_hash
 		)
 		.is_ok());
@@ -79,9 +79,9 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 
 		assert!(EnclaveBridge::unshield_funds(
 			RuntimeOrigin::signed(enclave_signer),
+			shard,
 			beneficiary,
 			amount,
-			shard,
 			call_hash
 		)
 		.is_ok());
@@ -109,9 +109,9 @@ fn verify_unshield_funds_works() {
 		let incognito_account_encrypted = vec![1, 2, 3];
 		assert!(EnclaveBridge::shield_funds(
 			RuntimeOrigin::signed(shielder.clone()),
+			shard,
 			incognito_account_encrypted.clone(),
 			100,
-			shard,
 		)
 		.is_ok());
 
@@ -125,9 +125,9 @@ fn verify_unshield_funds_works() {
 
 		assert!(EnclaveBridge::unshield_funds(
 			RuntimeOrigin::signed(enclave_signer),
+			shard,
 			beneficiary.clone(),
 			50,
-			shard,
 			call_hash
 		)
 		.is_ok());
@@ -150,9 +150,9 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 		assert_err!(
 			EnclaveBridge::unshield_funds(
 				RuntimeOrigin::signed(enclave_signer),
+				shard,
 				beneficiary,
 				51,
-				shard,
 				call_hash
 			),
 			pallet_teerex::Error::<Test>::EnclaveIsNotRegistered
@@ -181,26 +181,26 @@ fn unshield_funds_from_enclave_on_wrong_shard_errs() {
 		//Ensure that both bonding account have funds
 		assert!(EnclaveBridge::shield_funds(
 			RuntimeOrigin::signed(shielder.clone()),
+			shard,
 			incognito_account_encrypted.clone(),
 			100,
-			shard,
 		)
 		.is_ok());
 
 		assert!(EnclaveBridge::shield_funds(
 			RuntimeOrigin::signed(shielder.clone()),
+			not_shard,
 			incognito_account_encrypted.clone(),
 			100,
-			not_shard,
 		)
 		.is_ok());
 
 		assert_err!(
 			EnclaveBridge::unshield_funds(
 				RuntimeOrigin::signed(enclave_signer),
+				not_shard,
 				beneficiary,
 				50,
-				not_shard,
 				call_hash
 			),
 			Error::<Test>::WrongFingerprintForShard

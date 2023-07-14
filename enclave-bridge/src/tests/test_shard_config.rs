@@ -192,7 +192,7 @@ fn get_maybe_updated_shard_config_works() {
 		));
 
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, 1, false)
 				.unwrap()
 				.enclave_fingerprint,
 			initial_fingerprint
@@ -218,7 +218,7 @@ fn get_maybe_updated_shard_config_works() {
 		);
 		// should still work with old enclave because update not yet enacted
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, 1, false)
 				.unwrap()
 				.enclave_fingerprint,
 			enclave.fingerprint()
@@ -228,7 +228,7 @@ fn get_maybe_updated_shard_config_works() {
 
 		assert_eq!(<frame_system::Pallet<Test>>::block_number(), 2);
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard, false)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, 2, false)
 				.unwrap()
 				.enclave_fingerprint,
 			new_fingerprint
@@ -245,7 +245,7 @@ fn get_maybe_updated_shard_config_works() {
 
 		// now the update should get applied
 		assert_eq!(
-			EnclaveBridge::get_maybe_updated_shard_config(shard, true)
+			EnclaveBridge::get_maybe_updated_shard_config(shard, 2, true)
 				.unwrap()
 				.enclave_fingerprint,
 			new_fingerprint
