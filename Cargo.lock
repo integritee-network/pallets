@@ -2149,7 +2149,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-enclave-bridge"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "enclave-bridge-primitives",
  "env_logger",
@@ -2195,7 +2195,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-sidechain"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "enclave-bridge-primitives",
  "env_logger",
@@ -2250,7 +2250,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-teerex"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "env_logger",
  "frame-benchmarking",
