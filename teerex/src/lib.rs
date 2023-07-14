@@ -263,7 +263,7 @@ pub mod pallet {
 				enclave.attestation_method
 			);
 			Self::deposit_event(Event::AddedSgxEnclave {
-				registered_by: sender.clone(),
+				registered_by: sender,
 				worker_url,
 				tcb_status: Some(enclave.status),
 				attestation_method: enclave.attestation_method,

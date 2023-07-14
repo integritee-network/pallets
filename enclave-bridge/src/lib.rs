@@ -126,7 +126,7 @@ pub mod pallet {
 		#[pallet::weight((<T as Config>::WeightInfo::invoke(), DispatchClass::Normal, Pays::Yes))]
 		pub fn invoke(origin: OriginFor<T>, request: Request) -> DispatchResult {
 			let _sender = ensure_signed(origin)?;
-			log::info!("invoke with {:?}", request);
+			log::info!(target: ENCLAVE_BRIDGE, "invoke with {:?}", request);
 			Self::deposit_event(Event::IndirectInvocationRegistered(request.shard));
 			Ok(())
 		}
@@ -206,7 +206,7 @@ pub mod pallet {
 			let bonding_account = T::AccountId::decode(&mut shard.encode().as_ref())
 				.expect("always possible to decode [u8;32]");
 			if !<ExecutedUnshieldCalls<T>>::contains_key(call_hash) {
-				log::info!("Executing unshielding call: {:?}", call_hash);
+				log::info!(target: ENCLAVE_BRIDGE, "Executing unshielding call: {:?}", call_hash);
 				T::Currency::transfer(
 					&bonding_account,
 					&beneficiary,
@@ -216,7 +216,11 @@ pub mod pallet {
 				<ExecutedUnshieldCalls<T>>::insert(call_hash, 0);
 				Self::deposit_event(Event::UnshieldedFunds(beneficiary, amount));
 			} else {
-				log::info!("Already executed unshielding call: {:?}", call_hash);
+				log::info!(
+					target: ENCLAVE_BRIDGE,
+					"Already executed unshielding call: {:?}",
+					call_hash
+				);
 			}
 
 			<ExecutedUnshieldCalls<T>>::mutate(call_hash, |confirmations| *confirmations += 1);
@@ -301,12 +305,13 @@ pub mod pallet {
 			Self::touch_shard(shard, &sender, enclave.fingerprint(), current_block_number)?;
 			<ShardConfigRegistry<T>>::insert(shard, new_upgradable_shard_config.clone());
 
-			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			log::info!(
+				target: ENCLAVE_BRIDGE,
 				"shard config updated for {:?}, new config: {:?}",
 				shard,
 				new_upgradable_shard_config
 			);
+			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			Ok(().into())
 		}
 	}
@@ -392,6 +397,12 @@ impl<T: Config> Pallet<T> {
 			})
 			.unwrap_or_else(|| vec![new_status]);
 
+		log::trace!(
+			target: ENCLAVE_BRIDGE,
+			"touched shard: {:?}, signer statuses: {:?}",
+			shard,
+			signer_statuses
+		);
 		<ShardStatus<T>>::insert(shard, signer_statuses.clone());
 		Ok(signer_statuses)
 	}
