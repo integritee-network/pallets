@@ -118,13 +118,25 @@ pub mod pallet {
 	pub type SgxTcbInfo<T: Config> =
 		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
 
+	#[pallet::type_value]
+	pub fn DefaultSgxAllowDebugMode<T: Config>() -> bool {
+		false
+	}
+
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
-	pub type SgxAllowDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
+	pub type SgxAllowDebugMode<T: Config> =
+		StorageValue<_, bool, ValueQuery, DefaultSgxAllowDebugMode<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultAllowSkippingAttestation<T: Config>() -> bool {
+		false
+	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn allow_skipping_attestation)]
-	pub type AllowSkippingAttestation<T: Config> = StorageValue<_, bool, ValueQuery>;
+	pub type AllowSkippingAttestation<T: Config> =
+		StorageValue<_, bool, ValueQuery, DefaultAllowSkippingAttestation<T>>;
 
 	#[pallet::genesis_config]
 	#[cfg_attr(feature = "std", derive(Default))]
