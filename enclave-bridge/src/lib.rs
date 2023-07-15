@@ -74,9 +74,20 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		IndirectInvocationRegistered(ShardIdentifier),
-		ShieldFunds(Vec<u8>, BalanceOf<T>),
-		UnshieldedFunds(T::AccountId, BalanceOf<T>),
-		ProcessedParentchainBlock(ShardIdentifier, H256, H256, T::BlockNumber),
+		ShieldFunds {
+			encrypted_beneficiary: Vec<u8>,
+			amount: BalanceOf<T>,
+		},
+		UnshieldedFunds {
+			beneficiary: T::AccountId,
+			amount: BalanceOf<T>,
+		},
+		ProcessedParentchainBlock {
+			shard: ShardIdentifier,
+			block_hash: H256,
+			trusted_calls_merkle_root: H256,
+			block_number: T::BlockNumber,
+		},
 		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
 		PublishedHash {
 			fingerprint: EnclaveFingerprint,
