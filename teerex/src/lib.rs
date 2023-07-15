@@ -100,6 +100,7 @@ pub mod pallet {
 		SenderIsNotAttestedEnclave,
 		/// Verifying RA report failed.
 		RemoteAttestationVerificationFailed,
+		/// IAS remote attestation is too old
 		RemoteAttestationTooOld,
 		/// The enclave cannot attest, because its building mode is not allowed.
 		SgxModeNotAllowed,

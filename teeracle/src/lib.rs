@@ -103,9 +103,6 @@ pub mod pallet {
 		ValueQuery,
 	>;
 
-	// pub(super) type Whitelist<T: Config> =
-	// 	StorageValue<_, WeakBoundedVec<[u8; 32], T::MaxWhitelistedReleases>, ValueQuery>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
