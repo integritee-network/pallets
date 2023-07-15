@@ -398,7 +398,7 @@ pub mod pallet {
 			sgx_allow_debug_mode: bool,
 		) -> DispatchResultWithPostInfo {
 			log::debug!(target: TEEREX, "Called into runtime call set_security_flags()");
-			let _sender = ensure_root(origin)?;
+			ensure_root(origin)?;
 			<AllowSkippingAttestation<T>>::set(allow_skipping_attestation);
 			<SgxAllowDebugMode<T>>::set(sgx_allow_debug_mode);
 			log::info!(target: TEEREX, "set security flags");
