@@ -21,6 +21,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// a parentchain block has been registered
 		SetBlock { block_number: T::BlockNumber, parent_hash: T::Hash, block_hash: T::Hash },
 	}
 

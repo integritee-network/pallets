@@ -239,7 +239,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 	})
 }
@@ -263,7 +263,7 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 				DataSource::from("Test_Source_Name"),
 				vec![0].try_into().expect("Can Convert to BoundedVec; QED")
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 	})
 }
@@ -346,7 +346,7 @@ fn add_two_times_to_whitelist_fails() {
 				COINGECKO_SRC.to_owned(),
 				fingerprint
 			),
-			crate::Error::<Test>::ReleaseAlreadyWhitelisted
+			crate::Error::<Test>::FingerprintAlreadyWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
 	})
@@ -427,7 +427,7 @@ fn add_too_many_oracles_to_whitelist_fails() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST8_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseWhitelistOverflow
+			crate::Error::<Test>::FingerprintWhitelistOverflow
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 10);
 	})
@@ -501,7 +501,7 @@ fn remove_from_whitelist_not_whitelisted_fails() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
 	})
@@ -517,7 +517,7 @@ fn remove_from_empty_whitelist_doesnt_crash() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 0);
 	})

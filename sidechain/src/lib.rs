@@ -65,6 +65,14 @@ pub mod pallet {
 		},
 	}
 
+	#[pallet::error]
+	pub enum Error<T> {
+		/// A proposed block is unexpected.
+		ReceivedUnexpectedSidechainBlock,
+		/// The value for the next finalization candidate is invalid.
+		InvalidNextFinalizationCandidateBlockNumber,
+	}
+
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_confirmation)]
 	pub type LatestSidechainBlockConfirmation<T: Config> =
@@ -126,14 +134,6 @@ pub mod pallet {
 			);
 			Ok(().into())
 		}
-	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// A proposed block is unexpected.
-		ReceivedUnexpectedSidechainBlock,
-		/// The value for the next finalization candidate is invalid.
-		InvalidNextFinalizationCandidateBlockNumber,
 	}
 }
 
