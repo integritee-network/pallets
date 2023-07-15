@@ -88,6 +88,10 @@ pub mod pallet {
 		SgxQuotingEnclaveRegistered {
 			quoting_enclave: SgxQuotingEnclave,
 		},
+		UpdatedSecurityFlags {
+			allow_skipping_attestation: bool,
+			sgx_allow_debug_mode: bool,
+		},
 	}
 
 	#[pallet::storage]
@@ -114,20 +118,38 @@ pub mod pallet {
 	pub type SgxTcbInfo<T: Config> =
 		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
 
+	#[pallet::type_value]
+	pub fn DefaultSgxAllowDebugMode<T: Config>() -> bool {
+		false
+	}
+
 	#[pallet::storage]
 	#[pallet::getter(fn allow_sgx_debug_mode)]
-	pub type SgxAllowDebugMode<T: Config> = StorageValue<_, bool, ValueQuery>;
+	pub type SgxAllowDebugMode<T: Config> =
+		StorageValue<_, bool, ValueQuery, DefaultSgxAllowDebugMode<T>>;
+
+	#[pallet::type_value]
+	pub fn DefaultAllowSkippingAttestation<T: Config>() -> bool {
+		false
+	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn allow_skipping_attestation)]
+	pub type AllowSkippingAttestation<T: Config> =
+		StorageValue<_, bool, ValueQuery, DefaultAllowSkippingAttestation<T>>;
 
 	#[pallet::genesis_config]
 	#[cfg_attr(feature = "std", derive(Default))]
 	pub struct GenesisConfig {
 		pub allow_sgx_debug_mode: bool,
+		pub allow_skipping_attestation: bool,
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
 			SgxAllowDebugMode::<T>::put(self.allow_sgx_debug_mode);
+			AllowSkippingAttestation::<T>::put(self.allow_skipping_attestation);
 		}
 	}
 
@@ -231,17 +253,24 @@ pub mod pallet {
 					)
 					.with_attestation_method(SgxAttestationMethod::Dcap { proxied })
 				},
-				SgxAttestationMethod::Skip { proxied } => SgxEnclave::new(
-					SgxReportData::default(),
-					// insert mrenclave if the ra_report represents one, otherwise insert default
-					<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
-					MrSigner::default(),
-					<timestamp::Pallet<T>>::get().saturated_into(),
-					SgxBuildMode::default(),
-					SgxStatus::Invalid,
-				)
-				.with_pubkey(sender.encode().as_ref())
-				.with_attestation_method(SgxAttestationMethod::Skip { proxied }),
+				SgxAttestationMethod::Skip { proxied } => {
+					if !Self::allow_skipping_attestation() {
+						log::debug!(target: TEEREX, "skipping attestation not allowed",);
+						return Err(<Error<T>>::SkippingAttestationNotAllowed.into())
+					}
+					log::debug!(target: TEEREX, "skipping attestation verification",);
+					SgxEnclave::new(
+						SgxReportData::default(),
+						// insert mrenclave if the ra_report represents one, otherwise insert default
+						<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
+						MrSigner::default(),
+						<timestamp::Pallet<T>>::get().saturated_into(),
+						SgxBuildMode::default(),
+						SgxStatus::Invalid,
+					)
+					.with_pubkey(sender.encode().as_ref())
+					.with_attestation_method(SgxAttestationMethod::Skip { proxied })
+				},
 			};
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
@@ -360,6 +389,25 @@ pub mod pallet {
 			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
 			Ok(().into())
 		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight((<T as Config>::WeightInfo::set_security_flags(), DispatchClass::Normal, Pays::Yes))]
+		pub fn set_security_flags(
+			origin: OriginFor<T>,
+			allow_skipping_attestation: bool,
+			sgx_allow_debug_mode: bool,
+		) -> DispatchResultWithPostInfo {
+			log::debug!(target: TEEREX, "Called into runtime call set_security_flags()");
+			ensure_root(origin)?;
+			<AllowSkippingAttestation<T>>::set(allow_skipping_attestation);
+			<SgxAllowDebugMode<T>>::set(sgx_allow_debug_mode);
+			log::info!(target: TEEREX, "set security flags");
+			Self::deposit_event(Event::UpdatedSecurityFlags {
+				allow_skipping_attestation,
+				sgx_allow_debug_mode,
+			});
+			Ok(().into())
+		}
 	}
 
 	#[pallet::error]
@@ -385,6 +433,8 @@ pub mod pallet {
 		CollateralInvalid,
 		/// It is not allowed to unregister enclaves with recent activity
 		UnregisterActiveEnclaveNotAllowed,
+		/// skipping attestation not allowed by configuration
+		SkippingAttestationNotAllowed,
 	}
 }
 
