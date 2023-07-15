@@ -69,10 +69,11 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 			call_hash
 		)
 		.is_ok());
-		let expected_event = RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::UnshieldedFunds(
-			beneficiary.clone(),
+		let expected_event = RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::UnshieldedFunds {
+			shard,
+			beneficiary: beneficiary.clone(),
 			amount,
-		));
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		System::reset_events();
@@ -117,10 +118,11 @@ fn verify_unshield_funds_works() {
 
 		assert_eq!(Balances::free_balance(bonding_account.clone()), 100);
 
-		let expected_event = RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ShieldFunds(
-			incognito_account_encrypted,
-			100,
-		));
+		let expected_event = RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ShieldFunds {
+			shard,
+			encrypted_beneficiary: incognito_account_encrypted,
+			amount: 100,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert!(EnclaveBridge::unshield_funds(
@@ -133,8 +135,11 @@ fn verify_unshield_funds_works() {
 		.is_ok());
 		assert_eq!(Balances::free_balance(bonding_account), 50);
 
-		let expected_event =
-			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::UnshieldedFunds(beneficiary, 50));
+		let expected_event = RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::UnshieldedFunds {
+			shard,
+			beneficiary,
+			amount: 50,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -230,12 +235,12 @@ fn confirm_processed_parentchain_block_works() {
 		));
 
 		let expected_event =
-			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ProcessedParentchainBlock(
-				ShardIdentifier::default(),
+			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ProcessedParentchainBlock {
+				shard: ShardIdentifier::default(),
 				block_hash,
-				merkle_root,
+				trusted_calls_merkle_root: merkle_root,
 				block_number,
-			));
+			});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }

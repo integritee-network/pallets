@@ -75,10 +75,12 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		IndirectInvocationRegistered(ShardIdentifier),
 		ShieldFunds {
+			shard: ShardIdentifier,
 			encrypted_beneficiary: Vec<u8>,
 			amount: BalanceOf<T>,
 		},
 		UnshieldedFunds {
+			shard: ShardIdentifier,
 			beneficiary: T::AccountId,
 			amount: BalanceOf<T>,
 		},
@@ -165,12 +167,12 @@ pub mod pallet {
 				shard,
 				block_hash
 			);
-			Self::deposit_event(Event::ProcessedParentchainBlock(
+			Self::deposit_event(Event::ProcessedParentchainBlock {
 				shard,
 				block_hash,
 				trusted_calls_merkle_root,
 				block_number,
-			));
+			});
 			Ok(().into())
 		}
 
@@ -194,7 +196,11 @@ pub mod pallet {
 				amount,
 				ExistenceRequirement::AllowDeath,
 			)?;
-			Self::deposit_event(Event::ShieldFunds(incognito_account_encrypted, amount));
+			Self::deposit_event(Event::ShieldFunds {
+				shard,
+				encrypted_beneficiary: incognito_account_encrypted,
+				amount,
+			});
 			Ok(().into())
 		}
 
@@ -225,7 +231,7 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 				<ExecutedUnshieldCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(beneficiary, amount));
+				Self::deposit_event(Event::UnshieldedFunds { shard, beneficiary, amount });
 			} else {
 				log::info!(
 					target: ENCLAVE_BRIDGE,
