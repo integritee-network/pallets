@@ -55,6 +55,7 @@ pub trait WeightInfo {
 	fn register_tcb_info() -> Weight;
 	fn unregister_sovereign_enclave() -> Weight;
 	fn unregister_proxied_enclave() -> Weight;
+	fn set_security_flags() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
@@ -136,6 +137,9 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn set_security_flags() -> Weight {
+		Weight::from_parts(46_200_000, 0u64)
+	}
 }
 
 /// For tests, weights have been generated with the integritee-node.
@@ -213,5 +217,8 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 4040))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	fn set_security_flags() -> Weight {
+		Weight::from_parts(46_200_000, 0u64)
 	}
 }

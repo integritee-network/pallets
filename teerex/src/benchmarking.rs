@@ -117,6 +117,13 @@ benchmarks! {
 	verify {
 		assert!(!crate::ProxiedEnclaves::<T>::contains_key(&key0));
 	}
+
+	set_security_flags {
+	}: _(RawOrigin::Root, false, true)
+	verify {
+		assert_eq!(crate::AllowSkippingAttestation::<T>::get(), false);
+		assert_eq!(crate::SgxAllowDebugMode::<T>::get(), true);
+	}
 }
 
 fn add_sovereign_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {

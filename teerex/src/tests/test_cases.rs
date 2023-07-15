@@ -18,17 +18,16 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxEnclave,
-	SovereignEnclaves,
+	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode,
+	SgxEnclave, SovereignEnclaves,
 };
-use codec::Encode;
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
 use sgx_verify::test_data::dcap::{TEST1_DCAP_QUOTE_MRENCLAVE, TEST1_DCAP_QUOTE_SIGNER};
 use sp_keyring::AccountKeyring;
 use teerex_primitives::{
-	AnySigner, EnclaveInstanceAddress, MultiEnclave, OpaqueSigner, SgxAttestationMethod,
-	SgxBuildMode, SgxReportData, SgxStatus,
+	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
+	SgxReportData, SgxStatus,
 };
 use test_utils::test_data::{
 	consts::*,
@@ -47,6 +46,28 @@ fn list_proxied_enclaves() -> Vec<(EnclaveInstanceAddress<AccountId>, MultiEncla
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
+}
+
+#[test]
+fn set_security_flags_works() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(Teerex::set_security_flags(RuntimeOrigin::root(), true, false));
+		assert_eq!(<AllowSkippingAttestation<Test>>::get(), true);
+		assert_eq!(<SgxAllowDebugMode<Test>>::get(), false);
+		let expected_event = RuntimeEvent::Teerex(TeerexEvent::UpdatedSecurityFlags {
+			allow_skipping_attestation: true,
+			sgx_allow_debug_mode: false,
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event))
+	})
+}
+
+#[test]
+fn set_security_flags_as_non_root_fails() {
+	new_test_ext().execute_with(|| {
+		let alice = AccountKeyring::Alice.to_account_id();
+		assert!(Teerex::set_security_flags(RuntimeOrigin::signed(alice), true, false).is_err());
+	})
 }
 
 #[test]

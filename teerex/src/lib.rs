@@ -88,6 +88,10 @@ pub mod pallet {
 		SgxQuotingEnclaveRegistered {
 			quoting_enclave: SgxQuotingEnclave,
 		},
+		UpdatedSecurityFlags {
+			allow_skipping_attestation: bool,
+			sgx_allow_debug_mode: bool,
+		},
 	}
 
 	#[pallet::storage]
@@ -371,6 +375,25 @@ pub mod pallet {
 			<SgxTcbInfo<T>>::insert(fmspc, &on_chain_info);
 			log::info!(target: TEEREX, "registered tcb info for fmspc: {:?}", fmspc);
 			Self::deposit_event(Event::SgxTcbInfoRegistered { fmspc, on_chain_info });
+			Ok(().into())
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight((<T as Config>::WeightInfo::set_security_flags(), DispatchClass::Normal, Pays::Yes))]
+		pub fn set_security_flags(
+			origin: OriginFor<T>,
+			allow_skipping_attestation: bool,
+			sgx_allow_debug_mode: bool,
+		) -> DispatchResultWithPostInfo {
+			log::debug!(target: TEEREX, "Called into runtime call set_security_flags()");
+			let _sender = ensure_root(origin)?;
+			<AllowSkippingAttestation<T>>::set(allow_skipping_attestation);
+			<SgxAllowDebugMode<T>>::set(sgx_allow_debug_mode);
+			log::info!(target: TEEREX, "set security flags");
+			Self::deposit_event(Event::UpdatedSecurityFlags {
+				allow_skipping_attestation,
+				sgx_allow_debug_mode,
+			});
 			Ok(().into())
 		}
 	}
