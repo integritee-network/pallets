@@ -57,6 +57,7 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// a sidechain block has been finalized
 		FinalizedSidechainBlock {
 			shard: ShardIdentifier,
 			block_header_hash: H256,
