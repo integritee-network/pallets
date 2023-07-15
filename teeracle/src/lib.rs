@@ -109,12 +109,20 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// The exchange rate of trading pair was set/updated with value from source. \[data_source], [trading_pair], [new value\]
-		ExchangeRateUpdated(DataSource, TradingPairString, Option<ExchangeRate>),
-		ExchangeRateDeleted(DataSource, TradingPairString),
-		OracleUpdated(OracleDataName, DataSource),
-		AddedToWhitelist(DataSource, EnclaveFingerprint),
-		RemovedFromWhitelist(DataSource, EnclaveFingerprint),
+		/// The exchange rate of trading pair was set/updated with value from source.
+		ExchangeRateUpdated {
+			data_source: DataSource,
+			trading_pair: TradingPairString,
+			exchange_rate: ExchangeRate,
+		},
+		/// The exchange rate of trading pair was deleted.
+		ExchangeRateDeleted { data_source: DataSource, trading_pair: TradingPairString },
+		/// a generic named oracle has updated its data blob
+		OracleUpdated { oracle_data_name: OracleDataName, data_source: DataSource },
+		/// an oracle fingerprint has been added to the whitelist
+		AddedToWhitelist { data_source: DataSource, enclave_fingerprint: EnclaveFingerprint },
+		/// an oracle fingerprint has been removed from the whitelist
+		RemovedFromWhitelist { data_source: DataSource, enclave_fingerprint: EnclaveFingerprint },
 	}
 
 	#[pallet::error]
@@ -140,19 +148,19 @@ pub mod pallet {
 		pub fn add_to_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
-			fingerprint: EnclaveFingerprint,
+			enclave_fingerprint: EnclaveFingerprint,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
 			ensure!(
-				!Self::is_whitelisted(&data_source, fingerprint),
+				!Self::is_whitelisted(&data_source, enclave_fingerprint),
 				<Error<T>>::ReleaseAlreadyWhitelisted
 			);
 			<Whitelists<T>>::try_mutate(data_source.clone(), |fingerprints| {
-				fingerprints.try_push(fingerprint)
+				fingerprints.try_push(enclave_fingerprint)
 			})
 			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
-			Self::deposit_event(Event::AddedToWhitelist(data_source, fingerprint));
+			Self::deposit_event(Event::AddedToWhitelist { data_source, enclave_fingerprint });
 			Ok(())
 		}
 		#[pallet::call_index(1)]
@@ -160,17 +168,17 @@ pub mod pallet {
 		pub fn remove_from_whitelist(
 			origin: OriginFor<T>,
 			data_source: DataSource,
-			fingerprint: EnclaveFingerprint,
+			enclave_fingerprint: EnclaveFingerprint,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
-				Self::is_whitelisted(&data_source, fingerprint),
+				Self::is_whitelisted(&data_source, enclave_fingerprint),
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			<Whitelists<T>>::mutate(&data_source, |fingerprints| {
-				fingerprints.retain(|m| *m != fingerprint)
+				fingerprints.retain(|m| *m != enclave_fingerprint)
 			});
-			Self::deposit_event(Event::RemovedFromWhitelist(data_source, fingerprint));
+			Self::deposit_event(Event::RemovedFromWhitelist { data_source, enclave_fingerprint });
 			Ok(())
 		}
 
@@ -178,7 +186,7 @@ pub mod pallet {
 		#[pallet::weight((<T as Config>::WeightInfo::update_oracle(), DispatchClass::Normal, Pays::Yes))]
 		pub fn update_oracle(
 			origin: OriginFor<T>,
-			oracle_name: OracleDataName,
+			oracle_data_name: OracleDataName,
 			data_source: DataSource,
 			new_blob: OracleDataBlob<T>,
 		) -> DispatchResultWithPostInfo {
@@ -191,7 +199,7 @@ pub mod pallet {
 				<Error<T>>::ReleaseNotWhitelisted
 			);
 			ensure!(
-				oracle_name.len() <= MAX_ORACLE_DATA_NAME_LEN,
+				oracle_data_name.len() <= MAX_ORACLE_DATA_NAME_LEN,
 				Error::<T>::OracleDataNameStringTooLong
 			);
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
@@ -200,8 +208,8 @@ pub mod pallet {
 				Error::<T>::OracleBlobTooBig
 			);
 
-			OracleData::<T>::insert(&oracle_name, &data_source, new_blob);
-			Self::deposit_event(Event::<T>::OracleUpdated(oracle_name, data_source));
+			OracleData::<T>::insert(&oracle_data_name, &data_source, new_blob);
+			Self::deposit_event(Event::<T>::OracleUpdated { oracle_data_name, data_source });
 			Ok(().into())
 		}
 
@@ -229,17 +237,17 @@ pub mod pallet {
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
 				ExchangeRates::<T>::mutate_exists(&trading_pair, &data_source, |rate| *rate = None);
-				Self::deposit_event(Event::ExchangeRateDeleted(data_source, trading_pair));
+				Self::deposit_event(Event::ExchangeRateDeleted { data_source, trading_pair });
 			} else {
 				log::info!("Update exchange rate : {:?}", new_value);
 				ExchangeRates::<T>::mutate_exists(&trading_pair, &data_source, |rate| {
 					*rate = new_value
 				});
-				Self::deposit_event(Event::ExchangeRateUpdated(
+				Self::deposit_event(Event::ExchangeRateUpdated {
 					data_source,
 					trading_pair,
-					new_value,
-				));
+					exchange_rate: new_value.expect("previously checked that is Some"),
+				});
 			}
 			Ok(().into())
 		}
