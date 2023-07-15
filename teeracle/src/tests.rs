@@ -67,11 +67,11 @@ fn update_exchange_rate_works() {
 
 		let rate = U32F32::from_num(43.65);
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(rate));
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateUpdated(
-			COINGECKO_SRC.to_owned(),
-			DOT_USD_TRADING_PAIR.to_owned(),
-			Some(rate),
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateUpdated {
+			data_source: COINGECKO_SRC.to_owned(),
+			trading_pair: DOT_USD_TRADING_PAIR.to_owned(),
+			exchange_rate: rate,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(
 			Teeracle::exchange_rate(DOT_USD_TRADING_PAIR.to_owned(), COINGECKO_SRC.to_owned()),
@@ -100,10 +100,10 @@ fn update_oracle_works() {
 			DataSource::from("Test_Source_Name"),
 			oracle_blob.clone()
 		),);
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::OracleUpdated(
-			OracleDataName::from("Test_Oracle_Name"),
-			DataSource::from("Test_Source_Name"),
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::OracleUpdated {
+			oracle_data_name: OracleDataName::from("Test_Oracle_Name"),
+			data_source: DataSource::from("Test_Source_Name"),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert_eq!(
@@ -152,10 +152,10 @@ fn update_exchange_rate_to_none_delete_exchange_rate() {
 
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, None);
 
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateDeleted(
-			COINGECKO_SRC.to_owned(),
-			DOT_USD_TRADING_PAIR.to_owned(),
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateDeleted {
+			data_source: COINGECKO_SRC.to_owned(),
+			trading_pair: DOT_USD_TRADING_PAIR.to_owned(),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert!(!ExchangeRates::<Test>::contains_key(
 			DOT_USD_TRADING_PAIR.to_owned(),
@@ -173,10 +173,10 @@ fn update_exchange_rate_to_zero_delete_exchange_rate() {
 
 		update_exchange_rate_dot_dollars_ok(COINGECKO_SRC, Some(U32F32::from_num(0)));
 
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateDeleted(
-			COINGECKO_SRC.to_owned(),
-			DOT_USD_TRADING_PAIR.to_owned(),
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::ExchangeRateDeleted {
+			data_source: COINGECKO_SRC.to_owned(),
+			trading_pair: DOT_USD_TRADING_PAIR.to_owned(),
+		});
 
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert!(!ExchangeRates::<Test>::contains_key(
@@ -239,7 +239,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 				DOT_USD_TRADING_PAIR.to_owned(),
 				Some(rate)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 	})
 }
@@ -263,7 +263,7 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 				DataSource::from("Test_Source_Name"),
 				vec![0].try_into().expect("Can Convert to BoundedVec; QED")
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 	})
 }
@@ -291,16 +291,16 @@ fn update_exchange_rate_with_too_long_trading_pair_fails() {
 #[test]
 fn add_to_whitelist_works() {
 	new_test_ext().execute_with(|| {
-		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
+		let enclave_fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			fingerprint
+			enclave_fingerprint
 		));
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist(
-			COINGECKO_SRC.to_owned(),
-			fingerprint,
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist {
+			data_source: COINGECKO_SRC.to_owned(),
+			enclave_fingerprint,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
 	})
@@ -309,21 +309,21 @@ fn add_to_whitelist_works() {
 #[test]
 fn add_mulitple_src_to_whitelists_works() {
 	new_test_ext().execute_with(|| {
-		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
+		let enclave_fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			fingerprint
+			enclave_fingerprint
 		));
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINMARKETCAP_SRC.to_owned(),
-			fingerprint
+			enclave_fingerprint
 		));
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist(
-			COINMARKETCAP_SRC.to_owned(),
-			fingerprint,
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::AddedToWhitelist {
+			data_source: COINMARKETCAP_SRC.to_owned(),
+			enclave_fingerprint,
+		});
 
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
@@ -346,7 +346,7 @@ fn add_two_times_to_whitelist_fails() {
 				COINGECKO_SRC.to_owned(),
 				fingerprint
 			),
-			crate::Error::<Test>::ReleaseAlreadyWhitelisted
+			crate::Error::<Test>::FingerprintAlreadyWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
 	})
@@ -427,7 +427,7 @@ fn add_too_many_oracles_to_whitelist_fails() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST8_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseWhitelistOverflow
+			crate::Error::<Test>::FingerprintWhitelistOverflow
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 10);
 	})
@@ -467,21 +467,21 @@ fn non_root_add_to_whitelist_fails() {
 #[test]
 fn remove_from_whitelist_works() {
 	new_test_ext().execute_with(|| {
-		let fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
+		let enclave_fingerprint = EnclaveFingerprint::from(TEST4_MRENCLAVE);
 		assert_ok!(Teeracle::add_to_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			fingerprint
+			enclave_fingerprint
 		));
 		assert_ok!(Teeracle::remove_from_whitelist(
 			RuntimeOrigin::root(),
 			COINGECKO_SRC.to_owned(),
-			fingerprint
+			enclave_fingerprint
 		));
-		let expected_event = RuntimeEvent::Teeracle(crate::Event::RemovedFromWhitelist(
-			COINGECKO_SRC.to_owned(),
-			fingerprint,
-		));
+		let expected_event = RuntimeEvent::Teeracle(crate::Event::RemovedFromWhitelist {
+			data_source: COINGECKO_SRC.to_owned(),
+			enclave_fingerprint,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 0);
 	})
@@ -501,7 +501,7 @@ fn remove_from_whitelist_not_whitelisted_fails() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 1);
 	})
@@ -517,7 +517,7 @@ fn remove_from_empty_whitelist_doesnt_crash() {
 				COINGECKO_SRC.to_owned(),
 				EnclaveFingerprint::from(TEST5_MRENCLAVE)
 			),
-			crate::Error::<Test>::ReleaseNotWhitelisted
+			crate::Error::<Test>::FingerprintNotWhitelisted
 		);
 		assert_eq!(Teeracle::whitelist(COINGECKO_SRC.to_owned()).len(), 0);
 	})

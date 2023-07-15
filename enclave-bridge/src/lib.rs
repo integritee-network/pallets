@@ -73,17 +73,44 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// an indirect invocation has been registered for execution on L2
 		IndirectInvocationRegistered(ShardIdentifier),
-		ShieldFunds(Vec<u8>, BalanceOf<T>),
-		UnshieldedFunds(T::AccountId, BalanceOf<T>),
-		ProcessedParentchainBlock(ShardIdentifier, H256, H256, T::BlockNumber),
-		/// An enclave with [mr_enclave] has published some [hash] with some metadata [data].
+		/// funds have been shielded to L2
+		ShieldFunds {
+			shard: ShardIdentifier,
+			encrypted_beneficiary: Vec<u8>,
+			amount: BalanceOf<T>,
+		},
+		/// funds have been unshielded from L2 back to L1
+		UnshieldedFunds {
+			shard: ShardIdentifier,
+			beneficiary: T::AccountId,
+			amount: BalanceOf<T>,
+		},
+		/// L2 confirmed processing of a parentchain block
+		ProcessedParentchainBlock {
+			shard: ShardIdentifier,
+			block_hash: H256,
+			trusted_calls_merkle_root: H256,
+			block_number: T::BlockNumber,
+		},
+		/// An enclave has published some [hash] with some metadata [data].
 		PublishedHash {
-			fingerprint: EnclaveFingerprint,
+			enclave_fingerprint: EnclaveFingerprint,
 			hash: H256,
 			data: Vec<u8>,
 		},
 		ShardConfigUpdated(ShardIdentifier),
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// The shard doesn't match the enclave.
+		WrongFingerprintForShard,
+		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
+		TooManyTopics,
+		/// The length of the `data` passed to `publish_hash` exceeds the limit.
+		DataTooLong,
 	}
 
 	#[pallet::storage]
@@ -154,12 +181,12 @@ pub mod pallet {
 				shard,
 				block_hash
 			);
-			Self::deposit_event(Event::ProcessedParentchainBlock(
+			Self::deposit_event(Event::ProcessedParentchainBlock {
 				shard,
 				block_hash,
 				trusted_calls_merkle_root,
 				block_number,
-			));
+			});
 			Ok(().into())
 		}
 
@@ -183,7 +210,11 @@ pub mod pallet {
 				amount,
 				ExistenceRequirement::AllowDeath,
 			)?;
-			Self::deposit_event(Event::ShieldFunds(incognito_account_encrypted, amount));
+			Self::deposit_event(Event::ShieldFunds {
+				shard,
+				encrypted_beneficiary: incognito_account_encrypted,
+				amount,
+			});
 			Ok(().into())
 		}
 
@@ -214,7 +245,7 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 				<ExecutedUnshieldCalls<T>>::insert(call_hash, 0);
-				Self::deposit_event(Event::UnshieldedFunds(beneficiary, amount));
+				Self::deposit_event(Event::UnshieldedFunds { shard, beneficiary, amount });
 			} else {
 				log::info!(
 					target: ENCLAVE_BRIDGE,
@@ -263,7 +294,7 @@ pub mod pallet {
 
 			Self::deposit_event_indexed(
 				&topics,
-				Event::PublishedHash { fingerprint: enclave.fingerprint(), hash, data },
+				Event::PublishedHash { enclave_fingerprint: enclave.fingerprint(), hash, data },
 			);
 
 			Ok(().into())
@@ -314,16 +345,6 @@ pub mod pallet {
 			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			Ok(().into())
 		}
-	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// The shard doesn't match the enclave.
-		WrongFingerprintForShard,
-		/// The number of `extra_topics` passed to `publish_hash` exceeds the limit.
-		TooManyTopics,
-		/// The length of the `data` passed to `publish_hash` exceeds the limit.
-		DataTooLong,
 	}
 }
 

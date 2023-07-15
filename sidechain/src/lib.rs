@@ -57,8 +57,20 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ProposedSidechainBlock(T::AccountId, H256),
-		FinalizedSidechainBlock(T::AccountId, H256),
+		/// a sidechain block has been finalized
+		FinalizedSidechainBlock {
+			shard: ShardIdentifier,
+			block_header_hash: H256,
+			validateer: T::AccountId,
+		},
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// A proposed block is unexpected.
+		ReceivedUnexpectedSidechainBlock,
+		/// The value for the next finalization candidate is invalid.
+		InvalidNextFinalizationCandidateBlockNumber,
 	}
 
 	#[pallet::storage]
@@ -123,14 +135,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// A proposed block is unexpected.
-		ReceivedUnexpectedSidechainBlock,
-		/// The value for the next finalization candidate is invalid.
-		InvalidNextFinalizationCandidateBlockNumber,
-	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -146,7 +150,11 @@ impl<T: Config> Pallet<T> {
 			shard,
 			block_header_hash
 		);
-		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));
+		Self::deposit_event(Event::FinalizedSidechainBlock {
+			shard,
+			block_header_hash,
+			validateer: sender.clone(),
+		});
 	}
 }
 

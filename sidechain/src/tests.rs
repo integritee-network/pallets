@@ -79,8 +79,11 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 			hash
 		));
 
-		let expected_event =
-			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(signer7, hash));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard: shard7,
+			block_header_hash: hash,
+			validateer: signer7,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -201,10 +204,11 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 
 		System::reset_events();
 		assert_ok!(confirm_sidechain_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			get_signer(TEST6_SIGNER_PUB),
-			H256::default(),
-		));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard: shard7,
+			block_header_hash: H256::default(),
+			validateer: get_signer(TEST6_SIGNER_PUB),
+		});
 		assert!(!System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -235,10 +239,11 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 			hash
 		));
 
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			enclave_signer.clone(),
-			hash,
-		));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard,
+			block_header_hash: hash,
+			validateer: enclave_signer.clone(),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let new_fingerprint = EnclaveFingerprint::from([2u8; 32]);
@@ -259,10 +264,11 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 			hash
 		));
 
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			enclave_signer.clone(),
-			hash,
-		));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard,
+			block_header_hash: hash,
+			validateer: enclave_signer.clone(),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		run_to_block(2);
@@ -279,8 +285,11 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 			hash
 		));
 
-		let expected_event =
-			RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(enclave_signer, hash));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard,
+			block_header_hash: hash,
+			validateer: enclave_signer,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
@@ -303,10 +312,11 @@ fn two_sidechains_with_different_fingerprint_works() {
 			hash1
 		));
 
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			enclave_signer1.clone(),
-			hash1,
-		));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard: shard1,
+			block_header_hash: hash1,
+			validateer: enclave_signer1.clone(),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		run_to_block(2);
@@ -325,10 +335,11 @@ fn two_sidechains_with_different_fingerprint_works() {
 			hash2
 		));
 
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			enclave_signer2.clone(),
-			hash2,
-		));
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard: shard2,
+			block_header_hash: hash2,
+			validateer: enclave_signer2.clone(),
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		let shard_status1 = EnclaveBridge::shard_status(shard1).unwrap();
@@ -411,10 +422,11 @@ fn confirm_sidechain_block(
 	)?;
 
 	if assert_event {
-		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock(
-			signer,
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard,
 			block_header_hash,
-		));
+			validateer: signer,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	}
 	Ok(().into())

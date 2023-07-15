@@ -73,25 +73,51 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// An Intel SGX enclave has been added to the enclave registry
 		AddedSgxEnclave {
 			registered_by: T::AccountId,
 			worker_url: Option<Vec<u8>>,
 			tcb_status: Option<SgxStatus>,
 			attestation_method: SgxAttestationMethod,
 		},
+		/// a sovereign enclave has been removed from the enclave registry
 		RemovedSovereignEnclave(T::AccountId),
+		/// a proxied enclave has been removed from the enclave registry
 		RemovedProxiedEnclave(EnclaveInstanceAddress<T::AccountId>),
-		SgxTcbInfoRegistered {
-			fmspc: Fmspc,
-			on_chain_info: SgxTcbInfoOnChain,
-		},
-		SgxQuotingEnclaveRegistered {
-			quoting_enclave: SgxQuotingEnclave,
-		},
-		UpdatedSecurityFlags {
-			allow_skipping_attestation: bool,
-			sgx_allow_debug_mode: bool,
-		},
+		/// Intel SGX TCB info has been registered
+		SgxTcbInfoRegistered { fmspc: Fmspc, on_chain_info: SgxTcbInfoOnChain },
+		/// An Intel SGX quoting enclave has been registered
+		SgxQuotingEnclaveRegistered { quoting_enclave: SgxQuotingEnclave },
+		/// the enclave registry security flags have been updated
+		UpdatedSecurityFlags { allow_skipping_attestation: bool, sgx_allow_debug_mode: bool },
+	}
+
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Failed to decode enclave signer.
+		EnclaveSignerDecodeError,
+		/// Sender does not match attested enclave in report.
+		SenderIsNotAttestedEnclave,
+		/// Verifying RA report failed.
+		RemoteAttestationVerificationFailed,
+		/// IAS remote attestation is too old
+		RemoteAttestationTooOld,
+		/// The enclave cannot attest, because its building mode is not allowed.
+		SgxModeNotAllowed,
+		/// The enclave is not registered.
+		EnclaveIsNotRegistered,
+		/// The worker url is too long.
+		EnclaveUrlTooLong,
+		/// The Remote Attestation proof is too long.
+		RaProofTooLong,
+		/// No enclave is registered.
+		EmptyEnclaveRegistry,
+		/// The provided collateral data is invalid
+		CollateralInvalid,
+		/// It is not allowed to unregister enclaves with recent activity
+		UnregisterActiveEnclaveNotAllowed,
+		/// skipping attestation not allowed by configuration
+		SkippingAttestationNotAllowed,
 	}
 
 	#[pallet::storage]
@@ -408,33 +434,6 @@ pub mod pallet {
 			});
 			Ok(().into())
 		}
-	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// Failed to decode enclave signer.
-		EnclaveSignerDecodeError,
-		/// Sender does not match attested enclave in report.
-		SenderIsNotAttestedEnclave,
-		/// Verifying RA report failed.
-		RemoteAttestationVerificationFailed,
-		RemoteAttestationTooOld,
-		/// The enclave cannot attest, because its building mode is not allowed.
-		SgxModeNotAllowed,
-		/// The enclave is not registered.
-		EnclaveIsNotRegistered,
-		/// The worker url is too long.
-		EnclaveUrlTooLong,
-		/// The Remote Attestation proof is too long.
-		RaProofTooLong,
-		/// No enclave is registered.
-		EmptyEnclaveRegistry,
-		/// The provided collateral data is invalid
-		CollateralInvalid,
-		/// It is not allowed to unregister enclaves with recent activity
-		UnregisterActiveEnclaveNotAllowed,
-		/// skipping attestation not allowed by configuration
-		SkippingAttestationNotAllowed,
 	}
 }
 
