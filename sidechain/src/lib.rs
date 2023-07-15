@@ -57,8 +57,11 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ProposedSidechainBlock(T::AccountId, H256),
-		FinalizedSidechainBlock(T::AccountId, H256),
+		FinalizedSidechainBlock {
+			shard: ShardIdentifier,
+			block_header_hash: H256,
+			validateer: T::AccountId,
+		},
 	}
 
 	#[pallet::storage]
@@ -146,7 +149,11 @@ impl<T: Config> Pallet<T> {
 			shard,
 			block_header_hash
 		);
-		Self::deposit_event(Event::FinalizedSidechainBlock(sender.clone(), block_header_hash));
+		Self::deposit_event(Event::FinalizedSidechainBlock {
+			shard,
+			block_header_hash,
+			validateer: sender.clone(),
+		});
 	}
 }
 
