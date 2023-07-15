@@ -65,7 +65,7 @@ fn publish_hash_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: EnclaveBridgeEvent::PublishedHash {
-						fingerprint: fingerprint.into(),
+						enclave_fingerprint: fingerprint.into(),
 						hash,
 						data
 					}
@@ -75,7 +75,7 @@ fn publish_hash_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: EnclaveBridgeEvent::PublishedHash {
-						fingerprint: fingerprint.into(),
+						enclave_fingerprint: fingerprint.into(),
 						hash,
 						data: vec![]
 					}

@@ -92,6 +92,33 @@ pub mod pallet {
 		UpdatedSecurityFlags { allow_skipping_attestation: bool, sgx_allow_debug_mode: bool },
 	}
 
+	#[pallet::error]
+	pub enum Error<T> {
+		/// Failed to decode enclave signer.
+		EnclaveSignerDecodeError,
+		/// Sender does not match attested enclave in report.
+		SenderIsNotAttestedEnclave,
+		/// Verifying RA report failed.
+		RemoteAttestationVerificationFailed,
+		RemoteAttestationTooOld,
+		/// The enclave cannot attest, because its building mode is not allowed.
+		SgxModeNotAllowed,
+		/// The enclave is not registered.
+		EnclaveIsNotRegistered,
+		/// The worker url is too long.
+		EnclaveUrlTooLong,
+		/// The Remote Attestation proof is too long.
+		RaProofTooLong,
+		/// No enclave is registered.
+		EmptyEnclaveRegistry,
+		/// The provided collateral data is invalid
+		CollateralInvalid,
+		/// It is not allowed to unregister enclaves with recent activity
+		UnregisterActiveEnclaveNotAllowed,
+		/// skipping attestation not allowed by configuration
+		SkippingAttestationNotAllowed,
+	}
+
 	#[pallet::storage]
 	#[pallet::getter(fn sovereign_enclaves)]
 	pub type SovereignEnclaves<T: Config> =
@@ -406,33 +433,6 @@ pub mod pallet {
 			});
 			Ok(().into())
 		}
-	}
-
-	#[pallet::error]
-	pub enum Error<T> {
-		/// Failed to decode enclave signer.
-		EnclaveSignerDecodeError,
-		/// Sender does not match attested enclave in report.
-		SenderIsNotAttestedEnclave,
-		/// Verifying RA report failed.
-		RemoteAttestationVerificationFailed,
-		RemoteAttestationTooOld,
-		/// The enclave cannot attest, because its building mode is not allowed.
-		SgxModeNotAllowed,
-		/// The enclave is not registered.
-		EnclaveIsNotRegistered,
-		/// The worker url is too long.
-		EnclaveUrlTooLong,
-		/// The Remote Attestation proof is too long.
-		RaProofTooLong,
-		/// No enclave is registered.
-		EmptyEnclaveRegistry,
-		/// The provided collateral data is invalid
-		CollateralInvalid,
-		/// It is not allowed to unregister enclaves with recent activity
-		UnregisterActiveEnclaveNotAllowed,
-		/// skipping attestation not allowed by configuration
-		SkippingAttestationNotAllowed,
 	}
 }
 

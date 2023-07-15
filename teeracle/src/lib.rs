@@ -127,14 +127,19 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		InvalidCurrency,
-		/// Too many MrEnclave in the whitelist.
-		ReleaseWhitelistOverflow,
-		ReleaseNotWhitelisted,
-		ReleaseAlreadyWhitelisted,
+		/// Too many enclave fingerprints in the whitelist for this data source.
+		FingerprintWhitelistOverflow,
+		/// calling enclave fingerprint not whitelisted for this data source.
+		FingerprintNotWhitelisted,
+		/// enclave fingerprint already whitelisted for this data source.
+		FingerprintAlreadyWhitelisted,
+		/// trading pair string too long
 		TradingPairStringTooLong,
+		/// generic oracle data name string too long
 		OracleDataNameStringTooLong,
+		/// data source string too long
 		DataSourceStringTooLong,
+		/// generic oracle blob too big
 		OracleBlobTooBig,
 	}
 
@@ -154,12 +159,12 @@ pub mod pallet {
 			ensure!(data_source.len() <= MAX_SOURCE_LEN, Error::<T>::DataSourceStringTooLong);
 			ensure!(
 				!Self::is_whitelisted(&data_source, enclave_fingerprint),
-				<Error<T>>::ReleaseAlreadyWhitelisted
+				<Error<T>>::FingerprintAlreadyWhitelisted
 			);
 			<Whitelists<T>>::try_mutate(data_source.clone(), |fingerprints| {
 				fingerprints.try_push(enclave_fingerprint)
 			})
-			.map_err(|_| Error::<T>::ReleaseWhitelistOverflow)?;
+			.map_err(|_| Error::<T>::FingerprintWhitelistOverflow)?;
 			Self::deposit_event(Event::AddedToWhitelist { data_source, enclave_fingerprint });
 			Ok(())
 		}
@@ -173,7 +178,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 			ensure!(
 				Self::is_whitelisted(&data_source, enclave_fingerprint),
-				<Error<T>>::ReleaseNotWhitelisted
+				<Error<T>>::FingerprintNotWhitelisted
 			);
 			<Whitelists<T>>::mutate(&data_source, |fingerprints| {
 				fingerprints.retain(|m| *m != enclave_fingerprint)
@@ -196,7 +201,7 @@ pub mod pallet {
 
 			ensure!(
 				Self::is_whitelisted(&data_source, enclave.fingerprint()),
-				<Error<T>>::ReleaseNotWhitelisted
+				<Error<T>>::FingerprintNotWhitelisted
 			);
 			ensure!(
 				oracle_data_name.len() <= MAX_ORACLE_DATA_NAME_LEN,
@@ -232,7 +237,7 @@ pub mod pallet {
 			);
 			ensure!(
 				Self::is_whitelisted(&data_source, enclave.fingerprint()),
-				<Error<T>>::ReleaseNotWhitelisted
+				<Error<T>>::FingerprintNotWhitelisted
 			);
 			if new_value.is_none() || new_value == Some(U32F32::from_num(0)) {
 				log::info!("Delete exchange rate : {:?}", new_value);
