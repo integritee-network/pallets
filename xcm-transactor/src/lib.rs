@@ -24,7 +24,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-const LOG: &'static str = "xcm-transactor";
+const LOG: &str = "xcm-transactor";
 
 #[frame_support::pallet]
 pub mod pallet {
