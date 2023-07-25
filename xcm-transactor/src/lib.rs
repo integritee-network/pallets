@@ -24,8 +24,11 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+const LOG: &'static str = "xcm-transactor";
+
 #[frame_support::pallet]
 pub mod pallet {
+	use super::LOG;
 	use cumulus_primitives_core::ParaId;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
@@ -64,9 +67,39 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// The swap IDs do not correspond to the runtime-configured value.
 		InvalidSwapIds,
+		/// Swap IDs need to be different.
 		SwapIdsEqual,
-		TransactFailed,
+		/// The desired destination was unreachable, generally because there is a no way of routing
+		/// to it.
+		Unreachable,
+		/// Destination is routable, but there is some issue with the transport mechanism. This is
+		/// considered fatal.
+		Transport,
+		/// Destination is known to be unroutable. This is considered fatal.
+		Unroutable,
+		/// The given message cannot be translated into a format that the destination can be expected
+		/// to interpret.
+		DestinationUnsupported,
+		/// Fees needed to be paid in order to send the message were unavailable.
+		FeesNotMet,
+		/// Some XCM send error occurred.
+		XcmSendError,
+	}
+
+	impl<T: Config> From<SendError> for Error<T> {
+		fn from(e: SendError) -> Self {
+			// Inspired by https://github.com/paritytech/polkadot/blob/09b61286da11921a3dda0a8e4015ceb9ef9cffca/xcm/pallet-xcm/src/lib.rs#L447
+			match e {
+				SendError::NotApplicable => Error::<T>::Unreachable,
+				SendError::Transport(_) => Error::<T>::Transport,
+				SendError::Unroutable => Error::<T>::Unroutable,
+				SendError::DestinationUnsupported => Error::<T>::DestinationUnsupported,
+				SendError::Fees => Error::<T>::FeesNotMet,
+				_ => Error::<T>::XcmSendError,
+			}
+		}
 	}
 
 	#[pallet::call]
@@ -110,8 +143,11 @@ pub mod pallet {
 
 			// Todo: If we ever do this in the future again, we should also put the xcm-hash and
 			// the price in the deposited event.
-			let (_hash, _price) = send_xcm::<T::XcmSender>(Parent.into(), xcm_message)
-				.map_err(|_| Error::<T>::TransactFailed)?;
+			let (_hash, _price) =
+				send_xcm::<T::XcmSender>(Parent.into(), xcm_message).map_err(|e| {
+					log::error!(target: LOG, "Error sending xcm: {:?}", e);
+					Error::<T>::from(e)
+				})?;
 
 			Self::deposit_event(Event::<T>::SwapTransactSent { para_a: self_id, para_b: other_id });
 			Ok(())
