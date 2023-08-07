@@ -204,7 +204,7 @@ pub mod pallet {
 			log::debug!(target: TEEREX, "parameter length ok");
 
 			let enclave = match attestation_method {
-				SgxAttestationMethod::Ias => {
+				SgxAttestationMethod::Ias { proxied } => {
 					let report = sgx_verify::verify_ias_report(&proof)
 						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
 					log::debug!(target: TEEREX, "IAS report successfully verified");
@@ -219,14 +219,15 @@ pub mod pallet {
 						report.build_mode,
 						report.status,
 					)
-					.with_attestation_method(SgxAttestationMethod::Ias);
+					.with_attestation_method(SgxAttestationMethod::Ias { proxied });
 
-					ensure!(
-						Ok(sender.clone()) ==
-							T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
-						<Error<T>>::SenderIsNotAttestedEnclave
-					);
-
+					if !proxied {
+						ensure!(
+							Ok(sender.clone()) ==
+								T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
+							<Error<T>>::SenderIsNotAttestedEnclave
+						);
+					};
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),
 					//     "RA status is insufficient");

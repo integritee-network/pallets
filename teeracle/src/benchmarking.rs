@@ -49,7 +49,7 @@ benchmarks! {
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias,
+			SgxAttestationMethod::Ias { proxied: false },
 		).unwrap();
 		let fingerprint = Teerex::<T>::sovereign_enclaves(&signer).unwrap().fingerprint();
 		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), fingerprint).unwrap();
@@ -72,7 +72,7 @@ benchmarks! {
 			RawOrigin::Signed(signer.clone()).into(),
 			TEST4_SETUP.cert.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias,
+			SgxAttestationMethod::Ias { proxied: false },
 		).unwrap();
 		let fingerprint = Teerex::<T>::sovereign_enclaves(&signer).unwrap().fingerprint();
 		Teeracle::<T>::add_to_whitelist(RawOrigin::Root.into(), data_source.clone(), fingerprint).unwrap();

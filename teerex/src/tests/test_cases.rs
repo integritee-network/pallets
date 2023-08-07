@@ -333,7 +333,7 @@ fn add_enclave_works() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 	})
@@ -349,7 +349,7 @@ fn add_and_remove_enclave_works() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
@@ -371,7 +371,7 @@ fn add_enclave_without_timestamp_fails() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		)
 		.is_err());
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer));
@@ -390,14 +390,14 @@ fn list_enclaves_works() {
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
 			mr_signer: TEST4_MRSIGNER,
-			attestation_method: SgxAttestationMethod::Ias,
+			attestation_method: SgxAttestationMethod::Ias { proxied: false },
 			status: SgxStatus::ConfigurationNeeded,
 		};
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias,
+			SgxAttestationMethod::Ias { proxied: false },
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 		let enclaves = list_sovereign_enclaves();
@@ -415,7 +415,7 @@ fn register_ias_enclave_with_different_signer_fails() {
 				RuntimeOrigin::signed(signer),
 				TEST5_CERT.to_vec(),
 				Some(URL.to_vec()),
-				SgxAttestationMethod::Ias
+				SgxAttestationMethod::Ias { proxied: false }
 			),
 			Error::<Test>::SenderIsNotAttestedEnclave
 		);
@@ -432,7 +432,7 @@ fn register_ias_enclave_with_to_old_attestation_report_fails() {
 				RuntimeOrigin::signed(signer),
 				TEST7_CERT.to_vec(),
 				Some(URL.to_vec()),
-				SgxAttestationMethod::Ias
+				SgxAttestationMethod::Ias { proxied: false }
 			),
 			Error::<Test>::RemoteAttestationTooOld
 		);
@@ -448,8 +448,23 @@ fn register_ias_enclave_with_almost_too_old_report_works() {
 			RuntimeOrigin::signed(signer),
 			TEST7_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
+	})
+}
+
+#[test]
+fn register_ias_enclave_proxied_works() {
+	new_test_ext().execute_with(|| {
+		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS - 1);
+		let signer = get_signer(TEST7_SIGNER_PUB);
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(signer),
+			TEST7_CERT.to_vec(),
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias { proxied: true }
+		));
+		assert_eq!(list_proxied_enclaves().len(), 1);
 	})
 }
 
@@ -467,7 +482,7 @@ fn update_enclave_url_works() {
 			url: None,
 			build_mode: SgxBuildMode::Debug,
 			mr_signer: TEST4_MRSIGNER,
-			attestation_method: SgxAttestationMethod::Ias,
+			attestation_method: SgxAttestationMethod::Ias { proxied: false },
 			status: SgxStatus::ConfigurationNeeded,
 		};
 
@@ -475,7 +490,7 @@ fn update_enclave_url_works() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert_eq!(Teerex::sovereign_enclaves(&signer).unwrap().instance_url(), Some(URL.to_vec()));
 
@@ -483,7 +498,7 @@ fn update_enclave_url_works() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(url2.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert_eq!(
 			Teerex::sovereign_enclaves(&signer).unwrap().instance_url(),
@@ -504,7 +519,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Debug,
 			mr_signer: TEST4_MRSIGNER,
-			attestation_method: SgxAttestationMethod::Ias,
+			attestation_method: SgxAttestationMethod::Ias { proxied: false },
 			status: SgxStatus::ConfigurationNeeded,
 		};
 
@@ -513,7 +528,7 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 			RuntimeOrigin::signed(signer4.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer4));
 		let enclaves = list_sovereign_enclaves();
@@ -534,7 +549,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 				url: Some(URL.to_vec()),
 				build_mode: SgxBuildMode::Production,
 				mr_signer: TEST8_MRSIGNER,
-				attestation_method: SgxAttestationMethod::Ias,
+				attestation_method: SgxAttestationMethod::Ias { proxied: false },
 				status: SgxStatus::Invalid,
 			};
 
@@ -543,7 +558,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 				RuntimeOrigin::signed(signer8.clone()),
 				TEST8_CERT.to_vec(),
 				Some(URL.to_vec()),
-				SgxAttestationMethod::Ias
+				SgxAttestationMethod::Ias { proxied: false }
 			));
 			assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
 			let enclaves = list_sovereign_enclaves();
@@ -563,7 +578,7 @@ fn debug_mode_enclave_attest_fails_when_sgx_debug_mode_not_allowed() {
 				RuntimeOrigin::signed(signer4.clone()),
 				TEST4_CERT.to_vec(),
 				Some(URL.to_vec()),
-				SgxAttestationMethod::Ias
+				SgxAttestationMethod::Ias { proxied: false }
 			),
 			Error::<Test>::SgxModeNotAllowed
 		);
@@ -582,7 +597,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 			url: Some(URL.to_vec()),
 			build_mode: SgxBuildMode::Production,
 			mr_signer: TEST8_MRSIGNER,
-			attestation_method: SgxAttestationMethod::Ias,
+			attestation_method: SgxAttestationMethod::Ias { proxied: false },
 			status: SgxStatus::Invalid,
 		};
 
@@ -591,7 +606,7 @@ fn production_mode_enclave_attest_works_when_sgx_debug_mode_not_allowed() {
 			RuntimeOrigin::signed(signer8.clone()),
 			TEST8_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias
+			SgxAttestationMethod::Ias { proxied: false }
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
 		let enclaves = list_sovereign_enclaves();

@@ -44,7 +44,7 @@ fn register_ias_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
 		RuntimeOrigin::signed(signer.clone()),
 		TEST4_CERT.to_vec(),
 		Some(URL.to_vec()),
-		SgxAttestationMethod::Ias,
+		SgxAttestationMethod::Ias { proxied: false },
 	));
 	let fingerprint = Teerex::sovereign_enclaves(&signer).unwrap().fingerprint();
 	assert_ok!(Teeracle::add_to_whitelist(RuntimeOrigin::root(), src.to_owned(), fingerprint));
@@ -228,7 +228,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias,
+			SgxAttestationMethod::Ias { proxied: false },
 		));
 
 		let rate = U32F32::from_num(43.65);
@@ -253,7 +253,7 @@ fn update_oracle_from_not_whitelisted_oracle_fails() {
 			RuntimeOrigin::signed(signer.clone()),
 			TEST4_CERT.to_vec(),
 			Some(URL.to_vec()),
-			SgxAttestationMethod::Ias,
+			SgxAttestationMethod::Ias { proxied: false },
 		));
 
 		assert_noop!(
