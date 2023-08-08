@@ -120,7 +120,7 @@ pub mod pallet {
 		SkippingAttestationNotAllowed,
 		/// No TCB info could be found onchain for the examinee's fmspc
 		MissingTcbInfoForFmspc,
-		/// The TCB info is outdated (try register_tcb_info with a fresh collateral)
+		/// Either the enclave TCB has outdated status or the onchain TCB collateral is outdated
 		TcbInfoOutdated,
 	}
 
@@ -514,7 +514,7 @@ impl<T: Config> Pallet<T> {
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
-		log::debug!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
+		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
 		} else {
