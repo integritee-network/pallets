@@ -21,6 +21,7 @@ use codec::Encode;
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResultWithPostInfo},
 	ensure,
+	pallet_prelude::StorageVersion,
 	traits::Get,
 };
 use frame_system::{self, ensure_signed};
@@ -43,6 +44,8 @@ const SGX_RA_PROOF_MAX_LEN: usize = 5000;
 
 const MAX_URL_LEN: usize = 256;
 
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -50,6 +53,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
+	#[pallet::storage_version(STORAGE_VERSION)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
@@ -541,6 +545,9 @@ impl<T: Config> Pallet<T> {
 mod benchmarking;
 #[cfg(test)]
 mod mock;
+
+pub mod migrations;
+
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 pub mod test_helpers;
 #[cfg(test)]
