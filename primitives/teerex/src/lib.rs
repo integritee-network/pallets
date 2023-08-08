@@ -335,7 +335,9 @@ impl SgxTcbInfoOnChain {
 		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:#?}", &examinee,);
 		for tb in &self.tcb_levels {
 			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:#?}", &tb,);
-			return tb.verify_examinee(examinee)
+			if tb.verify_examinee(examinee) {
+				return true
+			}
 		}
 		false
 	}
