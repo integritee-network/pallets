@@ -311,7 +311,7 @@ fn register_tcb_info_works() {
 
 		register_test_tcb_info::<Test>(AccountKeyring::Alice.to_account_id());
 		let fmspc = hex!("00906EA10000");
-		let tcb_info = Teerex::tcb_info(fmspc);
+		let tcb_info = Teerex::tcb_info(fmspc).unwrap();
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
 		assert_eq!(tcb_info.next_update, 1681649132000);
 

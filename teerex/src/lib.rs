@@ -118,6 +118,10 @@ pub mod pallet {
 		UnregisterActiveEnclaveNotAllowed,
 		/// skipping attestation not allowed by configuration
 		SkippingAttestationNotAllowed,
+		/// No TCB info could be found onchain for the examinee's fmspc
+		MissingTcbInfoForFmspc,
+		/// The TCB info is outdated (try register_tcb_info with a fresh collateral)
+		TcbInfoOutdated,
 	}
 
 	#[pallet::storage]
@@ -142,7 +146,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn tcb_info)]
 	pub type SgxTcbInfo<T: Config> =
-		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, Fmspc, SgxTcbInfoOnChain, OptionQuery>;
 
 	#[pallet::type_value]
 	pub fn DefaultSgxAllowDebugMode<T: Config>() -> bool {
@@ -258,11 +262,24 @@ pub mod pallet {
 
 					log::debug!(
 						target: TEEREX,
-						"DCAP quote verified. FMSPC from quote: {:?}",
-						fmspc
+						"DCAP quote verified. FMSPC from quote: {}",
+						hex::encode(fmspc)
 					);
-					let tcb_info_on_chain = <SgxTcbInfo<T>>::get(fmspc);
-					ensure!(tcb_info_on_chain.verify_examinee(&tcb_info), "tcb_info is outdated");
+					match <SgxTcbInfo<T>>::get(fmspc) {
+						Some(reference) =>
+							if reference.verify_examinee(&tcb_info) {
+								log::trace!("TCB info verification passed");
+							} else {
+								return Err(Error::<T>::TcbInfoOutdated.into())
+							},
+						None => {
+							log::warn!(
+								"No TCB info could be found onchain for the examinee's fmspc: {}",
+								hex::encode(fmspc)
+							);
+							return Err(Error::<T>::MissingTcbInfoForFmspc.into())
+						},
+					};
 
 					// TODO: activate state checks as soon as we've fixed our setup #83
 					// ensure!((report.status == SgxStatus::Ok) | (report.status == SgxStatus::ConfigurationNeeded),

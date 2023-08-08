@@ -70,5 +70,5 @@ where
 	T: Config,
 	<T as frame_system::Config>::Hash: From<[u8; 32]>,
 {
-	SgxTcbInfo::<T>::get(TCB_INFO_FMSPC)
+	SgxTcbInfo::<T>::get(TCB_INFO_FMSPC).unwrap()
 }
