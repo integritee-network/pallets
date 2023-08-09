@@ -42,7 +42,7 @@ impl Default for SgxBuildMode {
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxAttestationMethod {
 	Skip { proxied: bool },
-	Ias,
+	Ias { proxied: bool },
 	Dcap { proxied: bool },
 }
 
@@ -147,7 +147,8 @@ where
 			MultiEnclave::Sgx(enclave) => matches!(
 				enclave.attestation_method,
 				SgxAttestationMethod::Skip { proxied: true } |
-					SgxAttestationMethod::Dcap { proxied: true }
+					SgxAttestationMethod::Dcap { proxied: true } |
+					SgxAttestationMethod::Ias { proxied: true }
 			),
 		}
 	}
@@ -194,7 +195,7 @@ impl<Url> SgxEnclave<Url> {
 			Ok(p) => match self.attestation_method {
 				SgxAttestationMethod::Dcap { proxied: false } |
 				SgxAttestationMethod::Skip { proxied: false } |
-				SgxAttestationMethod::Ias => Some(p),
+				SgxAttestationMethod::Ias { proxied: false } => Some(p),
 				_ => None,
 			},
 			Err(_) => None,

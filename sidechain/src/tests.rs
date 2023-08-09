@@ -379,7 +379,7 @@ fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8]) {
 		RuntimeOrigin::signed(signer.clone()),
 		cert.to_vec(),
 		Some(URL.to_vec()),
-		SgxAttestationMethod::Ias,
+		SgxAttestationMethod::Ias { proxied: false },
 	));
 	assert!(Teerex::<Test>::sovereign_enclaves(signer).is_some());
 }
