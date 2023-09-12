@@ -128,8 +128,22 @@ pub mod pallet {
 		TcbInfoIsOutdated,
 		/// The number of certificates should be >=2
 		CertificateChainIsTooShort,
+
+		SgxCaVerificationFailed,
+		SgxRsaSignatureIsInvalid,
 		/// An error originating in the sgx_verify crate
-		SgxVerifyError(sgx_verify::Error),
+		OtherSgxVerifyError(sgx_verify::Error),
+	}
+
+	impl<T> From<sgx_verify::Error> for Error<T> {
+		fn from(e: sgx_verify::Error) -> Self {
+			use sgx_verify::Error as Theirs;
+			match e {
+				Theirs::CaVerificationFailed => Self::SgxCaVerificationFailed,
+				Theirs::RsaSignatureIsInvalid => Self::SgxRsaSignatureIsInvalid,
+				_ => Self::OtherSgxVerifyError(e),
+			}
+		}
 	}
 
 	#[pallet::storage]
@@ -218,7 +232,7 @@ pub mod pallet {
 			let enclave = match attestation_method {
 				SgxAttestationMethod::Ias => {
 					let report = sgx_verify::verify_ias_report(&proof)
-						.map_err(|e| Error::<T>::SgxVerifyError(e))?;
+						.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
 					log::debug!(target: TEEREX, "IAS report successfully verified");
 
 					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
@@ -257,7 +271,7 @@ pub mod pallet {
 					)
 					.map_err(|e| {
 						log::info!(target: TEEREX, "verify_dcap_quote failed: {:?}", e);
-						Error::<T>::SgxVerifyError(e)
+						e
 					})?;
 
 					if !proxied {
@@ -499,10 +513,10 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::SgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)
-				.map_err(|e| Error::<T>::SgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
 
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(enclave_identity.to_quoting_enclave())
@@ -523,9 +537,8 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::SgxVerifyError(e))?;
-		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)
-			.map_err(|e| Error::<T>::SgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
+		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
