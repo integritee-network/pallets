@@ -64,52 +64,47 @@ pub mod test_data;
 mod tests;
 mod utils;
 
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo, PartialEq)]
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo, frame_support::PalletError, PartialEq)]
 pub enum Error {
-	/// invalid RSA signature
-	RsaSignatureInvalid,
-	/// TCB info could not be deserialized
-	TcbInfoInvalid,
-	///
-	TimestampInvalid,
-	TimestampMissing,
-	///
-	QuoteStatusMissing,
-
-	QuoteBodyInvalid,
-	QuoteBodyMissing,
-	QuoteBodyDecodingError,
-	KeyLengthInvalid,
-	PublicKeyInvalid,
-	DerEncodingError,
-	SgxReportParsingError,
-	DcapQuoteVersionMismatch,
-	DcapKeyTypeMismatch,
-	DcapQuoteTooLong,
-	DcapQuoteDecodingError,
-	PckCertFormatMismatch,
-	QeRejectedEnclave,
+	CaVerificationFailed,
+	CertificateChainInvalid,
 	CertificateChainTooShort,
-	QeReportHashMismatch,
-	IsvEnclaveReportSignatureInvalid,
-	FmspcLengthMismatch,
-	FmspcDecodingError,
-	FmspcOidMissing,
+	CpuSvnDecodingError,
 	CpuSvnLengthMismatch,
 	CpuSvnOidMissing,
-	CpuSvnDecodingError,
-	PceSvnOidMissing,
-	PceSvnLengthMismatch,
-	PceSvnDecodingError,
+	DcapKeyTypeMismatch,
+	DcapQuoteDecodingError,
+	DcapQuoteTooLong,
+	DcapQuoteVersionMismatch,
+	DerEncodingError,
 	EnclaveIdentityDecodingError,
 	EnclaveIdentitySignatureInvalid,
+	FmspcDecodingError,
+	FmspcLengthMismatch,
+	FmspcOidMissing,
+	IntelExtensionAmbiguity,
+	IntelExtensionCertificateDecodingError,
+	IsvEnclaveReportSignatureInvalid,
+	KeyLengthInvalid,
 	LeafCertificateParsingError,
-	CertificateChainInvalid,
 	NetscapeDecodingError,
 	NetscapeDerError,
-	IntelExtensionCertificateDecodingError,
-	IntelExtensionAmbiguity,
-	CaVerificationFailed,
+	PceSvnDecodingError,
+	PceSvnLengthMismatch,
+	PceSvnOidMissing,
+	PckCertFormatMismatch,
+	PublicKeyInvalid,
+	QeRejectedEnclave,
+	QeReportHashMismatch,
+	QuoteBodyDecodingError,
+	QuoteBodyInvalid,
+	QuoteBodyMissing,
+	QuoteStatusMissing,
+	RsaSignatureInvalid,
+	SgxReportParsingError,
+	TcbInfoInvalid,
+	TimestampInvalid,
+	TimestampMissing,
 }
 
 #[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
@@ -779,7 +774,7 @@ pub fn verify_signature(
 			Ok(())
 		},
 		Err(_e) => {
-			log::error!("RSA Signature ERROR: {}", _e);
+			log::info!("RSA Signature ERROR: {}", _e);
 			Err(Error::RsaSignatureInvalid)
 		},
 	}
@@ -801,7 +796,7 @@ pub fn verify_server_cert(
 			Ok(())
 		},
 		Err(_e) => {
-			log::error!("CA ERROR: {}", _e);
+			log::info!("CA ERROR: {}", _e);
 			Err(Error::CaVerificationFailed)
 		},
 	}
