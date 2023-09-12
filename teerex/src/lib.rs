@@ -126,22 +126,97 @@ pub mod pallet {
 		MissingTcbInfoForFmspc,
 		/// Either the enclave TCB has outdated status or the onchain TCB collateral is outdated
 		TcbInfoIsOutdated,
-		/// The number of certificates should be >=2
-		CertificateChainIsTooShort,
 
-		SgxCaVerificationFailed,
-		SgxRsaSignatureIsInvalid,
+		// mapped errors from sgx_verify
 		/// An error originating in the sgx_verify crate
 		OtherSgxVerifyError(sgx_verify::Error),
+		CaVerificationFailed,
+		CertificateChainIsInvalid,
+		CertificateChainIsTooShort,
+		CpuSvnDecodingError,
+		CpuSvnLengthMismatch,
+		CpuSvnOidIsMissing,
+		DcapKeyTypeMismatch,
+		DcapQuoteDecodingError,
+		DcapQuoteIsTooLong,
+		DcapQuoteVersionMismatch,
+		DerEncodingError,
+		EnclaveIdentityDecodingError,
+		EnclaveIdentitySignatureIsInvalid,
+		FmspcDecodingError,
+		FmspcLengthMismatch,
+		FmspcOidIsMissing,
+		IntelExtensionAmbiguity,
+		IntelExtensionCertificateDecodingError,
+		IsvEnclaveReportSignatureIsInvalid,
+		KeyLengthIsInvalid,
+		LeafCertificateParsingError,
+		NetscapeDecodingError,
+		NetscapeDerError,
+		PceSvnDecodingError,
+		PceSvnLengthMismatch,
+		PceSvnOidIsMissing,
+		PckCertFormatMismatch,
+		PublicKeyIsInvalid,
+		QeHasRejectedEnclave,
+		QeReportHashMismatch,
+		QuoteBodyDecodingError,
+		QuoteBodyIsInvalid,
+		QuoteBodyMissing,
+		QuoteStatusMissing,
+		RsaSignatureIsInvalid,
+		SgxReportParsingError,
+		TcbInfoIsInvalid,
+		TimestampIsInvalid,
+		TimestampIsMissing,
 	}
 
 	impl<T> From<sgx_verify::Error> for Error<T> {
 		fn from(e: sgx_verify::Error) -> Self {
 			use sgx_verify::Error as Theirs;
 			match e {
-				Theirs::CaVerificationFailed => Self::SgxCaVerificationFailed,
-				Theirs::RsaSignatureIsInvalid => Self::SgxRsaSignatureIsInvalid,
-				_ => Self::OtherSgxVerifyError(e),
+				Theirs::CaVerificationFailed => Self::CaVerificationFailed,
+				Theirs::CertificateChainIsInvalid => Self::CertificateChainIsInvalid,
+				Theirs::CertificateChainIsTooShort => Self::CertificateChainIsTooShort,
+				Theirs::CpuSvnDecodingError => Self::CpuSvnDecodingError,
+				Theirs::CpuSvnLengthMismatch => Self::CpuSvnLengthMismatch,
+				Theirs::CpuSvnOidIsMissing => Self::CpuSvnOidIsMissing,
+				Theirs::DcapKeyTypeMismatch => Self::DcapKeyTypeMismatch,
+				Theirs::DcapQuoteDecodingError => Self::DcapQuoteDecodingError,
+				Theirs::DcapQuoteIsTooLong => Self::DcapQuoteIsTooLong,
+				Theirs::DcapQuoteVersionMismatch => Self::DcapQuoteVersionMismatch,
+				Theirs::DerEncodingError => Self::DerEncodingError,
+				Theirs::EnclaveIdentityDecodingError => Self::EnclaveIdentityDecodingError,
+				Theirs::EnclaveIdentitySignatureIsInvalid =>
+					Self::EnclaveIdentitySignatureIsInvalid,
+				Theirs::FmspcDecodingError => Self::FmspcDecodingError,
+				Theirs::FmspcLengthMismatch => Self::FmspcLengthMismatch,
+				Theirs::FmspcOidIsMissing => Self::FmspcOidIsMissing,
+				Theirs::IntelExtensionAmbiguity => Self::IntelExtensionAmbiguity,
+				Theirs::IntelExtensionCertificateDecodingError =>
+					Self::IntelExtensionCertificateDecodingError,
+				Theirs::IsvEnclaveReportSignatureIsInvalid =>
+					Self::IsvEnclaveReportSignatureIsInvalid,
+				Theirs::KeyLengthIsInvalid => Self::KeyLengthIsInvalid,
+				Theirs::LeafCertificateParsingError => Self::LeafCertificateParsingError,
+				Theirs::NetscapeDecodingError => Self::NetscapeDecodingError,
+				Theirs::NetscapeDerError => Self::NetscapeDerError,
+				Theirs::PceSvnDecodingError => Self::PceSvnDecodingError,
+				Theirs::PceSvnLengthMismatch => Self::PceSvnLengthMismatch,
+				Theirs::PceSvnOidIsMissing => Self::PceSvnOidIsMissing,
+				Theirs::PckCertFormatMismatch => Self::PckCertFormatMismatch,
+				Theirs::PublicKeyIsInvalid => Self::PublicKeyIsInvalid,
+				Theirs::QeHasRejectedEnclave => Self::QeHasRejectedEnclave,
+				Theirs::QeReportHashMismatch => Self::QeReportHashMismatch,
+				Theirs::QuoteBodyDecodingError => Self::QuoteBodyDecodingError,
+				Theirs::QuoteBodyIsInvalid => Self::QuoteBodyIsInvalid,
+				Theirs::QuoteBodyMissing => Self::QuoteBodyMissing,
+				Theirs::QuoteStatusMissing => Self::QuoteStatusMissing,
+				Theirs::RsaSignatureIsInvalid => Self::RsaSignatureIsInvalid,
+				Theirs::SgxReportParsingError => Self::SgxReportParsingError,
+				Theirs::TcbInfoIsInvalid => Self::TcbInfoIsInvalid,
+				Theirs::TimestampIsInvalid => Self::TimestampIsInvalid,
+				Theirs::TimestampIsMissing => Self::TimestampIsMissing,
 			}
 		}
 	}
@@ -231,8 +306,10 @@ pub mod pallet {
 
 			let enclave = match attestation_method {
 				SgxAttestationMethod::Ias => {
-					let report = sgx_verify::verify_ias_report(&proof)
-						.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
+					let report = sgx_verify::verify_ias_report(&proof).map_err(|e| {
+						log::info!(target: TEEREX, "verify_ias_quote failed: {:?}", e);
+						Error::<T>::from(e)
+					})?;
 					log::debug!(target: TEEREX, "IAS report successfully verified");
 
 					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
@@ -513,10 +590,10 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::from(e))?;
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)
-				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::from(e))?;
 
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(enclave_identity.to_quoting_enclave())
@@ -537,7 +614,7 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
+				.map_err(|e| Error::<T>::from(e))?;
 		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)
 			.map_err(|e| Error::<T>::from(e))?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
