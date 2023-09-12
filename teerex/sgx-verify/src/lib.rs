@@ -64,6 +64,54 @@ pub mod test_data;
 mod tests;
 mod utils;
 
+#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo, PartialEq)]
+pub enum Error {
+	/// invalid RSA signature
+	RsaSignatureInvalid,
+	/// TCB info could not be deserialized
+	TcbInfoInvalid,
+	///
+	TimestampInvalid,
+	TimestampMissing,
+	///
+	QuoteStatusMissing,
+
+	QuoteBodyInvalid,
+	QuoteBodyMissing,
+	QuoteBodyDecodingError,
+	KeyLengthInvalid,
+	PublicKeyInvalid,
+	DerEncodingError,
+	SgxReportParsingError,
+	DcapQuoteVersionMismatch,
+	DcapKeyTypeMismatch,
+	DcapQuoteTooLong,
+	DcapQuoteDecodingError,
+	PckCertFormatMismatch,
+	QeRejectedEnclave,
+	CertificateChainTooShort,
+	QeReportHashMismatch,
+	IsvEnclaveReportSignatureInvalid,
+	FmspcLengthMismatch,
+	FmspcDecodingError,
+	FmspcOidMissing,
+	CpuSvnLengthMismatch,
+	CpuSvnOidMissing,
+	CpuSvnDecodingError,
+	PceSvnOidMissing,
+	PceSvnLengthMismatch,
+	PceSvnDecodingError,
+	EnclaveIdentityDecodingError,
+	EnclaveIdentitySignatureInvalid,
+	LeafCertificateParsingError,
+	CertificateChainInvalid,
+	NetscapeDecodingError,
+	NetscapeDerError,
+	IntelExtensionCertificateDecodingError,
+	IntelExtensionAmbiguity,
+	CaVerificationFailed,
+}
+
 #[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SGXAttributes {
@@ -420,22 +468,22 @@ pub struct CertDer<'a>(&'a [u8]);
 
 /// Encode two 32-byte values in DER format
 /// This is meant for 256 bit ECC signatures or public keys
-pub fn encode_as_der(data: &[u8]) -> Result<Vec<u8>, &'static str> {
+pub fn encode_as_der(data: &[u8]) -> Result<Vec<u8>, Error> {
 	if data.len() != 64 {
-		return Result::Err("Key must be 64 bytes long")
+		return Result::Err(Error::KeyLengthInvalid)
 	}
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
 	sequence
-		.add(der::asn1::UIntRef::new(&data[0..32]).map_err(|_| "Invalid public key")?)
-		.map_err(|_| "Invalid public key")?;
+		.add(der::asn1::UIntRef::new(&data[0..32]).map_err(|_| Error::PublicKeyInvalid)?)
+		.map_err(|_| Error::PublicKeyInvalid)?;
 	sequence
-		.add(der::asn1::UIntRef::new(&data[32..]).map_err(|_| "Invalid public key")?)
-		.map_err(|_| "Invalid public key")?;
+		.add(der::asn1::UIntRef::new(&data[32..]).map_err(|_| Error::PublicKeyInvalid)?)
+		.map_err(|_| Error::PublicKeyInvalid)?;
 	// 72 should be enough in all cases. 2 + 2 x (32 + 3)
 	let mut asn1 = vec![0u8; 72];
 	let mut writer = der::SliceWriter::new(&mut asn1);
-	writer.encode(&sequence).map_err(|_| "Could not encode public key to DER")?;
-	Ok(writer.finish().map_err(|_| "Could not convert public key to DER")?.to_vec())
+	writer.encode(&sequence).map_err(|_| Error::DerEncodingError)?;
+	Ok(writer.finish().map_err(|_| Error::DerEncodingError)?.to_vec())
 }
 
 /// Extracts the specified data into a `EnclaveIdentity` instance.
@@ -445,10 +493,11 @@ pub fn deserialize_enclave_identity(
 	data: &[u8],
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
-) -> Result<EnclaveIdentity, &'static str> {
+) -> Result<EnclaveIdentity, Error> {
 	let signature = encode_as_der(signature)?;
-	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
-	serde_json::from_slice(data).map_err(|_| "Deserialization failed")
+	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)
+		.map_err(|_| Error::EnclaveIdentitySignatureInvalid)?;
+	serde_json::from_slice(data).map_err(|_| Error::EnclaveIdentityDecodingError)
 }
 
 /// Extracts the specified data into a `TcbInfo` instance.
@@ -458,21 +507,21 @@ pub fn deserialize_tcb_info(
 	data: &[u8],
 	signature: &[u8],
 	certificate: &webpki::EndEntityCert,
-) -> Result<TcbInfo, &'static str> {
+) -> Result<TcbInfo, Error> {
 	log::debug!(target: TEEREX, "inside Self::deserialize_tcb_info.");
 	let signature = encode_as_der(signature)?;
-	log::trace!(target: TEEREX, "signature is: {:#?}", &signature);
+	log::trace!(target: TEEREX, "signature is: {:?}", &signature);
 
-	log::trace!(target: TEEREX, "data is: {:#?}", &data);
+	log::trace!(target: TEEREX, "data is: {:?}", &data);
 	verify_signature(certificate, data, &signature, &webpki::ECDSA_P256_SHA256)?;
 	log::debug!(target: TEEREX, "verify_signature succeded");
 	let res = serde_json::from_slice(data);
 	log::trace!(
 		target: TEEREX,
-		"inside Self::deserialize_tcb_info, serde_json::from_slice is {:#?}",
+		"inside Self::deserialize_tcb_info, serde_json::from_slice is {:?}",
 		&res
 	);
-	res.map_err(|_| "Deserialization failed")
+	res.map_err(|_| Error::TcbInfoInvalid)
 }
 
 /// Extract a list of certificates from a byte vec. The certificates must be separated by
@@ -494,32 +543,32 @@ pub fn verify_certificate_chain<'a>(
 	leaf_cert: &'a [u8],
 	intermediate_certs: &[&[u8]],
 	verification_time: u64,
-) -> Result<webpki::EndEntityCert<'a>, &'static str> {
+) -> Result<webpki::EndEntityCert<'a>, Error> {
 	log::debug!(target: TEEREX, "Self::verify_certificate_chain.");
 	let leaf_cert: webpki::EndEntityCert =
-		webpki::EndEntityCert::from(leaf_cert).map_err(|_| "Failed to parse leaf certificate")?;
+		webpki::EndEntityCert::from(leaf_cert).map_err(|_| Error::LeafCertificateParsingError)?;
 	log::trace!(target: TEEREX, "inside Self::verify_certificate_chain, leaf cert parsed.");
 	let time = webpki::Time::from_seconds_since_unix_epoch(verification_time / 1000);
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
 	leaf_cert
 		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, intermediate_certs, time)
-		.map_err(|_| "Invalid certificate chain")?;
+		.map_err(|_| Error::CertificateChainInvalid)?;
 	log::debug!(target: TEEREX, "Self::verify_certificate_chain, is valid tls server cert.");
 	Ok(leaf_cert)
 }
 
 pub fn extract_tcb_info_from_raw_dcap_quote(
 	dcap_quote_raw: &[u8],
-) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
+) -> Result<(Fmspc, TcbVersionStatus), Error> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
-		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
+		Decode::decode(&mut dcap_quote_clone).map_err(|_| Error::DcapQuoteDecodingError)?;
 
-	ensure!(quote.header.version == 3, "Only support for version 3");
-	ensure!(quote.header.attestation_key_type == 2, "Only support for ECDSA-256");
+	ensure!(quote.header.version == 3, Error::DcapQuoteVersionMismatch);
+	ensure!(quote.header.attestation_key_type == 2, Error::DcapKeyTypeMismatch);
 	ensure!(
 		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
-		"Only support for PEM formatted PCK Cert Chain"
+		Error::PckCertFormatMismatch
 	);
 
 	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
@@ -533,24 +582,24 @@ pub fn verify_dcap_quote(
 	dcap_quote_raw: &[u8],
 	verification_time: u64,
 	qe: &SgxQuotingEnclave,
-) -> Result<(Fmspc, TcbVersionStatus, SgxVerifiedReport), &'static str> {
+) -> Result<(Fmspc, TcbVersionStatus, SgxVerifiedReport), Error> {
 	let mut dcap_quote_clone = dcap_quote_raw;
 	let quote: DcapQuote =
-		Decode::decode(&mut dcap_quote_clone).map_err(|_| "Failed to decode attestation report")?;
+		Decode::decode(&mut dcap_quote_clone).map_err(|_| Error::DcapQuoteDecodingError)?;
 
 	#[cfg(test)]
 	println!("{:?}", quote);
 
-	ensure!(quote.header.version == 3, "Only support for version 3");
-	ensure!(quote.header.attestation_key_type == 2, "Only support for ECDSA-256");
+	ensure!(quote.header.version == 3, Error::DcapQuoteVersionMismatch);
+	ensure!(quote.header.attestation_key_type == 2, Error::DcapKeyTypeMismatch);
 	ensure!(
 		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
-		"Only support for PEM formatted PCK Cert Chain"
+		Error::PckCertFormatMismatch //Only support for PEM formatted PCK Cert Chain
 	);
-	ensure!(quote.quote_signature_data.qe_report.verify(qe), "Enclave rejected by quoting enclave");
+	ensure!(quote.quote_signature_data.qe_report.verify(qe), Error::QeRejectedEnclave); //"Enclave rejected by quoting enclave"
 
 	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
-	ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+	ensure!(certs.len() >= 2, Error::CertificateChainTooShort); //"Certificate chain must have at least two certificates"
 	let intermediate_certificate_slices: Vec<&[u8]> =
 		certs[1..].iter().map(Vec::as_slice).collect();
 	let leaf_cert =
@@ -588,7 +637,7 @@ pub fn verify_dcap_quote(
 	let hash = ring::digest::digest(&ring::digest::SHA256, &hash_data);
 	ensure!(
 		hash.as_ref() == &quote.quote_signature_data.qe_report.report_data.d[0..32],
-		"Hashes must match"
+		Error::QeReportHashMismatch
 	);
 
 	let qe_report_offset = attestation_key_offset + ATTESTATION_KEY_SIZE;
@@ -603,13 +652,13 @@ pub fn verify_dcap_quote(
 	// This establishes trust into the data of the enclave we actually want to verify
 	peer_public_key
 		.verify(isv_report_slice, &quote.quote_signature_data.isv_enclave_report_signature)
-		.map_err(|_| "Failed to verify report signature")?;
+		.map_err(|_| Error::IsvEnclaveReportSignatureInvalid)?;
 
 	// Verify that the QE report was signed by Intel. This establishes trust into the QE report.
 	let asn1_signature = encode_as_der(&quote.quote_signature_data.qe_report_signature)?;
 	verify_signature(&leaf_cert, qe_report_slice, &asn1_signature, &webpki::ECDSA_P256_SHA256)?;
 
-	ensure!(dcap_quote_clone.is_empty(), "There should be no bytes left over after decoding");
+	ensure!(dcap_quote_clone.is_empty(), Error::DcapQuoteTooLong);
 	let report = SgxVerifiedReport {
 		mr_enclave: quote.body.mr_enclave,
 		mr_signer: quote.body.mr_signer,
@@ -622,16 +671,16 @@ pub fn verify_dcap_quote(
 }
 
 // make sure this function doesn't panic!
-pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
+pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxVerifiedReport, Error> {
 	// Before we reach here, the runtime already verified the extrinsic is properly signed by the extrinsic sender
 	// Hence, we skip: EphemeralKey::try_from(cert)?;
 
-	#[cfg(test)]
-	println!("verifyRA: start verifying RA cert");
+	log::trace!("verifyRA: start verifying RA cert");
 
 	let cert = CertDer(cert_der);
-	let netscape = NetscapeComment::try_from(cert)?;
-	let sig_cert = webpki::EndEntityCert::from(&netscape.sig_cert).map_err(|_| "Bad der")?;
+	let netscape = NetscapeComment::try_from(cert).map_err(|_| Error::NetscapeDecodingError)?;
+	let sig_cert =
+		webpki::EndEntityCert::from(&netscape.sig_cert).map_err(|_| Error::NetscapeDerError)?;
 
 	verify_signature(
 		&sig_cert,
@@ -648,11 +697,11 @@ pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxVerifiedReport, &'static 
 	parse_report(netscape.attestation_raw)
 }
 
-fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
+fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, Error> {
 	// parse attestation report
 	let attn_report: Value = match serde_json::from_slice(report_raw) {
 		Ok(report) => report,
-		Err(_) => return Err("RA report parsing error"),
+		Err(_) => return Err(Error::SgxReportParsingError),
 	};
 
 	let _ra_timestamp = match &attn_report["timestamp"] {
@@ -660,19 +709,17 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
 			let time_fixed = time.clone() + "+0000";
 			match DateTime::parse_from_str(&time_fixed, "%Y-%m-%dT%H:%M:%S%.f%z") {
 				Ok(d) => d.timestamp(),
-				Err(_) => return Err("RA report timestamp parsing error"),
+				Err(_) => return Err(Error::TimestampInvalid),
 			}
 		},
-		_ => return Err("Failed to fetch timestamp from attestation report"),
+		_ => return Err(Error::TimestampMissing),
 	};
 
 	// in milliseconds
-	let ra_timestamp: u64 = (_ra_timestamp * 1000)
-		.try_into()
-		.map_err(|_| "Error converting report.timestamp to u64")?;
+	let ra_timestamp: u64 =
+		(_ra_timestamp * 1000).try_into().map_err(|_| Error::TimestampInvalid)?;
 
-	#[cfg(test)]
-	println!("verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
+	log::trace!("verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
 
 	// get quote status (mandatory field)
 	let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
@@ -683,34 +730,28 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
 			"CONFIGURATION_NEEDED" => SgxStatus::ConfigurationNeeded,
 			_ => SgxStatus::Invalid,
 		},
-		_ => return Err("Failed to fetch isvEnclaveQuoteStatus from attestation report"),
+		_ => return Err(Error::QuoteStatusMissing),
 	};
 
-	#[cfg(test)]
-	println!("verifyRA attestation status is: {:?}", ra_status);
+	log::trace!("verifyRA attestation status is: {:?}", ra_status);
 	// parse quote body
 	if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
 		let quote = match base64::decode(quote_raw) {
 			Ok(q) => q,
-			Err(_) => return Err("Quote Decoding Error"),
+			Err(_) => return Err(Error::QuoteBodyDecodingError),
 		};
-		#[cfg(test)]
-		println!("Quote read. len={}", quote.len());
+		log::trace!("Quote read. len={}", quote.len());
 		// TODO: lack security check here
 		let sgx_quote: SgxQuote = match Decode::decode(&mut &quote[..]) {
 			Ok(q) => q,
-			Err(_) => return Err("could not decode quote"),
+			Err(_) => return Err(Error::QuoteBodyInvalid),
 		};
 
-		#[cfg(test)]
-		{
-			println!("sgx quote version = {}", sgx_quote.version);
-			println!("sgx quote signature type = {}", sgx_quote.sign_type);
-			//println!("sgx quote report_data = {:?}", sgx_quote.report_body.report_data.d[..32]);
-			println!("sgx quote mr_enclave = {:x?}", sgx_quote.report_body.mr_enclave);
-			println!("sgx quote mr_signer = {:x?}", sgx_quote.report_body.mr_signer);
-			println!("sgx quote report_data = {:x?}", sgx_quote.report_body.report_data.d.to_vec());
-		}
+		log::trace!("sgx quote version = {}", sgx_quote.version);
+		log::trace!("sgx quote signature type = {}", sgx_quote.sign_type);
+		log::trace!("sgx quote mr_enclave = {:x?}", sgx_quote.report_body.mr_enclave);
+		log::trace!("sgx quote mr_signer = {:x?}", sgx_quote.report_body.mr_signer);
+		log::trace!("sgx quote report_data = {:x?}", sgx_quote.report_body.report_data.d.to_vec());
 
 		Ok(SgxVerifiedReport {
 			mr_enclave: sgx_quote.report_body.mr_enclave,
@@ -721,7 +762,7 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, &'static str> {
 			build_mode: sgx_quote.report_body.sgx_build_mode(),
 		})
 	} else {
-		Err("Failed to parse isvEnclaveQuoteBody from attestation report")
+		Err(Error::QuoteBodyMissing)
 	}
 }
 
@@ -731,17 +772,15 @@ pub fn verify_signature(
 	data: &[u8],
 	signature: &[u8],
 	signature_algorithm: &SignatureAlgorithm,
-) -> Result<(), &'static str> {
+) -> Result<(), Error> {
 	match entity_cert.verify_signature(signature_algorithm, data, signature) {
 		Ok(()) => {
-			#[cfg(test)]
-			println!("IAS signature is valid");
+			log::trace!("RSA signature is valid");
 			Ok(())
 		},
 		Err(_e) => {
-			#[cfg(test)]
-			println!("RSA Signature ERROR: {}", _e);
-			Err("bad signature")
+			log::error!("RSA Signature ERROR: {}", _e);
+			Err(Error::RsaSignatureInvalid)
 		},
 	}
 }
@@ -749,7 +788,7 @@ pub fn verify_signature(
 pub fn verify_server_cert(
 	sig_cert: &webpki::EndEntityCert,
 	timestamp_valid_until: webpki::Time,
-) -> Result<(), &'static str> {
+) -> Result<(), Error> {
 	let chain: Vec<&[u8]> = Vec::new();
 	match sig_cert.verify_is_valid_tls_server_cert(
 		SUPPORTED_SIG_ALGS,
@@ -758,14 +797,12 @@ pub fn verify_server_cert(
 		timestamp_valid_until,
 	) {
 		Ok(()) => {
-			#[cfg(test)]
-			println!("CA is valid");
+			log::trace!("CA is valid");
 			Ok(())
 		},
 		Err(_e) => {
-			#[cfg(test)]
-			println!("CA ERROR: {}", _e);
-			Err("CA verification failed")
+			log::error!("CA ERROR: {}", _e);
+			Err(Error::CaVerificationFailed)
 		},
 	}
 }
@@ -778,7 +815,7 @@ const OID_FMSPC: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741
 const OID_PCESVN: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.17");
 const OID_CPUSVN: ObjectIdentifier = ObjectIdentifier::new_unwrap("1.2.840.113741.1.13.1.2.18");
 
-pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'static str> {
+pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), Error> {
 	let extension_section = get_intel_extension(cert)?;
 
 	let fmspc = get_fmspc(&extension_section)?;
@@ -788,9 +825,9 @@ pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), &'stat
 	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn)))
 }
 
-fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
-	let cert: Certificate =
-		der::Decode::from_der(der_encoded).map_err(|_| "Error parsing certificate")?;
+fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, Error> {
+	let cert: Certificate = der::Decode::from_der(der_encoded)
+		.map_err(|_| Error::IntelExtensionCertificateDecodingError)?;
 	let mut extension_iter = cert
 		.tbs_certificate
 		.extensions
@@ -803,52 +840,52 @@ fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, &'static str> {
 	let extension = extension_iter.next();
 	ensure!(
 		extension.is_some() && extension_iter.next().is_none(),
-		"There should only be one section containing Intel extensions"
+		Error::IntelExtensionAmbiguity //"There should only be one section containing Intel extensions"
 	);
 	// SAFETY: Ensured above that extension.is_some() == true
 	Ok(extension.unwrap().to_vec())
 }
 
-fn get_fmspc(der: &[u8]) -> Result<Fmspc, &'static str> {
+fn get_fmspc(der: &[u8]) -> Result<Fmspc, Error> {
 	let bytes_oid = OID_FMSPC.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'FMSPC_OID'")?;
+		.ok_or(Error::FmspcOidMissing)?;
 	offset += 12; // length oid (10) + asn1 tag (1) + asn1 length10 (1)
 
 	let fmspc_size = core::mem::size_of::<Fmspc>() / core::mem::size_of::<u8>();
-	let data = der.get(offset..offset + fmspc_size).ok_or("Index out of bounds")?;
-	data.try_into().map_err(|_| "FMSPC must be 6 bytes long")
+	let data = der.get(offset..offset + fmspc_size).ok_or(Error::FmspcLengthMismatch)?;
+	data.try_into().map_err(|_| Error::FmspcDecodingError)
 }
 
-fn get_cpusvn(der: &[u8]) -> Result<Cpusvn, &'static str> {
+fn get_cpusvn(der: &[u8]) -> Result<Cpusvn, Error> {
 	let bytes_oid = OID_CPUSVN.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'CPUSVN_OID'")?;
+		.ok_or(Error::CpuSvnOidMissing)?;
 	offset += 13; // length oid (11) + asn1 tag (1) + asn1 length10 (1)
 
 	// CPUSVN is specified to have length 16
 	let len = 16;
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
-	data.try_into().map_err(|_| "CPUSVN must be 16 bytes long")
+	let data = der.get(offset..offset + len).ok_or(Error::CpuSvnLengthMismatch)?;
+	data.try_into().map_err(|_| Error::CpuSvnDecodingError)
 }
 
-fn get_pcesvn(der: &[u8]) -> Result<Pcesvn, &'static str> {
+fn get_pcesvn(der: &[u8]) -> Result<Pcesvn, Error> {
 	let bytes_oid = OID_PCESVN.as_bytes();
 	let mut offset = der
 		.windows(bytes_oid.len())
 		.position(|window| window == bytes_oid)
-		.ok_or("Certificate does not contain 'PCESVN_OID'")?;
+		.ok_or(Error::PceSvnOidMissing)?;
 	// length oid + asn1 tag (1 byte)
 	offset += bytes_oid.len() + 1;
 	// PCESVN can be 1 or 2 bytes
-	let len = length_from_raw_data(der, &mut offset)?;
+	let len = length_from_raw_data(der, &mut offset).map_err(|_| Error::PceSvnDecodingError)?;
 	offset += 1; // length_from_raw_data does not move the offset when the length is encoded in a single byte
-	ensure!(len == 1 || len == 2, "PCESVN must be 1 or 2 bytes");
-	let data = der.get(offset..offset + len).ok_or("Index out of bounds")?;
+	ensure!(len == 1 || len == 2, Error::PceSvnLengthMismatch);
+	let data = der.get(offset..offset + len).ok_or(Error::PceSvnLengthMismatch)?;
 	if data.len() == 1 {
 		Ok(u16::from(data[0]))
 	} else {

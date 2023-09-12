@@ -84,7 +84,7 @@ fn fix_incorrect_handling_of_iterator() {
 		66, 1, 13, 0, 0, 0, 13, 1, 14, 177,
 	];
 
-	assert_err!(verify_ias_report(&report), "Invalid netscape payload");
+	assert_err!(verify_ias_report(&report), Error::NetscapeDecodingError);
 }
 
 #[test]
