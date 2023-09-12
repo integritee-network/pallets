@@ -94,7 +94,7 @@ pub enum Error {
 	PceSvnOidIsMissing,
 	PckCertFormatMismatch,
 	PublicKeyIsInvalid,
-	QeRejectedEnclave,
+	QeHasRejectedEnclave,
 	QeReportHashMismatch,
 	QuoteBodyDecodingError,
 	QuoteBodyIsInvalid,
@@ -591,7 +591,7 @@ pub fn verify_dcap_quote(
 		quote.quote_signature_data.qe_certification_data.certification_data_type == 5,
 		Error::PckCertFormatMismatch //Only support for PEM formatted PCK Cert Chain
 	);
-	ensure!(quote.quote_signature_data.qe_report.verify(qe), Error::QeRejectedEnclave); //"Enclave rejected by quoting enclave"
+	ensure!(quote.quote_signature_data.qe_report.verify(qe), Error::QeHasRejectedEnclave); //"Enclave rejected by quoting enclave"
 
 	let certs = extract_certs(&quote.quote_signature_data.qe_certification_data.certification_data);
 	ensure!(certs.len() >= 2, Error::CertificateChainIsTooShort); //"Certificate chain must have at least two certificates"
