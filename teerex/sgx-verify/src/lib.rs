@@ -670,7 +670,7 @@ pub fn verify_ias_report(cert_der: &[u8]) -> Result<SgxVerifiedReport, Error> {
 	// Before we reach here, the runtime already verified the extrinsic is properly signed by the extrinsic sender
 	// Hence, we skip: EphemeralKey::try_from(cert)?;
 
-	log::trace!("verifyRA: start verifying RA cert");
+	log::trace!(target: TEEREX, "verifyRA: start verifying RA cert");
 
 	let cert = CertDer(cert_der);
 	let netscape = NetscapeComment::try_from(cert).map_err(|_| Error::NetscapeDecodingError)?;
@@ -714,7 +714,7 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, Error> {
 	let ra_timestamp: u64 =
 		(_ra_timestamp * 1000).try_into().map_err(|_| Error::TimestampInvalid)?;
 
-	log::trace!("verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
+	log::trace!(target: TEEREX, "verifyRA attestation timestamp [unix epoch]: {}", ra_timestamp);
 
 	// get quote status (mandatory field)
 	let ra_status = match &attn_report["isvEnclaveQuoteStatus"] {
@@ -728,25 +728,33 @@ fn parse_report(report_raw: &[u8]) -> Result<SgxVerifiedReport, Error> {
 		_ => return Err(Error::QuoteStatusMissing),
 	};
 
-	log::trace!("verifyRA attestation status is: {:?}", ra_status);
+	log::trace!(target: TEEREX, "verifyRA attestation status is: {:?}", ra_status);
 	// parse quote body
 	if let Value::String(quote_raw) = &attn_report["isvEnclaveQuoteBody"] {
 		let quote = match base64::decode(quote_raw) {
 			Ok(q) => q,
 			Err(_) => return Err(Error::QuoteBodyDecodingError),
 		};
-		log::trace!("Quote read. len={}", quote.len());
+		log::trace!(target: TEEREX, "Quote read. len={}", quote.len());
 		// TODO: lack security check here
 		let sgx_quote: SgxQuote = match Decode::decode(&mut &quote[..]) {
 			Ok(q) => q,
 			Err(_) => return Err(Error::QuoteBodyInvalid),
 		};
 
-		log::trace!("sgx quote version = {}", sgx_quote.version);
-		log::trace!("sgx quote signature type = {}", sgx_quote.sign_type);
-		log::trace!("sgx quote mr_enclave = {:x?}", sgx_quote.report_body.mr_enclave);
-		log::trace!("sgx quote mr_signer = {:x?}", sgx_quote.report_body.mr_signer);
-		log::trace!("sgx quote report_data = {:x?}", sgx_quote.report_body.report_data.d.to_vec());
+		log::trace!(target: TEEREX, "sgx quote version = {}", sgx_quote.version);
+		log::trace!(target: TEEREX, "sgx quote signature type = {}", sgx_quote.sign_type);
+		log::trace!(
+			target: TEEREX,
+			"sgx quote mr_enclave = {:x?}",
+			sgx_quote.report_body.mr_enclave
+		);
+		log::trace!(target: TEEREX, "sgx quote mr_signer = {:x?}", sgx_quote.report_body.mr_signer);
+		log::trace!(
+			target: TEEREX,
+			"sgx quote report_data = {:x?}",
+			sgx_quote.report_body.report_data.d.to_vec()
+		);
 
 		Ok(SgxVerifiedReport {
 			mr_enclave: sgx_quote.report_body.mr_enclave,
@@ -770,11 +778,11 @@ pub fn verify_signature(
 ) -> Result<(), Error> {
 	match entity_cert.verify_signature(signature_algorithm, data, signature) {
 		Ok(()) => {
-			log::trace!("RSA signature is valid");
+			log::trace!(target: TEEREX, "RSA signature is valid");
 			Ok(())
 		},
 		Err(_e) => {
-			log::info!("RSA Signature ERROR: {}", _e);
+			log::info!(target: TEEREX, "RSA Signature ERROR: {}", _e);
 			Err(Error::RsaSignatureInvalid)
 		},
 	}
@@ -792,11 +800,11 @@ pub fn verify_server_cert(
 		timestamp_valid_until,
 	) {
 		Ok(()) => {
-			log::trace!("CA is valid");
+			log::trace!(target: TEEREX, "CA is valid");
 			Ok(())
 		},
 		Err(_e) => {
-			log::info!("CA ERROR: {}", _e);
+			log::info!(target: TEEREX, "CA ERROR: {}", _e);
 			Err(Error::CaVerificationFailed)
 		},
 	}
