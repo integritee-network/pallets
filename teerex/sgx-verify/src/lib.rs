@@ -522,7 +522,7 @@ pub fn deserialize_tcb_info(
 /// Extract a list of certificates from a byte vec. The certificates must be separated by
 /// `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` markers
 pub fn extract_certs(cert_chain: &[u8]) -> Vec<Vec<u8>> {
-	// The certificates should be valid UTF-8 but if not we continue. The certificate verification
+	// The certificates should be valid UTF-8 but if not we skip the invalid cert. The certificate verification
 	// will fail at a later point.
 	let certs_concat = String::from_utf8_lossy(cert_chain);
 	let certs_concat = certs_concat.replace('\n', "");

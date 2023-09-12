@@ -517,7 +517,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(Fmspc, SgxTcbInfoOnChain), DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
-		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		ensure!(certs.len() >= 2, Error::<T>::CertificateChainTooShort);
 		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
