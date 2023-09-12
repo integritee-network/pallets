@@ -271,7 +271,7 @@ pub mod pallet {
 					)
 					.map_err(|e| {
 						log::info!(target: TEEREX, "verify_dcap_quote failed: {:?}", e);
-						e
+						Error::<T>::from(e)
 					})?;
 
 					if !proxied {
@@ -538,7 +538,8 @@ impl<T: Config> Pallet<T> {
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
 				.map_err(|e| Error::<T>::OtherSgxVerifyError(e))?;
-		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)
+			.map_err(|e| Error::<T>::from(e))?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
