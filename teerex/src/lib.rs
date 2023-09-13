@@ -105,27 +105,120 @@ pub mod pallet {
 		/// Verifying RA report failed.
 		RemoteAttestationVerificationFailed,
 		/// IAS remote attestation is too old
-		RemoteAttestationTooOld,
+		RemoteAttestationIsTooOld,
 		/// The enclave cannot attest, because its building mode is not allowed.
-		SgxModeNotAllowed,
+		SgxModeIsNotAllowed,
 		/// The enclave is not registered.
 		EnclaveIsNotRegistered,
 		/// The worker url is too long.
-		EnclaveUrlTooLong,
+		EnclaveUrlIsTooLong,
 		/// The Remote Attestation proof is too long.
-		RaProofTooLong,
+		RaProofIsTooLong,
 		/// No enclave is registered.
 		EmptyEnclaveRegistry,
 		/// The provided collateral data is invalid
-		CollateralInvalid,
+		CollateralIsInvalid,
 		/// It is not allowed to unregister enclaves with recent activity
-		UnregisterActiveEnclaveNotAllowed,
+		UnregisterActiveEnclaveIsNotAllowed,
 		/// skipping attestation not allowed by configuration
-		SkippingAttestationNotAllowed,
+		SkippingAttestationIsNotAllowed,
 		/// No TCB info could be found onchain for the examinee's fmspc
 		MissingTcbInfoForFmspc,
 		/// Either the enclave TCB has outdated status or the onchain TCB collateral is outdated
-		TcbInfoOutdated,
+		TcbInfoIsOutdated,
+
+		// mapped errors from sgx_verify
+		/// An error originating in the sgx_verify crate
+		OtherSgxVerifyError(sgx_verify::Error),
+		CaVerificationFailed,
+		CertificateChainIsInvalid,
+		CertificateChainIsTooShort,
+		CpuSvnDecodingError,
+		CpuSvnLengthMismatch,
+		CpuSvnOidIsMissing,
+		DcapKeyTypeMismatch,
+		DcapQuoteDecodingError,
+		DcapQuoteIsTooLong,
+		DcapQuoteVersionMismatch,
+		DerEncodingError,
+		EnclaveIdentityDecodingError,
+		EnclaveIdentitySignatureIsInvalid,
+		FmspcDecodingError,
+		FmspcLengthMismatch,
+		FmspcOidIsMissing,
+		IntelExtensionAmbiguity,
+		IntelExtensionCertificateDecodingError,
+		IsvEnclaveReportSignatureIsInvalid,
+		KeyLengthIsInvalid,
+		LeafCertificateParsingError,
+		NetscapeDecodingError,
+		NetscapeDerError,
+		PceSvnDecodingError,
+		PceSvnLengthMismatch,
+		PceSvnOidIsMissing,
+		PckCertFormatMismatch,
+		PublicKeyIsInvalid,
+		QeHasRejectedEnclave,
+		QeReportHashMismatch,
+		QuoteBodyDecodingError,
+		QuoteBodyIsInvalid,
+		QuoteBodyMissing,
+		QuoteStatusMissing,
+		RsaSignatureIsInvalid,
+		SgxReportParsingError,
+		TcbInfoIsInvalid,
+		TimestampIsInvalid,
+		TimestampIsMissing,
+	}
+
+	impl<T> From<sgx_verify::Error> for Error<T> {
+		fn from(e: sgx_verify::Error) -> Self {
+			use sgx_verify::Error as Theirs;
+			match e {
+				Theirs::CaVerificationFailed => Self::CaVerificationFailed,
+				Theirs::CertificateChainIsInvalid => Self::CertificateChainIsInvalid,
+				Theirs::CertificateChainIsTooShort => Self::CertificateChainIsTooShort,
+				Theirs::CpuSvnDecodingError => Self::CpuSvnDecodingError,
+				Theirs::CpuSvnLengthMismatch => Self::CpuSvnLengthMismatch,
+				Theirs::CpuSvnOidIsMissing => Self::CpuSvnOidIsMissing,
+				Theirs::DcapKeyTypeMismatch => Self::DcapKeyTypeMismatch,
+				Theirs::DcapQuoteDecodingError => Self::DcapQuoteDecodingError,
+				Theirs::DcapQuoteIsTooLong => Self::DcapQuoteIsTooLong,
+				Theirs::DcapQuoteVersionMismatch => Self::DcapQuoteVersionMismatch,
+				Theirs::DerEncodingError => Self::DerEncodingError,
+				Theirs::EnclaveIdentityDecodingError => Self::EnclaveIdentityDecodingError,
+				Theirs::EnclaveIdentitySignatureIsInvalid =>
+					Self::EnclaveIdentitySignatureIsInvalid,
+				Theirs::FmspcDecodingError => Self::FmspcDecodingError,
+				Theirs::FmspcLengthMismatch => Self::FmspcLengthMismatch,
+				Theirs::FmspcOidIsMissing => Self::FmspcOidIsMissing,
+				Theirs::IntelExtensionAmbiguity => Self::IntelExtensionAmbiguity,
+				Theirs::IntelExtensionCertificateDecodingError =>
+					Self::IntelExtensionCertificateDecodingError,
+				Theirs::IsvEnclaveReportSignatureIsInvalid =>
+					Self::IsvEnclaveReportSignatureIsInvalid,
+				Theirs::KeyLengthIsInvalid => Self::KeyLengthIsInvalid,
+				Theirs::LeafCertificateParsingError => Self::LeafCertificateParsingError,
+				Theirs::NetscapeDecodingError => Self::NetscapeDecodingError,
+				Theirs::NetscapeDerError => Self::NetscapeDerError,
+				Theirs::PceSvnDecodingError => Self::PceSvnDecodingError,
+				Theirs::PceSvnLengthMismatch => Self::PceSvnLengthMismatch,
+				Theirs::PceSvnOidIsMissing => Self::PceSvnOidIsMissing,
+				Theirs::PckCertFormatMismatch => Self::PckCertFormatMismatch,
+				Theirs::PublicKeyIsInvalid => Self::PublicKeyIsInvalid,
+				Theirs::QeHasRejectedEnclave => Self::QeHasRejectedEnclave,
+				Theirs::QeReportHashMismatch => Self::QeReportHashMismatch,
+				Theirs::QuoteBodyDecodingError => Self::QuoteBodyDecodingError,
+				Theirs::QuoteBodyIsInvalid => Self::QuoteBodyIsInvalid,
+				Theirs::QuoteBodyMissing => Self::QuoteBodyMissing,
+				Theirs::QuoteStatusMissing => Self::QuoteStatusMissing,
+				Theirs::RsaSignatureIsInvalid => Self::RsaSignatureIsInvalid,
+				Theirs::SgxReportParsingError => Self::SgxReportParsingError,
+				Theirs::TcbInfoIsInvalid => Self::TcbInfoIsInvalid,
+				Theirs::TimestampIsInvalid => Self::TimestampIsInvalid,
+				Theirs::TimestampIsMissing => Self::TimestampIsMissing,
+			}
+		}
 	}
 
 	#[pallet::storage]
@@ -205,16 +298,18 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			log::debug!(target: TEEREX, "called into runtime call register_sgx_enclave()");
 			let sender = ensure_signed(origin)?;
-			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, <Error<T>>::RaProofTooLong);
+			ensure!(proof.len() <= SGX_RA_PROOF_MAX_LEN, Error::<T>::RaProofIsTooLong);
 			if let Some(ref url) = worker_url {
-				ensure!(url.len() <= MAX_URL_LEN, <Error<T>>::EnclaveUrlTooLong);
+				ensure!(url.len() <= MAX_URL_LEN, Error::<T>::EnclaveUrlIsTooLong);
 			}
 			log::debug!(target: TEEREX, "parameter length ok");
 
 			let enclave = match attestation_method {
 				SgxAttestationMethod::Ias => {
-					let report = sgx_verify::verify_ias_report(&proof)
-						.map_err(|_| <Error<T>>::RemoteAttestationVerificationFailed)?;
+					let report = sgx_verify::verify_ias_report(&proof).map_err(|e| {
+						log::info!(target: TEEREX, "verify_ias_quote failed: {:?}", e);
+						Error::<T>::from(e)
+					})?;
 					log::debug!(target: TEEREX, "IAS report successfully verified");
 
 					Self::ensure_timestamp_within_24_hours(report.timestamp)?;
@@ -232,7 +327,7 @@ pub mod pallet {
 					ensure!(
 						Ok(sender.clone()) ==
 							T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
-						<Error<T>>::SenderIsNotAttestedEnclave
+						Error::<T>::SenderIsNotAttestedEnclave
 					);
 
 					// TODO: activate state checks as soon as we've fixed our setup #83
@@ -253,14 +348,14 @@ pub mod pallet {
 					)
 					.map_err(|e| {
 						log::info!(target: TEEREX, "verify_dcap_quote failed: {:?}", e);
-						<Error<T>>::RemoteAttestationVerificationFailed
+						Error::<T>::from(e)
 					})?;
 
 					if !proxied {
 						ensure!(
 							Ok(sender.clone()) ==
 								T::AccountId::decode(&mut report.report_data.lower32().as_ref()),
-							<Error<T>>::SenderIsNotAttestedEnclave
+							Error::<T>::SenderIsNotAttestedEnclave
 						);
 					}
 
@@ -274,7 +369,7 @@ pub mod pallet {
 							if reference.verify_examinee(&tcb_info) {
 								log::trace!("TCB info verification passed");
 							} else {
-								return Err(Error::<T>::TcbInfoOutdated.into())
+								return Err(Error::<T>::TcbInfoIsOutdated.into())
 							},
 						None => {
 							log::warn!(
@@ -303,7 +398,7 @@ pub mod pallet {
 				SgxAttestationMethod::Skip { proxied } => {
 					if !Self::allow_skipping_attestation() {
 						log::debug!(target: TEEREX, "skipping attestation not allowed",);
-						return Err(<Error<T>>::SkippingAttestationNotAllowed.into())
+						return Err(Error::<T>::SkippingAttestationIsNotAllowed.into())
 					}
 					log::debug!(target: TEEREX, "skipping attestation verification",);
 					SgxEnclave::new(
@@ -322,7 +417,7 @@ pub mod pallet {
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::info!(target: TEEREX, "debug mode is not allowed to attest!");
-				return Err(<Error<T>>::SgxModeNotAllowed.into())
+				return Err(Error::<T>::SgxModeIsNotAllowed.into())
 			}
 
 			let enclave = match worker_url {
@@ -356,7 +451,7 @@ pub mod pallet {
 			log::debug!(target: TEEREX, "called into runtime call unregister_sovereign_enclave()");
 			ensure_signed(origin)?;
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
-				.ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+				.ok_or(Error::<T>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
 			let oldest_acceptable_attestation_time = now
 				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
@@ -364,7 +459,7 @@ pub mod pallet {
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
 			} else {
-				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
+				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into())
 			}
 			log::debug!(target: TEEREX, "removed sovereign enclave {:?}", enclave_signer);
 			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
@@ -380,7 +475,7 @@ pub mod pallet {
 			log::debug!(target: TEEREX, "called into runtime call unregister_proxied_enclave()");
 			ensure_signed(origin)?;
 			let enclave =
-				Self::proxied_enclaves(&address).ok_or(<Error<T>>::EnclaveIsNotRegistered)?;
+				Self::proxied_enclaves(&address).ok_or(Error::<T>::EnclaveIsNotRegistered)?;
 			let now = <timestamp::Pallet<T>>::get();
 			let oldest_acceptable_attestation_time = now
 				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
@@ -388,7 +483,7 @@ pub mod pallet {
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<ProxiedEnclaves<T>>::remove(&address);
 			} else {
-				return Err(<Error<T>>::UnregisterActiveEnclaveNotAllowed.into())
+				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into())
 			}
 			log::info!(target: TEEREX, "removed proxied enclave {:?}", address);
 			Self::deposit_event(Event::RemovedProxiedEnclave(address));
@@ -481,7 +576,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_sovereign_enclave(
 		account: &T::AccountId,
 	) -> Result<MultiEnclave<Vec<u8>>, DispatchErrorWithPostInfo> {
-		<SovereignEnclaves<T>>::get(account).ok_or(<Error<T>>::EnclaveIsNotRegistered.into())
+		<SovereignEnclaves<T>>::get(account).ok_or(Error::<T>::EnclaveIsNotRegistered.into())
 	}
 
 	fn verify_quoting_enclave(
@@ -491,17 +586,19 @@ impl<T: Config> Pallet<T> {
 	) -> Result<SgxQuotingEnclave, DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
-		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
-			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
+				.map_err(Error::<T>::from)?;
 		let enclave_identity =
-			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)?;
+			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)
+				.map_err(Error::<T>::from)?;
 
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(enclave_identity.to_quoting_enclave())
 		} else {
-			Err(<Error<T>>::CollateralInvalid.into())
+			Err(Error::<T>::CollateralIsInvalid.into())
 		}
 	}
 
@@ -512,17 +609,19 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(Fmspc, SgxTcbInfoOnChain), DispatchErrorWithPostInfo> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
-		ensure!(certs.len() >= 2, "Certificate chain must have at least two certificates");
+		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
 		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
-			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)?;
-		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)?;
+			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
+				.map_err(Error::<T>::from)?;
+		let tcb_info =
+			deserialize_tcb_info(&tcb_info, &signature, &leaf_cert).map_err(Error::<T>::from)?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
 		} else {
-			Err(<Error<T>>::CollateralInvalid.into())
+			Err(Error::<T>::CollateralIsInvalid.into())
 		}
 	}
 
@@ -536,7 +635,7 @@ impl<T: Config> Pallet<T> {
 		if elapsed_time < T::MomentsPerDay::get() {
 			Ok(().into())
 		} else {
-			Err(<Error<T>>::RemoteAttestationTooOld.into())
+			Err(Error::<T>::RemoteAttestationIsTooOld.into())
 		}
 	}
 }

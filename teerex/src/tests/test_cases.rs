@@ -168,7 +168,7 @@ fn skip_attestation_add_sovereign_enclave_works_if_allowed() {
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Skip { proxied: false }
 			),
-			Error::<Test>::SkippingAttestationNotAllowed
+			Error::<Test>::SkippingAttestationIsNotAllowed
 		);
 	})
 }
@@ -211,7 +211,7 @@ fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Skip { proxied: false }
 			),
-			Error::<Test>::SkippingAttestationNotAllowed
+			Error::<Test>::SkippingAttestationIsNotAllowed
 		);
 	})
 }
@@ -242,7 +242,7 @@ fn unregister_active_sovereign_enclave_fails() {
 				RuntimeOrigin::signed(alice.clone()),
 				signer.clone()
 			),
-			Error::<Test>::UnregisterActiveEnclaveNotAllowed
+			Error::<Test>::UnregisterActiveEnclaveIsNotAllowed
 		);
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 	})
@@ -280,7 +280,7 @@ fn unregister_active_proxied_enclave_fails() {
 				RuntimeOrigin::signed(alice.clone()),
 				instance_address.clone(),
 			),
-			Error::<Test>::UnregisterActiveEnclaveNotAllowed
+			Error::<Test>::UnregisterActiveEnclaveIsNotAllowed
 		);
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 	})
@@ -434,7 +434,7 @@ fn register_ias_enclave_with_to_old_attestation_report_fails() {
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Ias
 			),
-			Error::<Test>::RemoteAttestationTooOld
+			Error::<Test>::RemoteAttestationIsTooOld
 		);
 	})
 }
@@ -565,7 +565,7 @@ fn debug_mode_enclave_attest_fails_when_sgx_debug_mode_not_allowed() {
 				Some(URL.to_vec()),
 				SgxAttestationMethod::Ias
 			),
-			Error::<Test>::SgxModeNotAllowed
+			Error::<Test>::SgxModeIsNotAllowed
 		);
 		assert!(!<SovereignEnclaves<Test>>::contains_key(&signer4));
 	})
