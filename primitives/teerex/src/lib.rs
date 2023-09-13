@@ -22,6 +22,7 @@ use codec::{Decode, Encode};
 pub use common_primitives::{AnySigner, EnclaveFingerprint, OpaqueSigner};
 use derive_more::From;
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_runtime::MultiSigner;
 use sp_std::prelude::*;
 
@@ -95,6 +96,44 @@ pub enum SgxStatus {
 	GroupOutOfDate,
 	GroupRevoked,
 	ConfigurationNeeded,
+}
+
+impl From<TcbStatus> for SgxStatus {
+	fn from(tcb_status: TcbStatus) -> Self {
+		match tcb_status {
+			TcbStatus::UpToDate => Self::Ok,
+			TcbStatus::SWHardeningNeeded => Self::Ok,
+			TcbStatus::ConfigurationAndSWHardeningNeeded => Self::ConfigurationNeeded,
+			TcbStatus::OutOfDate => Self::GroupOutOfDate,
+			TcbStatus::OutOfDateConfigurationNeeded => Self::GroupOutOfDate,
+			TcbStatus::Unknown => Self::Invalid,
+			TcbStatus::Revoked => Self::GroupRevoked,
+		}
+	}
+}
+
+#[derive(
+	Encode,
+	Decode,
+	Default,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+	Serialize,
+	Deserialize,
+)]
+pub enum TcbStatus {
+	#[default]
+	Unknown,
+	UpToDate,
+	SWHardeningNeeded,
+	ConfigurationAndSWHardeningNeeded,
+	OutOfDate,
+	OutOfDateConfigurationNeeded,
+	Revoked,
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
@@ -290,23 +329,27 @@ impl SgxQuotingEnclave {
 pub struct TcbVersionStatus {
 	pub cpusvn: Cpusvn,
 	pub pcesvn: Pcesvn,
+	pub tcb_status: TcbStatus,
 }
 
 impl TcbVersionStatus {
-	pub fn new(cpusvn: Cpusvn, pcesvn: Pcesvn) -> Self {
-		Self { cpusvn, pcesvn }
+	pub fn new(cpusvn: Cpusvn, pcesvn: Pcesvn, tcb_status: TcbStatus) -> Self {
+		Self { cpusvn, pcesvn, tcb_status }
 	}
 
+	/// verifies if CpuSvn and PceSvn are considered valid
+	/// this function should be called by recent TcbInfo from Intel with the DUT enclave
+	/// TCB info from the DCAP quote as argument
 	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
-			log::debug!(target: TEEREX, "verify_examinee: v={:#?},r={:#?}", v, r);
+			log::debug!(target: TEEREX, "verify_examinee: v={:?},r={:?}", v, r);
 			if *v > *r {
 				return false
 			}
 		}
 		log::debug!(
 			target: TEEREX,
-			"verify_examinee: self.pcesvn={:#?},examinee.pcesvn={:#?}",
+			"verify_examinee: self.pcesvn={:?},examinee.pcesvn={:?}",
 			&self.pcesvn,
 			&examinee.pcesvn
 		);
@@ -330,16 +373,19 @@ impl SgxTcbInfoOnChain {
 		Self { issue_date, next_update, tcb_levels }
 	}
 
-	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
-		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: self={:#?}", &self,);
-		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:#?}", &examinee,);
+	/// verifies if CpuSvn and PceSvn are considered valid and returns current SgxStatus as a verdict of the DCAP process
+	/// this function should be called by recent TcbInfo from Intel with the DUT enclave
+	/// TCB info from the DCAP quote as argument
+	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> Option<SgxStatus> {
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: self={:?}", &self,);
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:?}", &examinee,);
 		for tb in &self.tcb_levels {
-			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:#?}", &tb,);
+			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:?}", &tb,);
 			if tb.verify_examinee(examinee) {
-				return true
+				return Some(tb.tcb_status.into())
 			}
 		}
-		false
+		None
 	}
 }
 
@@ -364,15 +410,28 @@ mod tests {
 	#[test]
 	fn tcb_full_is_valid() {
 		// The strings are the hex encodings of the 16-byte CPUSVN numbers
-		let reference = TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7);
+		let reference =
+			TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7, TcbStatus::UpToDate);
 		assert!(reference.verify_examinee(&reference));
-		assert!(reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7)));
-		assert!(reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("21110204018007000000000000000001"), 7)));
-		assert!(!reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("10110204018007000000000000000000"), 6)));
-		assert!(!reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 6)));
+		assert!(reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("11110204018007000000000000000000"),
+			7,
+			TcbStatus::UpToDate
+		)));
+		assert!(reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("21110204018007000000000000000001"),
+			7,
+			TcbStatus::UpToDate
+		)));
+		assert!(!reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("10110204018007000000000000000000"),
+			6,
+			TcbStatus::UpToDate
+		)));
+		assert!(!reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("11110204018007000000000000000000"),
+			6,
+			TcbStatus::UpToDate
+		)));
 	}
 }

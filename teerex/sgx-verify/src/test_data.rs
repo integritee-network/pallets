@@ -67,6 +67,11 @@ pub mod dcap {
 	];
 	pub const TEST1_DCAP_QUOTE_MRENCLAVE: [u8; 32] =
 		hex!("6f90120b5c1f03619112eac855e29d6e0be4f35b2902aa169affff7719277ebc");
+
+	// reproduce error for alibaba machine https://github.com/integritee-network/attesteer/issues/18
+	pub const TEST2_DCAP_QUOTE_HEX: &str = include_str!("../test-data/dcap/test2_dcap_quote.hex");
+	pub const TEST2_DCAP_TIMESTAMP: u64 = 1693498018000;
+
 	#[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 	pub struct QuotingEnclave {
 		pub qe_identity_cert: &'static str,

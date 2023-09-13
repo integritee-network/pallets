@@ -23,7 +23,8 @@ use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
 use teerex_primitives::{
-	Fmspc, MrSigner, Pcesvn, QeTcb, SgxQuotingEnclave, SgxTcbInfoOnChain, TcbVersionStatus, TEEREX,
+	Fmspc, MrSigner, Pcesvn, QeTcb, SgxQuotingEnclave, SgxTcbInfoOnChain, TcbStatus,
+	TcbVersionStatus, TEEREX,
 };
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
@@ -50,19 +51,10 @@ pub struct TcbLevel {
 	/// Intel does not verify the tcb_date in their code and their API documentation also does
 	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
-	tcb_status: String,
+	tcb_status: TcbStatus,
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	advisory_ids: Option<Vec<String>>,
-}
-
-impl TcbLevel {
-	pub fn is_valid(&self) -> bool {
-		// UpToDate is the only valid status (the other being OutOfDate and Revoked)
-		// A possible extension would be to also verify that the advisory_ids list is empty,
-		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb.is_valid() && self.tcb_status == "UpToDate"
-	}
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -88,18 +80,10 @@ pub struct TcbLevelFull {
 	/// Intel does not verify the tcb_date in their code and their API documentation also does
 	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
-	tcb_status: String,
+	tcb_status: TcbStatus,
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	advisory_ids: Option<Vec<String>>,
-}
-
-impl TcbLevelFull {
-	pub fn is_valid(&self) -> bool {
-		// A possible extension would be to also verify that the advisory_ids list is empty,
-		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb_status == "UpToDate" || self.tcb_status == "SWHardeningNeeded"
-	}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -150,9 +134,7 @@ impl EnclaveIdentity {
 	pub fn to_quoting_enclave(&self) -> SgxQuotingEnclave {
 		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
 		for tcb in &self.tcb_levels {
-			if tcb.is_valid() {
-				valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
-			}
+			valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
 		}
 		SgxQuotingEnclave::new(
 			self.issue_date
@@ -203,14 +185,12 @@ impl TcbInfo {
 		let valid_tcbs: Vec<TcbVersionStatus> = self
 			.tcb_levels
 			.iter()
-			// Only store TCB levels on chain that are currently valid
-			.filter(|tcb| tcb.is_valid())
 			.map(|tcb| {
 				let mut components = [0u8; 16];
 				for (i, t) in tcb.tcb.sgxtcbcomponents.iter().enumerate() {
 					components[i] = t.svn;
 				}
-				TcbVersionStatus::new(components, tcb.tcb.pcesvn)
+				TcbVersionStatus::new(components, tcb.tcb.pcesvn, tcb.tcb_status)
 			})
 			.collect();
 		(
@@ -255,30 +235,4 @@ pub struct TcbInfoSigned {
 pub struct EnclaveIdentitySigned {
 	pub enclave_identity: EnclaveIdentity,
 	pub signature: String,
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn tcb_level_is_valid() {
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
-		)
-		.unwrap();
-		assert!(t.is_valid());
-
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"OutOfDate" }"#,
-		)
-		.unwrap();
-		assert!(!t.is_valid());
-
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":5}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
-		)
-		.unwrap();
-		assert!(!t.is_valid());
-	}
 }

@@ -18,16 +18,24 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode,
-	SgxEnclave, SovereignEnclaves,
+	AllowSkippingAttestation, Error,
+	Error::TcbInfoIsOutdated,
+	Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode, SgxEnclave, SovereignEnclaves,
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
-use sgx_verify::test_data::dcap::{TEST1_DCAP_QUOTE_MRENCLAVE, TEST1_DCAP_QUOTE_SIGNER};
+use sgx_verify::{
+	collateral::EnclaveIdentity,
+	test_data::dcap::{
+		QUOTING_ENCLAVE, TEST1_DCAP_QUOTE_MRENCLAVE, TEST1_DCAP_QUOTE_SIGNER, TEST2_DCAP_QUOTE_HEX,
+	},
+	verify_dcap_quote,
+};
 use sp_keyring::AccountKeyring;
+use std::default::Default;
 use teerex_primitives::{
-	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
-	SgxReportData, SgxStatus,
+	AnySigner, Cpusvn, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
+	SgxQuotingEnclave, SgxReportData, SgxStatus, SgxTcbInfoOnChain, TcbStatus, TcbVersionStatus,
 };
 use test_utils::test_data::{
 	consts::*,
@@ -136,6 +144,26 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 		assert!(!<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 		assert_eq!(list_proxied_enclaves(), vec![])
 	})
+}
+
+#[test]
+fn outdated_tcb_status_is_reported_correctly() {
+	let tcb_info_onchain = SgxTcbInfoOnChain::new(
+		1693476000000,
+		1914399873000,
+		vec![TcbVersionStatus::new(
+			hex!("0C0C0303FFFF00000000000000000000"),
+			13,
+			TcbStatus::OutOfDate,
+		)],
+	);
+	let qe_identity: EnclaveIdentity = serde_json::from_slice(QUOTING_ENCLAVE).unwrap();
+	let quoting_enclave = qe_identity.to_quoting_enclave();
+
+	let quote_bytes = hex::decode(TEST2_DCAP_QUOTE_HEX.trim()).unwrap();
+	let (fmspc, tcb_info, report) =
+		verify_dcap_quote(quote_bytes.as_slice(), 1693475073000, &quoting_enclave).unwrap();
+	assert_eq!(tcb_info_onchain.verify_examinee(&tcb_info), Some(SgxStatus::GroupOutOfDate));
 }
 
 #[test]
