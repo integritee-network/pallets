@@ -43,7 +43,7 @@ fn verify_ias_report_should_work() {
 }
 
 #[test]
-fn decode_dcap_quote_should_work() {
+fn decoding_dcap_quote_works() {
 	let quote_bytes = hex::decode(TEST2_DCAP_QUOTE_HEX.trim()).unwrap();
 	let quote: Result<DcapQuote, _> = Decode::decode(&mut quote_bytes.as_slice());
 	assert!(quote.is_ok());
