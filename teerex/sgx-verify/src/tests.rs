@@ -21,7 +21,7 @@ use crate::{
 	test_data::{
 		consts::{TEST4_CERT, TEST4_MRENCLAVE, TEST4_SIGNER_PUB, TEST4_TIMESTAMP, TEST8_CERT},
 		dcap::{
-			DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT, TEST2_DCAP_QUOTE, TEST2_DCAP_TIMESTAMP,
+			DCAP_QUOTE_CERT, PCK_CRL, QE_IDENTITY_CERT, TEST2_DCAP_QUOTE_HEX, TEST2_DCAP_TIMESTAMP,
 			TEST_VALID_COLLATERAL_TIMESTAMP,
 		},
 	},
@@ -44,7 +44,7 @@ fn verify_ias_report_should_work() {
 
 #[test]
 fn decode_dcap_quote_should_work() {
-	let quote_bytes = TEST2_DCAP_QUOTE.clone();
+	let quote_bytes = hex::decode(TEST2_DCAP_QUOTE_HEX.trim()).unwrap();
 	let quote: Result<DcapQuote, _> = Decode::decode(&mut quote_bytes.as_slice());
 	assert!(quote.is_ok());
 }
