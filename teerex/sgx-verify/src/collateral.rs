@@ -190,7 +190,7 @@ impl TcbInfo {
 				for (i, t) in tcb.tcb.sgxtcbcomponents.iter().enumerate() {
 					components[i] = t.svn;
 				}
-				TcbVersionStatus::new(components, tcb.tcb.pcesvn, tcb.tcb_status.into())
+				TcbVersionStatus::new(components, tcb.tcb.pcesvn, tcb.tcb_status)
 			})
 			.collect();
 		(
