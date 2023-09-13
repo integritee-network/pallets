@@ -337,16 +337,19 @@ impl TcbVersionStatus {
 		Self { cpusvn, pcesvn, tcb_status }
 	}
 
+	/// verifies if CpuSvn and PceSvn are considered valid
+	/// this function should be called by recent TcbInfo from Intel with the DUT enclave
+	/// TCB info from the DCAP quote as argument
 	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> bool {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
-			log::debug!(target: TEEREX, "verify_examinee: v={:#?},r={:#?}", v, r);
+			log::debug!(target: TEEREX, "verify_examinee: v={:?},r={:?}", v, r);
 			if *v > *r {
 				return false
 			}
 		}
 		log::debug!(
 			target: TEEREX,
-			"verify_examinee: self.pcesvn={:#?},examinee.pcesvn={:#?}",
+			"verify_examinee: self.pcesvn={:?},examinee.pcesvn={:?}",
 			&self.pcesvn,
 			&examinee.pcesvn
 		);
@@ -370,11 +373,14 @@ impl SgxTcbInfoOnChain {
 		Self { issue_date, next_update, tcb_levels }
 	}
 
+	/// verifies if CpuSvn and PceSvn are considered valid and returns current SgxStatus as a verdict of the DCAP process
+	/// this function should be called by recent TcbInfo from Intel with the DUT enclave
+	/// TCB info from the DCAP quote as argument
 	pub fn verify_examinee(&self, examinee: &TcbVersionStatus) -> Option<SgxStatus> {
-		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: self={:#?}", &self,);
-		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:#?}", &examinee,);
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: self={:?}", &self,);
+		log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: examinee={:?}", &examinee,);
 		for tb in &self.tcb_levels {
-			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:#?}", &tb,);
+			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:?}", &tb,);
 			if tb.verify_examinee(examinee) {
 				return Some(tb.tcb_status.into())
 			}
