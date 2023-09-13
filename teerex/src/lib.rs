@@ -590,10 +590,10 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::from(e))?;
+				.map_err(Error::<T>::from)?;
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)
-				.map_err(|e| Error::<T>::from(e))?;
+				.map_err(Error::<T>::from)?;
 
 		if enclave_identity.is_valid(verification_time.try_into().unwrap()) {
 			Ok(enclave_identity.to_quoting_enclave())
@@ -614,9 +614,9 @@ impl<T: Config> Pallet<T> {
 		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
 		let leaf_cert =
 			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(|e| Error::<T>::from(e))?;
-		let tcb_info = deserialize_tcb_info(&tcb_info, &signature, &leaf_cert)
-			.map_err(|e| Error::<T>::from(e))?;
+				.map_err(Error::<T>::from)?;
+		let tcb_info =
+			deserialize_tcb_info(&tcb_info, &signature, &leaf_cert).map_err(Error::<T>::from)?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
 		if tcb_info.is_valid(verification_time.try_into().unwrap()) {
 			Ok(tcb_info.to_chain_tcb_info())
