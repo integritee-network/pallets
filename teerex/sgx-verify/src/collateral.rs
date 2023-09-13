@@ -56,15 +56,6 @@ pub struct TcbLevel {
 	advisory_ids: Option<Vec<String>>,
 }
 
-impl TcbLevel {
-	pub fn is_valid(&self) -> bool {
-		// UpToDate is the only valid status (the other being OutOfDate and Revoked)
-		// A possible extension would be to also verify that the advisory_ids list is empty,
-		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb.is_valid() && self.tcb_status == "UpToDate"
-	}
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 struct TcbComponent {
 	svn: u8,
@@ -243,30 +234,4 @@ pub struct TcbInfoSigned {
 pub struct EnclaveIdentitySigned {
 	pub enclave_identity: EnclaveIdentity,
 	pub signature: String,
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn tcb_level_is_valid() {
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
-		)
-		.unwrap();
-		assert!(t.is_valid());
-
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":6}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"OutOfDate" }"#,
-		)
-		.unwrap();
-		assert!(!t.is_valid());
-
-		let t: TcbLevel = serde_json::from_str(
-			r#"{"tcb":{"isvsvn":5}, "tcbDate":"2021-11-10T00:00:00Z", "tcbStatus":"UpToDate" }"#,
-		)
-		.unwrap();
-		assert!(!t.is_valid());
-	}
 }
