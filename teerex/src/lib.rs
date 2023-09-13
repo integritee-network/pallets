@@ -364,10 +364,11 @@ pub mod pallet {
 						"DCAP quote verified. FMSPC from quote: {}",
 						hex::encode(fmspc)
 					);
-					match <SgxTcbInfo<T>>::get(fmspc) {
+					let sgx_status = match <SgxTcbInfo<T>>::get(fmspc) {
 						Some(reference) =>
-							if reference.verify_examinee(&tcb_info) {
+							if let Some(status) = reference.verify_examinee(&tcb_info) {
 								log::trace!("TCB info verification passed");
+								status
 							} else {
 								return Err(Error::<T>::TcbInfoIsOutdated.into())
 							},
@@ -391,7 +392,7 @@ pub mod pallet {
 						report.mr_signer,
 						report.timestamp,
 						report.build_mode,
-						report.status,
+						sgx_status,
 					)
 					.with_attestation_method(SgxAttestationMethod::Dcap { proxied })
 				},

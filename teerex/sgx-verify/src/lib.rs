@@ -50,7 +50,7 @@ use sp_std::{
 };
 use teerex_primitives::{
 	Cpusvn, Fmspc, MrEnclave, MrSigner, Pcesvn, SgxBuildMode, SgxQuotingEnclave, SgxReportData,
-	SgxStatus, TcbVersionStatus, TEEREX,
+	SgxStatus, TcbStatus, TcbVersionStatus, TEEREX,
 };
 use webpki::SignatureAlgorithm;
 use x509_cert::Certificate;
@@ -658,7 +658,7 @@ pub fn verify_dcap_quote(
 		mr_enclave: quote.body.mr_enclave,
 		mr_signer: quote.body.mr_signer,
 		report_data: quote.body.report_data,
-		status: SgxStatus::Ok,
+		status: SgxStatus::Invalid, // DCAP process will replace status later at 'verify_examinee'
 		timestamp: verification_time,
 		build_mode: quote.body.sgx_build_mode(),
 	};
@@ -825,7 +825,7 @@ pub fn extract_tcb_info(cert: &[u8]) -> Result<(Fmspc, TcbVersionStatus), Error>
 	let cpusvn = get_cpusvn(&extension_section)?;
 	let pcesvn = get_pcesvn(&extension_section)?;
 
-	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn)))
+	Ok((fmspc, TcbVersionStatus::new(cpusvn, pcesvn, TcbStatus::Unknown)))
 }
 
 fn get_intel_extension(der_encoded: &[u8]) -> Result<Vec<u8>, Error> {

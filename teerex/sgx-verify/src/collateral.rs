@@ -23,7 +23,8 @@ use chrono::prelude::{DateTime, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use sp_std::prelude::*;
 use teerex_primitives::{
-	Fmspc, MrSigner, Pcesvn, QeTcb, SgxQuotingEnclave, SgxTcbInfoOnChain, TcbVersionStatus, TEEREX,
+	Fmspc, MrSigner, Pcesvn, QeTcb, SgxQuotingEnclave, SgxTcbInfoOnChain, TcbStatus,
+	TcbVersionStatus, TEEREX,
 };
 
 /// The data structures in here are designed such that they can be used to serialize/deserialize
@@ -50,7 +51,7 @@ pub struct TcbLevel {
 	/// Intel does not verify the tcb_date in their code and their API documentation also does
 	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
-	tcb_status: String,
+	tcb_status: TcbStatus,
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	advisory_ids: Option<Vec<String>>,
@@ -79,7 +80,7 @@ pub struct TcbLevelFull {
 	/// Intel does not verify the tcb_date in their code and their API documentation also does
 	/// not mention it needs verification.
 	tcb_date: DateTime<Utc>,
-	tcb_status: String,
+	tcb_status: TcbStatus,
 	#[serde(rename = "advisoryIDs")]
 	#[serde(skip_serializing_if = "Option::is_none")]
 	advisory_ids: Option<Vec<String>>,
@@ -189,7 +190,7 @@ impl TcbInfo {
 				for (i, t) in tcb.tcb.sgxtcbcomponents.iter().enumerate() {
 					components[i] = t.svn;
 				}
-				TcbVersionStatus::new(components, tcb.tcb.pcesvn)
+				TcbVersionStatus::new(components, tcb.tcb.pcesvn, tcb.tcb_status.into())
 			})
 			.collect();
 		(
