@@ -94,14 +94,6 @@ pub struct TcbLevelFull {
 	advisory_ids: Option<Vec<String>>,
 }
 
-impl TcbLevelFull {
-	pub fn is_valid(&self) -> bool {
-		// A possible extension would be to also verify that the advisory_ids list is empty,
-		// but I think this could also lead to all TcbLevels being invalid
-		self.tcb_status == "UpToDate" || self.tcb_status == "SWHardeningNeeded"
-	}
-}
-
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EnclaveIdentity {
@@ -150,9 +142,7 @@ impl EnclaveIdentity {
 	pub fn to_quoting_enclave(&self) -> SgxQuotingEnclave {
 		let mut valid_tcbs: Vec<QeTcb> = Vec::new();
 		for tcb in &self.tcb_levels {
-			if tcb.is_valid() {
-				valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
-			}
+			valid_tcbs.push(QeTcb::new(tcb.tcb.isvsvn));
 		}
 		SgxQuotingEnclave::new(
 			self.issue_date
@@ -203,8 +193,6 @@ impl TcbInfo {
 		let valid_tcbs: Vec<TcbVersionStatus> = self
 			.tcb_levels
 			.iter()
-			// Only store TCB levels on chain that are currently valid
-			.filter(|tcb| tcb.is_valid())
 			.map(|tcb| {
 				let mut components = [0u8; 16];
 				for (i, t) in tcb.tcb.sgxtcbcomponents.iter().enumerate() {
