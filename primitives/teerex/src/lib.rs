@@ -376,7 +376,7 @@ impl SgxTcbInfoOnChain {
 		for tb in &self.tcb_levels {
 			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:#?}", &tb,);
 			if tb.verify_examinee(examinee) {
-				return Some(examinee.tcb_status.into())
+				return Some(tb.tcb_status.into())
 			}
 		}
 		None
@@ -404,15 +404,28 @@ mod tests {
 	#[test]
 	fn tcb_full_is_valid() {
 		// The strings are the hex encodings of the 16-byte CPUSVN numbers
-		let reference = TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7);
+		let reference =
+			TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7, TcbStatus::UpToDate);
 		assert!(reference.verify_examinee(&reference));
-		assert!(reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 7)));
-		assert!(reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("21110204018007000000000000000001"), 7)));
-		assert!(!reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("10110204018007000000000000000000"), 6)));
-		assert!(!reference
-			.verify_examinee(&TcbVersionStatus::new(hex!("11110204018007000000000000000000"), 6)));
+		assert!(reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("11110204018007000000000000000000"),
+			7,
+			TcbStatus::UpToDate
+		)));
+		assert!(reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("21110204018007000000000000000001"),
+			7,
+			TcbStatus::UpToDate
+		)));
+		assert!(!reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("10110204018007000000000000000000"),
+			6,
+			TcbStatus::UpToDate
+		)));
+		assert!(!reference.verify_examinee(&TcbVersionStatus::new(
+			hex!("11110204018007000000000000000000"),
+			6,
+			TcbStatus::UpToDate
+		)));
 	}
 }

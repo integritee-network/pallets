@@ -547,7 +547,13 @@ pub fn verify_certificate_chain<'a>(
 	let sig_algs = &[&webpki::ECDSA_P256_SHA256];
 	leaf_cert
 		.verify_is_valid_tls_server_cert(sig_algs, &DCAP_SERVER_ROOTS, intermediate_certs, time)
-		.map_err(|_| Error::CertificateChainIsInvalid)?;
+		.map_err(|e| {
+			log::warn!(target: TEEREX, "certificate chain is invalid: {:?}", e);
+			#[cfg(test)]
+			println!("certificate chain is invalid: {:?}", e);
+			Error::CertificateChainIsInvalid
+		})?;
+
 	log::debug!(target: TEEREX, "Self::verify_certificate_chain, is valid tls server cert.");
 	Ok(leaf_cert)
 }
