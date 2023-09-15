@@ -60,7 +60,10 @@ pub mod v1 {
 			);
 
 			let allow_debug_mode = v0::AllowSGXDebugMode::<T>::get();
-			log::info!("teerexV1: SGX debug mode was allowed pre_upgrade: {}", allow_debug_mode);
+			log::info!(
+				"teerexV1: SGX debug mode (v0) was allowed pre_upgrade: {}",
+				allow_debug_mode
+			);
 			Ok((onchain_version, enclave_count, allow_debug_mode).encode())
 		}
 
