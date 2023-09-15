@@ -44,7 +44,7 @@ const SGX_RA_PROOF_MAX_LEN: usize = 5000;
 
 const MAX_URL_LEN: usize = 256;
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 #[frame_support::pallet]
 pub mod pallet {
