@@ -2,9 +2,6 @@ use super::*;
 
 use frame_support::{pallet_prelude::*, storage_alias, traits::OnRuntimeUpgrade};
 
-/// The log target.
-const TARGET: &str = "teerex::migration::v1";
-
 mod v0 {
 	use super::*;
 
