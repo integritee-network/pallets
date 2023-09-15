@@ -33,6 +33,8 @@ mod v0 {
 
 pub mod v1 {
 	use super::*;
+	/// The log target.
+	const TARGET: &str = "teerex::migration::v1";
 
 	#[derive(
 		Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
@@ -55,12 +57,14 @@ pub mod v1 {
 
 			let enclave_count = v0::EnclaveCount::<T>::get() as u64;
 			log::info!(
+				target: TARGET,
 				"teerexV1: {} v0 enclaves are present before eventual upgrade",
 				enclave_count,
 			);
 
 			let allow_debug_mode = v0::AllowSGXDebugMode::<T>::get();
 			log::info!(
+				target: TARGET,
 				"teerexV1: SGX debug mode (v0) was allowed pre_upgrade: {}",
 				allow_debug_mode
 			);
@@ -73,6 +77,7 @@ pub mod v1 {
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 
 			log::info!(
+				target: TARGET,
 				"teerexV1: Running migration with current storage version {:?} / onchain {:?}",
 				current_version,
 				onchain_version
@@ -80,7 +85,7 @@ pub mod v1 {
 
 			let mut purged_keys = 0u64;
 			if onchain_version >= current_version {
-				log::warn!("teerexV1: skipping on_runtime_upgrade: executed on same or newer storage version."
+				log::warn!(target: TARGET,"teerexV1: skipping on_runtime_upgrade: executed on same or newer storage version."
 				);
 				return T::DbWeight::get().reads(1)
 			}
@@ -106,7 +111,7 @@ pub mod v1 {
 			) = Decode::decode(&mut &state[..]).expect("pre_upgrade provides a valid state; qed");
 			let post_onchain_version = Pallet::<T>::on_chain_storage_version();
 			if pre_onchain_version >= post_onchain_version {
-				log::info!("teerexV1: migration was skipped because onchain version was greater or equal to the target version of this migration step");
+				log::info!(target: TARGET,"teerexV1: migration was skipped because onchain version was greater or equal to the target version of this migration step");
 				return Ok(())
 			}
 
@@ -123,6 +128,8 @@ pub mod v1 {
 
 pub mod v2 {
 	use super::*;
+	/// The log target.
+	const TARGET: &str = "teerex::migration::v2";
 
 	pub struct MigrateV1toV2<T>(sp_std::marker::PhantomData<T>);
 
@@ -134,7 +141,11 @@ pub mod v2 {
 			ensure!(onchain_version == 1 && current_version == 2, "only migration from v1 to v2");
 
 			let tcb_info_count = v1::SgxTcbInfo::<T>::iter_keys().count() as u64;
-			log::info!("teerexV2: TCB info for {} fmspc entries will be purged", tcb_info_count);
+			log::info!(
+				target: TARGET,
+				"teerexV2: TCB info for {} fmspc entries will be purged",
+				tcb_info_count
+			);
 			Ok((tcb_info_count).encode())
 		}
 
@@ -144,6 +155,7 @@ pub mod v2 {
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 
 			log::info!(
+				target: TARGET,
 				"teerexV2: Running migration with current storage version {:?} / onchain {:?}",
 				current_version,
 				onchain_version
@@ -152,6 +164,7 @@ pub mod v2 {
 			let mut purged_keys = 0u64;
 			if onchain_version >= current_version {
 				log::warn!(
+					target: TARGET,
 					"teerexV2: skipping on_runtime_upgrade: executed on wrong storage version."
 				);
 				return T::DbWeight::get().reads(1)
