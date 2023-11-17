@@ -137,7 +137,7 @@ fn deserialize_qe_identity_works() {
 		certs[1..].iter().map(|c| c.as_slice().into()).collect();
 	let leaf_cert_der = webpki::types::CertificateDer::from(certs[0].as_slice());
 	let leaf_cert = webpki::EndEntityCert::try_from(&leaf_cert_der).unwrap();
-	verify_certificate_chain(&leaf_cert, &intermediate_slices, COLLATERAL_VERIFICATION_TIMESTAMP)
+	verify_certificate_chain(&leaf_cert, &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
 		.unwrap();
 	let json: EnclaveIdentitySigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/qe_identity.json")).unwrap();
@@ -156,7 +156,7 @@ fn deserialize_tcb_info_works() {
 		certs[1..].iter().map(|c| c.as_slice().into()).collect();
 	let leaf_cert_der = webpki::types::CertificateDer::from(certs[0].as_slice());
 	let leaf_cert = webpki::EndEntityCert::try_from(&leaf_cert_der).unwrap();
-	verify_certificate_chain(&leaf_cert, &intermediate_slices, COLLATERAL_VERIFICATION_TIMESTAMP)
+	verify_certificate_chain(&leaf_cert, &intermediate_slices, TEST_VALID_COLLATERAL_TIMESTAMP)
 		.unwrap();
 	let json: TcbInfoSigned =
 		serde_json::from_slice(include_bytes!("../test-data/dcap/tcb_info.json")).unwrap();
