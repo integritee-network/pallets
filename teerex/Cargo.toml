@@ -12,8 +12,9 @@ edition = "2021"
 codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 log = { version = "0.4.14", default-features = false }
-scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
+webpki = { git = "https://github.com/rustls/webpki", version = "=0.102.0-alpha.3", rev = "da923ed", package = "rustls-webpki", default-features = false, features = ["alloc", "ring"] }
 
 # local
 sgx-verify = { path = "sgx-verify", default-features = false }
@@ -52,6 +53,7 @@ std = [
     "log/std",
     "scale-info/std",
     "serde",
+    "webpki/std",
     # local
     "sgx-verify/std",
     "teerex-primitives/std",
