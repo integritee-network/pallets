@@ -37,9 +37,11 @@ hex-literal = "0.3.2"
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
 test-utils = { path = "../test-utils" }
 sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+
+# Re-introduce subxt whe we need it, maintaining it is a pain.
 # Remove unnecessary wasm stuff by disabling default features, also it lead
 # to a linker issue once: https://github.com/integritee-network/pallets/pull/159.
-subxt = { default-features = false, git = "https://github.com/paritytech/subxt.git", branch = "master" }
+# subxt = { version = "0.29.0", default-features = false }
 
 
 [features]
