@@ -16,7 +16,7 @@ der = { default-features = false, version = "0.6.0" }
 hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 hex-literal = { version = "0.3.2" }
 log = { version = "0.4.14", default-features = false }
-ring = { git = "https://github.com/betrusted-io/ring-xous", branch = "0.16.20-cleanup", default-features = false, features = ["alloc"] }
+ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
 serde = { default-features = false, version = "1.0.140", features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

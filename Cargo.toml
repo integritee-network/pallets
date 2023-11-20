@@ -16,6 +16,3 @@ members = [
     "primitives/common",
     "primitives/xcm-transactor",
 ]
-
-[patch.crates-io]
-ring = { git = "https://github.com/betrusted-io/ring-xous", branch = "0.16.20-cleanup" }
