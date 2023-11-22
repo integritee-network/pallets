@@ -37,3 +37,11 @@ Run all unit tests with
 cargo test --all
 ```
 
+## Overriding
+
+To use this pallet (directly or indirectly) in no-std, we need to override the ring crate in the workspace root, like:
+
+```
+[patch.crates-io]
+ring = { git = "https://github.com/betrusted-io/ring-xous", branch = "0.16.20-cleanup" }
+```

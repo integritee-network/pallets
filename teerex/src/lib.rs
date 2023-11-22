@@ -588,10 +588,14 @@ impl<T: Config> Pallet<T> {
 		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
-		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-		let leaf_cert =
-			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(Error::<T>::from)?;
+		let intermediate_slices: Vec<webpki::types::CertificateDer> =
+			certs[1..].iter().map(|c| c.as_slice().into()).collect();
+		let leaf_cert_der = webpki::types::CertificateDer::from(certs[0].as_slice());
+		let leaf_cert = webpki::EndEntityCert::try_from(&leaf_cert_der)
+			.map_err(|_| Error::<T>::LeafCertificateParsingError)?;
+		verify_certificate_chain(&leaf_cert, &intermediate_slices, verification_time)
+			.map_err(Error::<T>::from)?;
+
 		let enclave_identity =
 			deserialize_enclave_identity(&enclave_identity, &signature, &leaf_cert)
 				.map_err(Error::<T>::from)?;
@@ -612,10 +616,13 @@ impl<T: Config> Pallet<T> {
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
 		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
-		let intermediate_slices: Vec<&[u8]> = certs[1..].iter().map(Vec::as_slice).collect();
-		let leaf_cert =
-			verify_certificate_chain(&certs[0], &intermediate_slices, verification_time)
-				.map_err(Error::<T>::from)?;
+		let intermediate_slices: Vec<webpki::types::CertificateDer> =
+			certs[1..].iter().map(|c| c.as_slice().into()).collect();
+		let leaf_cert_der = webpki::types::CertificateDer::from(certs[0].as_slice());
+		let leaf_cert = webpki::EndEntityCert::try_from(&leaf_cert_der)
+			.map_err(|_| Error::<T>::LeafCertificateParsingError)?;
+		verify_certificate_chain(&leaf_cert, &intermediate_slices, verification_time)
+			.map_err(Error::<T>::from)?;
 		let tcb_info =
 			deserialize_tcb_info(&tcb_info, &signature, &leaf_cert).map_err(Error::<T>::from)?;
 		log::trace!(target: TEEREX, "Self::deserialize_tcb_info succeded.");
