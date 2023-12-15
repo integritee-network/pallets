@@ -77,6 +77,15 @@ fn initial_update_shard_config_on_foreign_shard_works() {
 			ShardConfig::new(enclave.fingerprint()),
 			0,
 		));
+
+		// same as root
+		let new_shard = ShardIdentifier::from([2u8; 32]);
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::root(),
+			new_shard,
+			ShardConfig::new(enclave.fingerprint()),
+			0,
+		));
 	})
 }
 
@@ -108,6 +117,26 @@ fn update_shard_config_to_new_fingerprint_works() {
 
 		let expected_event =
 			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ShardConfigUpdated(shard));
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		// same as root. force-authorize another enclave for existing shard
+		let new_shard = ShardIdentifier::from([2u8; 32]);
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::root(),
+			new_shard,
+			ShardConfig::new([2u8; 32].into()),
+			0,
+		));
+
+		assert_ok!(EnclaveBridge::update_shard_config(
+			RuntimeOrigin::root(),
+			shard,
+			ShardConfig::new([3u8; 32].into()),
+			10,
+		));
+
+		let expected_event =
+			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::ShardConfigUpdated(new_shard));
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
