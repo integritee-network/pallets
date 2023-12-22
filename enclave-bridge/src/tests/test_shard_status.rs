@@ -41,6 +41,13 @@ fn purge_enclave_from_shard_status_works_if_present() {
 			shard,
 			enclave_signer_1.clone(),
 		));
+		let expected_event =
+			RuntimeEvent::EnclaveBridge(EnclaveBridgeEvent::PurgedEnclaveFromShardConfig {
+				shard,
+				subject: enclave_signer_1.clone(),
+			});
+		println!("events:{:?}", System::events());
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert!(EnclaveBridge::shard_status(shard).is_some());
 		assert_eq!(EnclaveBridge::shard_status(shard).unwrap().len(), 0);

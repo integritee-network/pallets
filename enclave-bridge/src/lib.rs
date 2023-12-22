@@ -383,7 +383,7 @@ pub mod pallet {
 				if let Some(shard_status) = Self::shard_status(shard) {
 					shard_status
 						.iter()
-						.map(|s| s.clone())
+						.cloned()
 						.filter(|signer_status| signer_status.signer != subject)
 						.collect::<Vec<ShardSignerStatus<T>>>()
 						.try_into()
