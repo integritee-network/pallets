@@ -36,6 +36,7 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 	pub fingerprint: EnclaveFingerprint,
 	pub last_activity: BlockNumber,
 }
+pub const SHARD_STATUS_MAX_DEPTH: u32 = 10;
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
 pub struct ShardConfig<AccountId> {
