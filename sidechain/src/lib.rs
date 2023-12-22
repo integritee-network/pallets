@@ -21,7 +21,7 @@ use enclave_bridge_primitives::ShardIdentifier;
 use frame_support::dispatch::DispatchResultWithPostInfo;
 use frame_system::{self};
 use pallet_enclave_bridge::Pallet as EnclaveBridge;
-use sidechain_primitives::SidechainBlockConfirmation;
+use sidechain_primitives::{SidechainBlockConfirmation, SidechainBlockNumber};
 use sp_core::H256;
 use sp_std::{prelude::*, str, vec};
 
@@ -29,7 +29,7 @@ pub use crate::weights::WeightInfo;
 
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
-pub type ShardBlockNumber = (ShardIdentifier, u64);
+pub type ShardAndBlockNumber = (ShardIdentifier, SidechainBlockNumber);
 
 pub use pallet::*;
 
@@ -60,6 +60,7 @@ pub mod pallet {
 		/// a sidechain block has been finalized
 		FinalizedSidechainBlock {
 			shard: ShardIdentifier,
+			block_number: SidechainBlockNumber,
 			block_header_hash: H256,
 			validateer: T::AccountId,
 		},
@@ -76,12 +77,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn latest_sidechain_block_confirmation)]
 	pub type LatestSidechainBlockConfirmation<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn sidechain_block_finalization_candidate)]
-	pub type SidechainBlockFinalizationCandidate<T: Config> =
-		StorageMap<_, Blake2_128Concat, ShardIdentifier, u64, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, SidechainBlockConfirmation, OptionQuery>;
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -92,7 +88,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
 			block_number: u64,
-			next_finalization_candidate_block_number: u64,
+			_next_finalization_candidate_block_number: u64, //fixme: can be removed next time we introduce breaking changes
 			block_header_hash: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -103,7 +99,8 @@ pub mod pallet {
 					<frame_system::Pallet<T>>::block_number(),
 				)?;
 
-			// TODO: Simple logic for now: only accept blocks from first registered enclave.
+			// TODO: Simple but robust logic for now:
+			// accept all blocks from first registered enclave for shard as long as blocknumber monotonically increases.
 			if sender != shard_status[0].signer {
 				log::debug!(
 					"Ignore block confirmation from registered enclave with index > 1: {:?}",
@@ -111,22 +108,12 @@ pub mod pallet {
 				);
 				return Ok(().into())
 			}
-			let finalization_candidate_block_number =
-				<SidechainBlockFinalizationCandidate<T>>::try_get(shard).unwrap_or(1);
-
-			ensure!(
-				block_number == finalization_candidate_block_number,
-				<Error<T>>::ReceivedUnexpectedSidechainBlock
-			);
-			ensure!(
-				next_finalization_candidate_block_number > finalization_candidate_block_number,
-				<Error<T>>::InvalidNextFinalizationCandidateBlockNumber
-			);
-
-			<SidechainBlockFinalizationCandidate<T>>::insert(
-				shard,
-				next_finalization_candidate_block_number,
-			);
+			if let Some(ancestor) = Self::latest_sidechain_block_confirmation(shard) {
+				ensure!(
+					ancestor.block_number < block_number,
+					<Error<T>>::ReceivedUnexpectedSidechainBlock
+				);
+			}
 			Self::finalize_block(
 				shard,
 				SidechainBlockConfirmation { block_number, block_header_hash },
@@ -145,13 +132,16 @@ impl<T: Config> Pallet<T> {
 	) {
 		<LatestSidechainBlockConfirmation<T>>::insert(shard, confirmation);
 		let block_header_hash = confirmation.block_header_hash;
+		let block_number = confirmation.block_number;
 		log::debug!(
-			"Imported sidechain block confirmed with shard {:?}, block header hash {:?}",
+			"Imported sidechain block {} confirmed with shard {:?}, block header hash {:?}",
+			block_number,
 			shard,
 			block_header_hash
 		);
 		Self::deposit_event(Event::FinalizedSidechainBlock {
 			shard,
+			block_number,
 			block_header_hash,
 			validateer: sender.clone(),
 		});
