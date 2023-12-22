@@ -120,6 +120,8 @@ pub mod pallet {
 		DataTooLong,
 		/// Too many enclaves in ShardStatus
 		TooManyEnclaves,
+		/// No such enclave was found in shard status
+		EnclaveNotFoundInShardStatus,
 	}
 
 	#[pallet::storage]
@@ -366,10 +368,8 @@ pub mod pallet {
 			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			Ok(().into())
 		}
-		/// Update shard config
-		/// To be respected by L2 instances after `enactment_delay` parentchain blocks
-		/// If no previous config exists, the `enactment_delay` parameter will be ignored
-		/// and the `shard_config` will be active immediately
+		/// Purge enclave from shard status
+		/// this is a root call to be used for maintenance. Shall eventually be replaced by a lazy timeout
 		#[pallet::call_index(6)]
 		#[pallet::weight((<T as Config>::WeightInfo::purge_enclave_from_shard_status(), DispatchClass::Normal, Pays::No))]
 		pub fn purge_enclave_from_shard_status(
@@ -394,7 +394,7 @@ pub mod pallet {
 						target: ENCLAVE_BRIDGE,
 						"attempt to purge absent enclave from shard status"
 					);
-					return Ok(().into())
+					return Err(Error::<T>::EnclaveNotFoundInShardStatus.into())
 				};
 
 			<crate::pallet::ShardStatus<T>>::insert(shard, new_status);
