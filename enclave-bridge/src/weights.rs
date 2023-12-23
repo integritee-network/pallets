@@ -56,6 +56,7 @@ pub trait WeightInfo {
 	fn unshield_funds() -> Weight;
 	fn publish_hash(l: u32, t: u32) -> Weight;
 	fn update_shard_config() -> Weight;
+	fn purge_enclave_from_shard_status() -> Weight;
 }
 
 /// Weights for pallet_teerex using the Integritee parachain node and recommended hardware.
@@ -129,6 +130,12 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+
+	fn purge_enclave_from_shard_status() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
 }
 
 /// For tests, weights have been generated with the integritee-node.
@@ -195,5 +202,10 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 3928))
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	fn purge_enclave_from_shard_status() -> Weight {
+		Weight::from_parts(10_000_000, 0)
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 }

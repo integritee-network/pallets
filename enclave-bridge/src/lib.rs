@@ -17,33 +17,35 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use crate::weights::WeightInfo;
 use codec::Encode;
-use enclave_bridge_primitives::*;
+use enclave_bridge_primitives::{
+	Request, ShardConfig, ShardIdentifier, ShardSignerStatus as ShardSignerStatusGeneric,
+	UpgradableShardConfig, ENCLAVE_BRIDGE, MAX_SHARD_STATUS_SIGNER_COUNT,
+};
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResult, DispatchResultWithPostInfo},
 	ensure,
+	pallet_prelude::ConstU32,
 	traits::{Currency, ExistenceRequirement},
 };
 use frame_system::{self, ensure_signed};
-use sp_core::H256;
+use pallet_teerex::Pallet as Teerex;
+use sp_core::{bounded::BoundedVec, H256};
 use sp_runtime::traits::{SaturatedConversion, Saturating};
 use sp_std::{prelude::*, str, vec};
-
-pub use crate::weights::WeightInfo;
-
+use teerex_primitives::{EnclaveFingerprint, MultiEnclave};
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
-pub type ShardSignerStatusVec<T> = Vec<
-	ShardSignerStatus<
-		<T as frame_system::Config>::AccountId,
-		<T as frame_system::Config>::BlockNumber,
-	>,
+pub type ShardSignerStatus<T> = ShardSignerStatusGeneric<
+	<T as frame_system::Config>::AccountId,
+	<T as frame_system::Config>::BlockNumber,
 >;
+pub type ShardSignerStatusVec<T> =
+	BoundedVec<ShardSignerStatus<T>, ConstU32<MAX_SHARD_STATUS_SIGNER_COUNT>>;
 
 pub use pallet::*;
-use pallet_teerex::Pallet as Teerex;
-use teerex_primitives::MultiEnclave;
 
 /// Maximum number of topics for the `publish_hash` call.
 const TOPICS_LIMIT: usize = 5;
@@ -101,6 +103,11 @@ pub mod pallet {
 			data: Vec<u8>,
 		},
 		ShardConfigUpdated(ShardIdentifier),
+		/// An enclave has been purged from a shard status. Most likely due to inactivity
+		PurgedEnclaveFromShardConfig {
+			shard: ShardIdentifier,
+			subject: T::AccountId,
+		},
 	}
 
 	#[pallet::error]
@@ -111,17 +118,18 @@ pub mod pallet {
 		TooManyTopics,
 		/// The length of the `data` passed to `publish_hash` exceeds the limit.
 		DataTooLong,
+		/// Too many enclaves in ShardStatus
+		TooManyEnclaves,
+		/// No such enclave was found in shard status
+		EnclaveNotFoundInShardStatus,
+		/// Shard not found
+		ShardNotFound,
 	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn shard_status)]
-	pub type ShardStatus<T: Config> = StorageMap<
-		_,
-		Blake2_128Concat,
-		ShardIdentifier,
-		Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>,
-		OptionQuery,
-	>;
+	pub type ShardStatus<T: Config> =
+		StorageMap<_, Blake2_128Concat, ShardIdentifier, ShardSignerStatusVec<T>, OptionQuery>;
 
 	/// this registry holds shard configurations as well as pending updates thereof.
 	/// We decided to put config and update data in the same storage for performance reasons.
@@ -362,6 +370,40 @@ pub mod pallet {
 			Self::deposit_event(Event::ShardConfigUpdated(shard));
 			Ok(().into())
 		}
+		/// Purge enclave from shard status
+		/// this is a root call to be used for maintenance. Shall eventually be replaced by a lazy timeout
+		#[pallet::call_index(6)]
+		#[pallet::weight((<T as Config>::WeightInfo::purge_enclave_from_shard_status(), DispatchClass::Normal, Pays::No))]
+		pub fn purge_enclave_from_shard_status(
+			origin: OriginFor<T>,
+			shard: ShardIdentifier,
+			subject: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let new_status: ShardSignerStatusVec<T> = Self::shard_status(shard)
+				.ok_or(Error::<T>::ShardNotFound)?
+				.iter()
+				.cloned()
+				.filter(|signer_status| signer_status.signer != subject)
+				.collect::<Vec<ShardSignerStatus<T>>>()
+				.try_into()
+				.expect("can only become smaller by filtering");
+
+			<crate::pallet::ShardStatus<T>>::insert(shard, new_status);
+
+			log::info!(
+				target: ENCLAVE_BRIDGE,
+				"purged {:?} from shard status for {:?}",
+				subject,
+				shard,
+			);
+			Self::deposit_event(crate::pallet::Event::PurgedEnclaveFromShardConfig {
+				shard,
+				subject,
+			});
+			Ok(().into())
+		}
 	}
 }
 
@@ -371,10 +413,7 @@ impl<T: Config> Pallet<T> {
 		enclave_signer: &T::AccountId,
 		shard: ShardIdentifier,
 		current_block_number: T::BlockNumber,
-	) -> Result<
-		(MultiEnclave<Vec<u8>>, Vec<ShardSignerStatus<T::AccountId, T::BlockNumber>>),
-		DispatchErrorWithPostInfo,
-	> {
+	) -> Result<(MultiEnclave<Vec<u8>>, ShardSignerStatusVec<T>), DispatchErrorWithPostInfo> {
 		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
 		ensure!(
 			enclave.fingerprint() ==
@@ -418,14 +457,15 @@ impl<T: Config> Pallet<T> {
 		enclave_fingerprint: EnclaveFingerprint,
 		current_block_number: T::BlockNumber,
 	) -> Result<ShardSignerStatusVec<T>, DispatchErrorWithPostInfo> {
-		let new_status = ShardSignerStatus {
+		let new_status = ShardSignerStatus::<T> {
 			signer: enclave_signer.clone(),
 			fingerprint: enclave_fingerprint,
 			last_activity: current_block_number,
 		};
 
-		let signer_statuses = <ShardStatus<T>>::get(shard)
-			.map(|mut status_vec| {
+		let signer_statuses: Vec<ShardSignerStatus<T>> = Self::shard_status(shard)
+			.map(|status_bvec| {
+				let mut status_vec = status_bvec.to_vec();
 				if let Some(index) = status_vec.iter().position(|i| &i.signer == enclave_signer) {
 					status_vec[index] = new_status.clone();
 				} else {
@@ -435,6 +475,8 @@ impl<T: Config> Pallet<T> {
 			})
 			.unwrap_or_else(|| vec![new_status]);
 
+		let signer_statuses = ShardSignerStatusVec::<T>::try_from(signer_statuses)
+			.map_err(|_| Error::<T>::TooManyEnclaves)?;
 		log::trace!(
 			target: ENCLAVE_BRIDGE,
 			"touched shard: {:?}, signer statuses: {:?}",
@@ -445,9 +487,7 @@ impl<T: Config> Pallet<T> {
 		Ok(signer_statuses)
 	}
 
-	pub fn most_recent_shard_update(
-		shard: &ShardIdentifier,
-	) -> Option<ShardSignerStatus<T::AccountId, T::BlockNumber>> {
+	pub fn most_recent_shard_update(shard: &ShardIdentifier) -> Option<ShardSignerStatus<T>> {
 		<ShardStatus<T>>::get(shard)
 			.map(|mut statuses| {
 				statuses.sort_by_key(|a| a.last_activity);

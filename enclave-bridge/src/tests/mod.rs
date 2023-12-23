@@ -25,6 +25,8 @@ mod test_indirect_invocation;
 mod test_publish_hash;
 mod test_shard_config;
 
+mod test_shard_status;
+
 fn get_bonding_account(enclave: &MultiEnclave<Vec<u8>>) -> AccountId {
 	AccountId::decode(&mut enclave.fingerprint().encode().as_ref()).unwrap()
 }
