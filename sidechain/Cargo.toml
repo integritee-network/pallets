@@ -1,7 +1,7 @@
 [package]
 name = "pallet-sidechain"
 description = "Pallet for integritee sidechains"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
 repository = "https://github.com/integritee-network/pallets/"
