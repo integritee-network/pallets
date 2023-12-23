@@ -78,26 +78,20 @@ fn purge_enclave_from_shard_status_works_if_present() {
 	})
 }
 
-fn purge_enclave_from_shard_status_is_noop_if_absent() {
+#[test]
+fn purge_enclave_from_shard_status_for_inexistent_shard_is_err() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
 		let enclave_signer_1 = AccountKeyring::Eve.to_account_id();
-		let enclave_signer_2 = AccountKeyring::Ferdie.to_account_id();
-		let enclave_fingerprint = EnclaveFingerprint::default();
 		let shard = ShardIdentifier::default();
-		assert_ok!(EnclaveBridge::touch_shard(
-			shard,
-			&enclave_signer_1.clone(),
-			enclave_fingerprint,
-			1
-		));
+
 		assert_noop!(
 			EnclaveBridge::purge_enclave_from_shard_status(
 				RuntimeOrigin::root(),
 				shard,
-				enclave_signer_2.clone(),
+				enclave_signer_1.clone(),
 			),
-			Error::<Test>::EnclaveNotFoundInShardStatus
+			Error::<Test>::ShardNotFound
 		);
 	})
 }

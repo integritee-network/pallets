@@ -21,7 +21,7 @@ pub use crate::weights::WeightInfo;
 use codec::Encode;
 use enclave_bridge_primitives::{
 	Request, ShardConfig, ShardIdentifier, ShardSignerStatus as ShardSignerStatusGeneric,
-	UpgradableShardConfig, ENCLAVE_BRIDGE, SHARD_STATUS_MAX_DEPTH,
+	UpgradableShardConfig, ENCLAVE_BRIDGE, MAX_SHARD_STATUS_SIGNER_COUNT,
 };
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResult, DispatchResultWithPostInfo},
@@ -43,7 +43,7 @@ pub type ShardSignerStatus<T> = ShardSignerStatusGeneric<
 	<T as frame_system::Config>::BlockNumber,
 >;
 pub type ShardSignerStatusVec<T> =
-	BoundedVec<ShardSignerStatus<T>, ConstU32<SHARD_STATUS_MAX_DEPTH>>;
+	BoundedVec<ShardSignerStatus<T>, ConstU32<MAX_SHARD_STATUS_SIGNER_COUNT>>;
 
 pub use pallet::*;
 
@@ -122,6 +122,8 @@ pub mod pallet {
 		TooManyEnclaves,
 		/// No such enclave was found in shard status
 		EnclaveNotFoundInShardStatus,
+		/// Shard not found
+		ShardNotFound,
 	}
 
 	#[pallet::storage]
@@ -379,23 +381,14 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			let new_status: ShardSignerStatusVec<T> =
-				if let Some(shard_status) = Self::shard_status(shard) {
-					shard_status
-						.iter()
-						.cloned()
-						.filter(|signer_status| signer_status.signer != subject)
-						.collect::<Vec<ShardSignerStatus<T>>>()
-						.try_into()
-						.expect("can only become smaller by filtering")
-				} else {
-					//noop
-					log::warn!(
-						target: ENCLAVE_BRIDGE,
-						"attempt to purge absent enclave from shard status"
-					);
-					return Err(Error::<T>::EnclaveNotFoundInShardStatus.into())
-				};
+			let new_status: ShardSignerStatusVec<T> = Self::shard_status(shard)
+				.ok_or(Error::<T>::ShardNotFound)?
+				.iter()
+				.cloned()
+				.filter(|signer_status| signer_status.signer != subject)
+				.collect::<Vec<ShardSignerStatus<T>>>()
+				.try_into()
+				.expect("can only become smaller by filtering");
 
 			<crate::pallet::ShardStatus<T>>::insert(shard, new_status);
 
@@ -482,10 +475,8 @@ impl<T: Config> Pallet<T> {
 			})
 			.unwrap_or_else(|| vec![new_status]);
 
-		let signer_statuses = match ShardSignerStatusVec::<T>::try_from(signer_statuses) {
-			Ok(status_bvec) => status_bvec,
-			Err(_) => return Err(Error::<T>::TooManyEnclaves.into()),
-		};
+		let signer_statuses = ShardSignerStatusVec::<T>::try_from(signer_statuses)
+			.map_err(|_| Error::<T>::TooManyEnclaves)?;
 		log::trace!(
 			target: ENCLAVE_BRIDGE,
 			"touched shard: {:?}, signer statuses: {:?}",
