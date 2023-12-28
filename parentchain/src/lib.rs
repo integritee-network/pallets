@@ -44,12 +44,17 @@ pub mod pallet {
 		AccountInfoForcedFor {
 			account: T::AccountId,
 		},
+		ParentchainGeneisInitialized {
+			hash: T::Hash,
+		},
 	}
 
 	#[pallet::error]
 	pub enum Error<T, I = ()> {
 		/// Sahrd vault has been previously initialized and can't be overwritten
 		ShardVaultAlreadyInitialized,
+		/// Parentchain genesis hash has already been initialized and can^t be overwritten
+		GenesisAlreadyInitialized,
 	}
 
 	/// The parentchain mirror of full account information for a particular account ID.
@@ -68,6 +73,11 @@ pub mod pallet {
 	#[pallet::getter(fn shard_vault)]
 	pub(super) type ShardVault<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::AccountId, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn parentchain_genesis_hash)]
+	pub(super) type ParentchainGenesisHash<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, T::Hash, OptionQuery>;
 
 	/// The current block number being processed. Set by `set_block`.
 	#[pallet::storage]
@@ -112,12 +122,28 @@ pub mod pallet {
 		pub fn init_shard_vault(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(Self::shard_vault().is_none(), Error::<T, I>::ShardVaultAlreadyInitialized);
-			<crate::pallet::ShardVault<T, I>>::put(account.clone());
-			Self::deposit_event(crate::pallet::Event::ShardVaultInitialized { account });
+			<ShardVault<T, I>>::put(account.clone());
+			Self::deposit_event(Event::ShardVaultInitialized { account });
 			Ok(())
 		}
 
 		#[pallet::call_index(2)]
+		#[pallet::weight(T::WeightInfo::set_block())]
+		pub fn init_parentchain_genesis_hash(
+			origin: OriginFor<T>,
+			genesis: T::Hash,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			ensure!(
+				Self::parentchain_genesis_hash().is_none(),
+				Error::<T, I>::GenesisAlreadyInitialized
+			);
+			<ParentchainGenesisHash<T, I>>::put(genesis);
+			Self::deposit_event(Event::ParentchainGeneisInitialized { hash: genesis });
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
 		#[pallet::weight(T::WeightInfo::set_block())]
 		pub fn force_account_info(
 			origin: OriginFor<T>,

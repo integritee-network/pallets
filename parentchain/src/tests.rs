@@ -142,7 +142,25 @@ fn init_shard_vault_works() {
 		);
 	})
 }
+#[test]
+fn init_parentchain_genesis_hash_works() {
+	new_test_ext().execute_with(|| {
+		let genesis = H256::default();
+		assert_ok!(ParentchainIntegritee::init_parentchain_genesis_hash(
+			RuntimeOrigin::root(),
+			genesis
+		));
+		assert_eq!(ParentchainIntegritee::parentchain_genesis_hash().unwrap(), genesis);
 
+		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
+			ParentchainEvent::ParentchainGeneisInitialized { hash: genesis },
+		));
+		assert_noop!(
+			ParentchainIntegritee::init_parentchain_genesis_hash(RuntimeOrigin::root(), genesis),
+			Error::<Test, ParentchainInstanceIntegritee>::GenesisAlreadyInitialized
+		);
+	})
+}
 #[test]
 fn force_account_info_works() {
 	new_test_ext().execute_with(|| {
