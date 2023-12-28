@@ -41,14 +41,67 @@ fn verify_storage_works() {
 	let hash = header.hash();
 
 	new_test_ext().execute_with(|| {
-		assert_ok!(Parentchain::set_block(RuntimeOrigin::root(), header));
-		assert_eq!(Parentchain::block_number(), block_number);
-		assert_eq!(Parentchain::parent_hash(), parent_hash);
-		assert_eq!(Parentchain::block_hash(), hash);
+		assert_ok!(ParentchainIntegritee::set_block(RuntimeOrigin::root(), header));
+		assert_eq!(ParentchainIntegritee::block_number(), block_number);
+		assert_eq!(ParentchainIntegritee::parent_hash(), parent_hash);
+		assert_eq!(ParentchainIntegritee::block_hash(), hash);
 
-		System::assert_last_event(
-			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash }.into(),
-		);
+		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
+			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash },
+		));
+	})
+}
+
+#[test]
+fn multi_pallet_instance_storage_works() {
+	let block_number = 3;
+	let parent_hash = H256::from_low_u64_be(420);
+
+	let header: Header = HeaderT::new(
+		block_number,
+		Default::default(),
+		Default::default(),
+		parent_hash,
+		Default::default(),
+	);
+	let hash = header.hash();
+
+	let block_number_a = 5;
+	let parent_hash_a = H256::from_low_u64_be(421);
+
+	let header_a: Header = HeaderT::new(
+		block_number_a,
+		Default::default(),
+		Default::default(),
+		parent_hash_a,
+		Default::default(),
+	);
+	let hash_a = header_a.hash();
+
+	new_test_ext().execute_with(|| {
+		assert_ok!(ParentchainIntegritee::set_block(RuntimeOrigin::root(), header));
+		assert_eq!(ParentchainIntegritee::block_number(), block_number);
+		assert_eq!(ParentchainIntegritee::parent_hash(), parent_hash);
+		assert_eq!(ParentchainIntegritee::block_hash(), hash);
+
+		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
+			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash },
+		));
+
+		assert_ok!(ParentchainTargetA::set_block(RuntimeOrigin::root(), header_a));
+		assert_eq!(ParentchainTargetA::block_number(), block_number_a);
+		assert_eq!(ParentchainTargetA::parent_hash(), parent_hash_a);
+		assert_eq!(ParentchainTargetA::block_hash(), hash_a);
+
+		System::assert_last_event(RuntimeEvent::ParentchainTargetA(ParentchainEvent::SetBlock {
+			block_number: block_number_a,
+			parent_hash: parent_hash_a,
+			block_hash: hash_a,
+		}));
+
+		// double check previous storage
+		assert_eq!(ParentchainIntegritee::block_number(), block_number);
+		assert_eq!(ParentchainIntegritee::block_hash(), hash);
 	})
 }
 
@@ -64,6 +117,9 @@ fn non_root_account_errs() {
 
 	new_test_ext().execute_with(|| {
 		let root = AccountKeyring::Ferdie.to_account_id();
-		assert_err!(Parentchain::set_block(RuntimeOrigin::signed(root), header), BadOrigin);
+		assert_err!(
+			ParentchainIntegritee::set_block(RuntimeOrigin::signed(root), header),
+			BadOrigin
+		);
 	})
 }
