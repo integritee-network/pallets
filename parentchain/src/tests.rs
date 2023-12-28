@@ -14,8 +14,8 @@
 	limitations under the License.
 
 */
-use crate::{mock::*, Event as ParentchainEvent};
-use frame_support::{assert_err, assert_ok};
+use crate::{mock::*, Error, Event as ParentchainEvent};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -132,7 +132,11 @@ fn init_shard_vault_works() {
 		assert_eq!(ParentchainIntegritee::shard_vault().unwrap(), vault);
 
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
-			ParentchainEvent::ShardVaultInitialized { account: vault },
+			ParentchainEvent::ShardVaultInitialized { account: vault.clone() },
 		));
+		assert_noop!(
+			ParentchainIntegritee::init_shard_vault(RuntimeOrigin::root(), vault.clone()),
+			Error::<Test, ParentchainInstanceIntegritee>::ShardVaultAlreadyInitialized
+		);
 	})
 }
