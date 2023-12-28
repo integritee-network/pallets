@@ -16,6 +16,8 @@
 */
 use crate::{mock::*, Error, Event as ParentchainEvent};
 use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_system::AccountInfo;
+use pallet_balances::AccountData;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -138,5 +140,34 @@ fn init_shard_vault_works() {
 			ParentchainIntegritee::init_shard_vault(RuntimeOrigin::root(), vault.clone()),
 			Error::<Test, ParentchainInstanceIntegritee>::ShardVaultAlreadyInitialized
 		);
+	})
+}
+
+#[test]
+fn force_account_info_works() {
+	new_test_ext().execute_with(|| {
+		let vault = AccountKeyring::Alice.to_account_id();
+		let account_info = AccountInfo {
+			nonce: 42,
+			consumers: 1,
+			providers: 1,
+			sufficients: 1,
+			data: AccountData {
+				free: 123456789,
+				reserved: 23456,
+				frozen: 345,
+				flags: Default::default(),
+			},
+		};
+		assert_ok!(ParentchainIntegritee::force_account_info(
+			RuntimeOrigin::root(),
+			vault.clone(),
+			account_info.clone()
+		));
+		assert_eq!(ParentchainIntegritee::account(&vault), account_info);
+
+		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
+			ParentchainEvent::AccountInfoForcedFor { account: vault.clone() },
+		));
 	})
 }
