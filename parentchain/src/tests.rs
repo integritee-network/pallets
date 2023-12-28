@@ -42,9 +42,9 @@ fn verify_storage_works() {
 
 	new_test_ext().execute_with(|| {
 		assert_ok!(ParentchainIntegritee::set_block(RuntimeOrigin::root(), header));
-		assert_eq!(ParentchainIntegritee::block_number(), block_number);
-		assert_eq!(ParentchainIntegritee::parent_hash(), parent_hash);
-		assert_eq!(ParentchainIntegritee::block_hash(), hash);
+		assert_eq!(ParentchainIntegritee::block_number().unwrap(), block_number);
+		assert_eq!(ParentchainIntegritee::parent_hash().unwrap(), parent_hash);
+		assert_eq!(ParentchainIntegritee::block_hash().unwrap(), hash);
 
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
 			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash },
@@ -80,18 +80,18 @@ fn multi_pallet_instance_storage_works() {
 
 	new_test_ext().execute_with(|| {
 		assert_ok!(ParentchainIntegritee::set_block(RuntimeOrigin::root(), header));
-		assert_eq!(ParentchainIntegritee::block_number(), block_number);
-		assert_eq!(ParentchainIntegritee::parent_hash(), parent_hash);
-		assert_eq!(ParentchainIntegritee::block_hash(), hash);
+		assert_eq!(ParentchainIntegritee::block_number().unwrap(), block_number);
+		assert_eq!(ParentchainIntegritee::parent_hash().unwrap(), parent_hash);
+		assert_eq!(ParentchainIntegritee::block_hash().unwrap(), hash);
 
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
 			ParentchainEvent::SetBlock { block_number, parent_hash, block_hash: hash },
 		));
 
 		assert_ok!(ParentchainTargetA::set_block(RuntimeOrigin::root(), header_a));
-		assert_eq!(ParentchainTargetA::block_number(), block_number_a);
-		assert_eq!(ParentchainTargetA::parent_hash(), parent_hash_a);
-		assert_eq!(ParentchainTargetA::block_hash(), hash_a);
+		assert_eq!(ParentchainTargetA::block_number().unwrap(), block_number_a);
+		assert_eq!(ParentchainTargetA::parent_hash().unwrap(), parent_hash_a);
+		assert_eq!(ParentchainTargetA::block_hash().unwrap(), hash_a);
 
 		System::assert_last_event(RuntimeEvent::ParentchainTargetA(ParentchainEvent::SetBlock {
 			block_number: block_number_a,
@@ -100,8 +100,8 @@ fn multi_pallet_instance_storage_works() {
 		}));
 
 		// double check previous storage
-		assert_eq!(ParentchainIntegritee::block_number(), block_number);
-		assert_eq!(ParentchainIntegritee::block_hash(), hash);
+		assert_eq!(ParentchainIntegritee::block_number().unwrap(), block_number);
+		assert_eq!(ParentchainIntegritee::block_hash().unwrap(), hash);
 	})
 }
 
@@ -121,5 +121,18 @@ fn non_root_account_errs() {
 			ParentchainIntegritee::set_block(RuntimeOrigin::signed(root), header),
 			BadOrigin
 		);
+	})
+}
+
+#[test]
+fn init_shard_vault_works() {
+	new_test_ext().execute_with(|| {
+		let vault = AccountKeyring::Alice.to_account_id();
+		assert_ok!(ParentchainIntegritee::init_shard_vault(RuntimeOrigin::root(), vault.clone()));
+		assert_eq!(ParentchainIntegritee::shard_vault().unwrap(), vault);
+
+		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
+			ParentchainEvent::ShardVaultInitialized { account: vault },
+		));
 	})
 }
