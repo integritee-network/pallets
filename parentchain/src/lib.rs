@@ -14,6 +14,7 @@ pub mod pallet {
 	use crate::{weights::WeightInfo, ParentchainAccountData, ParentchainIndex};
 	use frame_support::{pallet_prelude::*, sp_runtime::traits::Header};
 	use frame_system::{pallet_prelude::*, AccountInfo};
+	use sp_runtime::traits::{AtLeast32Bit, Scale};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 	#[pallet::pallet]
@@ -27,6 +28,15 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self, I>>
 			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
+
+		/// Type used for expressing timestamp.
+		type Moment: Parameter
+			+ Default
+			+ AtLeast32Bit
+			+ Scale<Self::BlockNumber, Output = Self::Moment>
+			+ Copy
+			+ MaxEncodedLen
+			+ scale_info::StaticTypeInfo;
 	}
 
 	#[pallet::event]
@@ -84,6 +94,12 @@ pub mod pallet {
 	#[pallet::getter(fn block_number)]
 	pub(super) type Number<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::BlockNumber, OptionQuery>;
+
+	/// The current block timestamp. Set by `set_now`.
+	/// this is not guaranteed by the pallet to be consistent with block_number or hash
+	#[pallet::storage]
+	#[pallet::getter(fn now)]
+	pub(super) type Now<T: Config<I>, I: 'static = ()> = StorageValue<_, T::Moment, OptionQuery>;
 
 	/// Hash of the previous block. Set by `set_block`.
 	#[pallet::storage]
@@ -153,6 +169,14 @@ pub mod pallet {
 			ensure_root(origin)?;
 			<crate::pallet::Account<T, I>>::insert(&account, account_info);
 			Self::deposit_event(crate::pallet::Event::AccountInfoForcedFor { account });
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::set_block())]
+		pub fn set_now(origin: OriginFor<T>, now: T::Moment) -> DispatchResult {
+			ensure_root(origin)?;
+			<Now<T, I>>::put(now);
 			Ok(())
 		}
 	}
