@@ -153,7 +153,7 @@ fn init_parentchain_genesis_hash_works() {
 		assert_eq!(ParentchainIntegritee::parentchain_genesis_hash().unwrap(), genesis);
 
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
-			ParentchainEvent::ParentchainGeneisInitialized { hash: genesis },
+			ParentchainEvent::ParentchainGenesisInitialized { hash: genesis },
 		));
 		assert_noop!(
 			ParentchainIntegritee::init_parentchain_genesis_hash(RuntimeOrigin::root(), genesis),

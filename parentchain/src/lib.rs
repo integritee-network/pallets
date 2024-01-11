@@ -54,7 +54,7 @@ pub mod pallet {
 		AccountInfoForcedFor {
 			account: T::AccountId,
 		},
-		ParentchainGeneisInitialized {
+		ParentchainGenesisInitialized {
 			hash: T::Hash,
 		},
 	}
@@ -155,7 +155,7 @@ pub mod pallet {
 				Error::<T, I>::GenesisAlreadyInitialized
 			);
 			<ParentchainGenesisHash<T, I>>::put(genesis);
-			Self::deposit_event(Event::ParentchainGeneisInitialized { hash: genesis });
+			Self::deposit_event(Event::ParentchainGenesisInitialized { hash: genesis });
 			Ok(())
 		}
 
