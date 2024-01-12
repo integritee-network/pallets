@@ -189,3 +189,12 @@ fn force_account_info_works() {
 		));
 	})
 }
+
+#[test]
+fn set_now_works() {
+	new_test_ext().execute_with(|| {
+		let now = 111u64;
+		assert_ok!(ParentchainIntegritee::set_now(RuntimeOrigin::root(), now));
+		assert_eq!(ParentchainIntegritee::now(), Some(now));
+	})
+}
