@@ -201,7 +201,6 @@ pub mod pallet {
 			<Now<T, I>>::put(now);
 			Ok(())
 		}
-
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::set_creation_block())]
 		pub fn set_creation_block(origin: OriginFor<T>, header: T::Header) -> DispatchResult {
