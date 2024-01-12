@@ -134,7 +134,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::init_shard_vault())]
 		pub fn init_shard_vault(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(Self::shard_vault().is_none(), Error::<T, I>::ShardVaultAlreadyInitialized);
@@ -144,7 +144,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::init_parentchain_genesis_hash())]
 		pub fn init_parentchain_genesis_hash(
 			origin: OriginFor<T>,
 			genesis: T::Hash,
@@ -160,7 +160,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::force_account_info())]
 		pub fn force_account_info(
 			origin: OriginFor<T>,
 			account: T::AccountId,
@@ -173,7 +173,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::set_now())]
 		pub fn set_now(origin: OriginFor<T>, now: T::Moment) -> DispatchResult {
 			ensure_root(origin)?;
 			<Now<T, I>>::put(now);
