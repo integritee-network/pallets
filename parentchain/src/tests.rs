@@ -220,4 +220,3 @@ fn set_creation_block_works() {
 		assert_eq!(ParentchainIntegritee::creation_block_number(), Some(1));
 	})
 }
-
