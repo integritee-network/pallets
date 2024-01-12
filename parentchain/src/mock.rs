@@ -61,12 +61,14 @@ pub type ParentchainInstanceIntegritee = pallet_parentchain::Instance1;
 impl Config<ParentchainInstanceIntegritee> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
+	type Moment = u64;
 }
 
 pub type ParentchainInstanceTargetA = pallet_parentchain::Instance2;
 impl Config<crate::mock::ParentchainInstanceTargetA> for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
+	type Moment = u64;
 }
 
 parameter_types! {

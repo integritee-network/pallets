@@ -14,6 +14,7 @@ pub mod pallet {
 	use crate::{weights::WeightInfo, ParentchainAccountData, ParentchainIndex};
 	use frame_support::{pallet_prelude::*, sp_runtime::traits::Header};
 	use frame_system::{pallet_prelude::*, AccountInfo};
+	use sp_runtime::traits::{AtLeast32Bit, Scale};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 	#[pallet::pallet]
@@ -27,6 +28,15 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self, I>>
 			+ IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
+
+		/// Type used for expressing timestamp.
+		type Moment: Parameter
+			+ Default
+			+ AtLeast32Bit
+			+ Scale<Self::BlockNumber, Output = Self::Moment>
+			+ Copy
+			+ MaxEncodedLen
+			+ scale_info::StaticTypeInfo;
 	}
 
 	#[pallet::event]
@@ -44,7 +54,7 @@ pub mod pallet {
 		AccountInfoForcedFor {
 			account: T::AccountId,
 		},
-		ParentchainGeneisInitialized {
+		ParentchainGenesisInitialized {
 			hash: T::Hash,
 		},
 	}
@@ -85,6 +95,12 @@ pub mod pallet {
 	pub(super) type Number<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::BlockNumber, OptionQuery>;
 
+	/// The current block timestamp. Set by `set_now`.
+	/// this is not guaranteed by the pallet to be consistent with block_number or hash
+	#[pallet::storage]
+	#[pallet::getter(fn now)]
+	pub(super) type Now<T: Config<I>, I: 'static = ()> = StorageValue<_, T::Moment, OptionQuery>;
+
 	/// Hash of the previous block. Set by `set_block`.
 	#[pallet::storage]
 	#[pallet::getter(fn parent_hash)]
@@ -118,7 +134,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::init_shard_vault())]
 		pub fn init_shard_vault(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(Self::shard_vault().is_none(), Error::<T, I>::ShardVaultAlreadyInitialized);
@@ -128,7 +144,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::init_parentchain_genesis_hash())]
 		pub fn init_parentchain_genesis_hash(
 			origin: OriginFor<T>,
 			genesis: T::Hash,
@@ -139,12 +155,12 @@ pub mod pallet {
 				Error::<T, I>::GenesisAlreadyInitialized
 			);
 			<ParentchainGenesisHash<T, I>>::put(genesis);
-			Self::deposit_event(Event::ParentchainGeneisInitialized { hash: genesis });
+			Self::deposit_event(Event::ParentchainGenesisInitialized { hash: genesis });
 			Ok(())
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(T::WeightInfo::set_block())]
+		#[pallet::weight(T::WeightInfo::force_account_info())]
 		pub fn force_account_info(
 			origin: OriginFor<T>,
 			account: T::AccountId,
@@ -153,6 +169,14 @@ pub mod pallet {
 			ensure_root(origin)?;
 			<crate::pallet::Account<T, I>>::insert(&account, account_info);
 			Self::deposit_event(crate::pallet::Event::AccountInfoForcedFor { account });
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::set_now())]
+		pub fn set_now(origin: OriginFor<T>, now: T::Moment) -> DispatchResult {
+			ensure_root(origin)?;
+			<Now<T, I>>::put(now);
 			Ok(())
 		}
 	}

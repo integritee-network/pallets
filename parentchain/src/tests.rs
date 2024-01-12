@@ -153,7 +153,7 @@ fn init_parentchain_genesis_hash_works() {
 		assert_eq!(ParentchainIntegritee::parentchain_genesis_hash().unwrap(), genesis);
 
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
-			ParentchainEvent::ParentchainGeneisInitialized { hash: genesis },
+			ParentchainEvent::ParentchainGenesisInitialized { hash: genesis },
 		));
 		assert_noop!(
 			ParentchainIntegritee::init_parentchain_genesis_hash(RuntimeOrigin::root(), genesis),
@@ -187,5 +187,14 @@ fn force_account_info_works() {
 		System::assert_last_event(RuntimeEvent::ParentchainIntegritee(
 			ParentchainEvent::AccountInfoForcedFor { account: vault.clone() },
 		));
+	})
+}
+
+#[test]
+fn set_now_works() {
+	new_test_ext().execute_with(|| {
+		let now = 111u64;
+		assert_ok!(ParentchainIntegritee::set_now(RuntimeOrigin::root(), now));
+		assert_eq!(ParentchainIntegritee::now(), Some(now));
 	})
 }
