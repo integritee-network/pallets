@@ -48,6 +48,10 @@ pub mod pallet {
 			parent_hash: T::Hash,
 			block_hash: T::Hash,
 		},
+		SetCreationBlock {
+			block_number: T::BlockNumber,
+			block_hash: T::Hash,
+		},
 		ShardVaultInitialized {
 			account: T::AccountId,
 		},
@@ -113,6 +117,24 @@ pub mod pallet {
 	pub(super) type BlockHash<T: Config<I>, I: 'static = ()> =
 		StorageValue<_, T::Hash, OptionQuery>;
 
+	/// Hash of the shard creation block. Set by `set_creation_block`.
+	#[pallet::storage]
+	#[pallet::getter(fn creation_block_hash)]
+	pub(super) type CreationBlockHash<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, T::Hash, OptionQuery>;
+
+	/// The creation block number. Set by `set_creation_block`.
+	#[pallet::storage]
+	#[pallet::getter(fn creation_block_number)]
+	pub(super) type CreationBlockNumber<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, T::BlockNumber, OptionQuery>;
+
+	/// The creation block timestamp. Set by `set_creation_timestamp`.
+	#[pallet::storage]
+	#[pallet::getter(fn creation_timestamp)]
+	pub(super) type CreationTimestamp<T: Config<I>, I: 'static = ()> =
+		StorageValue<_, T::Moment, OptionQuery>;
+
 	#[pallet::hooks]
 	impl<T: Config<I>, I: 'static> Hooks<BlockNumberFor<T>> for Pallet<T, I> {}
 
@@ -177,6 +199,27 @@ pub mod pallet {
 		pub fn set_now(origin: OriginFor<T>, now: T::Moment) -> DispatchResult {
 			ensure_root(origin)?;
 			<Now<T, I>>::put(now);
+			Ok(())
+		}
+
+		#[pallet::call_index(5)]
+		#[pallet::weight(T::WeightInfo::set_creation_block())]
+		pub fn set_creation_block(origin: OriginFor<T>, header: T::Header) -> DispatchResult {
+			ensure_root(origin)?;
+			<CreationBlockNumber<T, I>>::put(header.number());
+			<CreationBlockHash<T, I>>::put(header.hash());
+			Self::deposit_event(Event::SetCreationBlock {
+				block_number: *header.number(),
+				block_hash: header.hash(),
+			});
+			Ok(())
+		}
+
+		#[pallet::call_index(6)]
+		#[pallet::weight(T::WeightInfo::set_creation_timestamp())]
+		pub fn set_creation_timestamp(origin: OriginFor<T>, creation: T::Moment) -> DispatchResult {
+			ensure_root(origin)?;
+			<CreationTimestamp<T, I>>::put(creation);
 			Ok(())
 		}
 	}
