@@ -198,3 +198,25 @@ fn set_now_works() {
 		assert_eq!(ParentchainIntegritee::now(), Some(now));
 	})
 }
+
+#[test]
+fn set_creation_timestamp_works() {
+	new_test_ext().execute_with(|| {
+		let now = 111u64;
+		assert_ok!(ParentchainIntegritee::set_creation_timestamp(RuntimeOrigin::root(), now));
+		assert_eq!(ParentchainIntegritee::creation_timestamp(), Some(now));
+	})
+}
+
+#[test]
+fn set_creation_block_works() {
+	let parent_hash = H256::from_low_u64_be(420);
+	let header =
+		Header::new(1, Default::default(), Default::default(), parent_hash, Default::default());
+	let hash = header.hash();
+	new_test_ext().execute_with(|| {
+		assert_ok!(ParentchainIntegritee::set_creation_block(RuntimeOrigin::root(), header));
+		assert_eq!(ParentchainIntegritee::creation_block_hash(), Some(hash));
+		assert_eq!(ParentchainIntegritee::creation_block_number(), Some(1));
+	})
+}
