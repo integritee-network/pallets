@@ -29,7 +29,7 @@ use frame_support::{
 	pallet_prelude::ConstU32,
 	traits::{Currency, ExistenceRequirement},
 };
-use frame_system::{self, ensure_signed};
+use frame_system::{self, ensure_signed, pallet_prelude::BlockNumberFor};
 use pallet_teerex::Pallet as Teerex;
 use sp_core::{bounded::BoundedVec, H256};
 use sp_runtime::traits::{SaturatedConversion, Saturating};
@@ -38,10 +38,8 @@ use teerex_primitives::{EnclaveFingerprint, MultiEnclave};
 // Disambiguate associated types
 pub type AccountId<T> = <T as frame_system::Config>::AccountId;
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountId<T>>>::Balance;
-pub type ShardSignerStatus<T> = ShardSignerStatusGeneric<
-	<T as frame_system::Config>::AccountId,
-	<T as frame_system::Config>::BlockNumber,
->;
+pub type ShardSignerStatus<T> =
+	ShardSignerStatusGeneric<<T as frame_system::Config>::AccountId, BlockNumberFor<T>>;
 pub type ShardSignerStatusVec<T> =
 	BoundedVec<ShardSignerStatus<T>, ConstU32<MAX_SHARD_STATUS_SIGNER_COUNT>>;
 
@@ -94,7 +92,7 @@ pub mod pallet {
 			shard: ShardIdentifier,
 			block_hash: H256,
 			trusted_calls_merkle_root: H256,
-			block_number: T::BlockNumber,
+			block_number: BlockNumberFor<T>,
 		},
 		/// An enclave has published some [hash] with some metadata [data].
 		PublishedHash {
@@ -141,7 +139,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		ShardIdentifier,
-		UpgradableShardConfig<T::AccountId, T::BlockNumber>,
+		UpgradableShardConfig<T::AccountId, BlockNumberFor<T>>,
 		OptionQuery,
 	>;
 
@@ -173,7 +171,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
 			block_hash: H256,
-			block_number: T::BlockNumber,
+			block_number: BlockNumberFor<T>,
 			trusted_calls_merkle_root: H256,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -318,46 +316,48 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
 			shard_config: ShardConfig<T::AccountId>,
-			enactment_delay: T::BlockNumber,
+			enactment_delay: BlockNumberFor<T>,
 		) -> DispatchResultWithPostInfo {
 			let maybe_sender = ensure_signed_or_root(origin)?;
 
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
-			let new_upgradable_shard_config: UpgradableShardConfig<T::AccountId, T::BlockNumber> =
-				match Self::get_maybe_updated_shard_config(shard, current_block_number, false) {
-					Some(old_config) => {
-						if let Some(sender) = maybe_sender {
-							let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-							ensure!(
-								old_config.enclave_fingerprint == enclave.fingerprint(),
-								Error::<T>::WrongFingerprintForShard
-							);
-							Self::touch_shard(
-								shard,
-								&sender,
-								enclave.fingerprint(),
-								current_block_number,
-							)?;
-						}
-						UpgradableShardConfig::from(old_config).with_pending_upgrade(
-							shard_config,
-							current_block_number.saturating_add(enactment_delay),
-						)
-					},
-					None => {
-						// if shard does not exist, we allow any ShardIdentifier to be created by any registered enclave or root
-						if let Some(sender) = maybe_sender {
-							let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
-							Self::touch_shard(
-								shard,
-								&sender,
-								enclave.fingerprint(),
-								current_block_number,
-							)?;
-						}
-						shard_config.into()
-					},
-				};
+			let new_upgradable_shard_config: UpgradableShardConfig<
+				T::AccountId,
+				BlockNumberFor<T>,
+			> = match Self::get_maybe_updated_shard_config(shard, current_block_number, false) {
+				Some(old_config) => {
+					if let Some(sender) = maybe_sender {
+						let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
+						ensure!(
+							old_config.enclave_fingerprint == enclave.fingerprint(),
+							Error::<T>::WrongFingerprintForShard
+						);
+						Self::touch_shard(
+							shard,
+							&sender,
+							enclave.fingerprint(),
+							current_block_number,
+						)?;
+					}
+					UpgradableShardConfig::from(old_config).with_pending_upgrade(
+						shard_config,
+						current_block_number.saturating_add(enactment_delay),
+					)
+				},
+				None => {
+					// if shard does not exist, we allow any ShardIdentifier to be created by any registered enclave or root
+					if let Some(sender) = maybe_sender {
+						let enclave = Teerex::<T>::get_sovereign_enclave(&sender)?;
+						Self::touch_shard(
+							shard,
+							&sender,
+							enclave.fingerprint(),
+							current_block_number,
+						)?;
+					}
+					shard_config.into()
+				},
+			};
 
 			<ShardConfigRegistry<T>>::insert(shard, new_upgradable_shard_config.clone());
 
@@ -412,7 +412,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_sovereign_enclave_and_touch_shard(
 		enclave_signer: &T::AccountId,
 		shard: ShardIdentifier,
-		current_block_number: T::BlockNumber,
+		current_block_number: BlockNumberFor<T>,
 	) -> Result<(MultiEnclave<Vec<u8>>, ShardSignerStatusVec<T>), DispatchErrorWithPostInfo> {
 		let enclave = Teerex::<T>::get_sovereign_enclave(enclave_signer)?;
 		ensure!(
@@ -429,7 +429,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_maybe_updated_shard_config(
 		shard: ShardIdentifier,
-		current_block_number: T::BlockNumber,
+		current_block_number: BlockNumberFor<T>,
 		apply_due_update: bool,
 	) -> Option<ShardConfig<T::AccountId>> {
 		Self::shard_config(shard).map(|current| {
@@ -455,7 +455,7 @@ impl<T: Config> Pallet<T> {
 		shard: ShardIdentifier,
 		enclave_signer: &T::AccountId,
 		enclave_fingerprint: EnclaveFingerprint,
-		current_block_number: T::BlockNumber,
+		current_block_number: BlockNumberFor<T>,
 	) -> Result<ShardSignerStatusVec<T>, DispatchErrorWithPostInfo> {
 		let new_status = ShardSignerStatus::<T> {
 			signer: enclave_signer.clone(),

@@ -18,13 +18,14 @@
 // Creating mock runtime here
 use crate as pallet_enclave_bridge;
 use crate::Config;
-use frame_support::{self, pallet_prelude::GenesisBuild, parameter_types};
+use frame_support::{self, parameter_types};
 use frame_system as system;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
+	BuildStorage,
 };
 
 pub type Signature = sp_runtime::MultiSignature;
@@ -47,12 +48,9 @@ pub type SignedExtra = (
 );
 
 frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic,
+	pub enum Test
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: timestamp::{Pallet, Call, Storage, Inherent},
 		Teerex: pallet_teerex::{Pallet, Call, Storage, Event<T>},
@@ -67,16 +65,15 @@ impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
 	type BlockLength = ();
+	type Block = generic::Block<Header, UncheckedExtrinsic>;
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
-	type Index = u64;
+	type Nonce = u64;
 	type RuntimeCall = RuntimeCall;
-	type BlockNumber = BlockNumber;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
 	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
@@ -106,7 +103,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
-	type HoldIdentifier = ();
+	type RuntimeHoldReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ();
 	type MaxFreezes = ();
@@ -146,17 +143,19 @@ impl Config for Test {
 // This function basically just builds a genesis storage key/value store according to
 // our desired mockup. RA from enclave compiled in debug mode is allowed
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	let teerex_config = pallet_teerex::GenesisConfig {
+	let teerex_config = pallet_teerex::GenesisConfig::<Test> {
 		allow_sgx_debug_mode: true,
 		allow_skipping_attestation: true,
-	};
-	GenesisBuild::<Test>::assimilate_storage(&teerex_config, &mut t).unwrap();
+		_config: Default::default(),
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
 
 	let mut ext: sp_io::TestExternalities = t.into();
 	ext.execute_with(|| System::set_block_number(1));

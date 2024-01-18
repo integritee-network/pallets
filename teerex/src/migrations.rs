@@ -52,7 +52,7 @@ pub mod v1 {
 
 	impl<T: Config + frame_system::Config> OnRuntimeUpgrade for MigrateV0toV1<T> {
 		#[cfg(feature = "try-runtime")]
-		fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 
 			let enclave_count = v0::EnclaveCount::<T>::get() as u64;
@@ -103,7 +103,7 @@ pub mod v1 {
 		}
 
 		#[cfg(feature = "try-runtime")]
-		fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
+		fn post_upgrade(state: Vec<u8>) -> Result<(), sp_runtime::DispatchError> {
 			let (pre_onchain_version, _enclave_count, allow_debug_mode): (
 				StorageVersion,
 				u64,

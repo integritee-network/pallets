@@ -9,7 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 base64 = { version = "0.13", default-features = false, features = ["alloc"] }
-codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+codec = { version = "3.6.1", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 hex-literal = "0.3.4"
 libfuzzer-sys = "0.4"
 serde_json = { version = "1.0" }

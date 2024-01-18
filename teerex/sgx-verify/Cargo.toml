@@ -11,7 +11,7 @@ edition = "2021"
 [dependencies]
 base64 = { version = "0.13", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4", default-features = false, features = ["serde"] }
-codec = { version = "3.0.0", default-features = false, features = ["derive"], package = "parity-scale-codec" }
+codec = { version = "3.6.1", default-features = false, features = ["derive"], package = "parity-scale-codec" }
 der = { default-features = false, version = "0.6.0" }
 hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 hex-literal = { version = "0.3.2" }
@@ -27,10 +27,10 @@ x509-cert = { default-features = false, version = "0.1.0", features = ["alloc"] 
 teerex-primitives = { path = "../../primitives/teerex", default-features = false }
 
 # substrate dependencies
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.42" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 
 [dev-dependencies]
 hex-literal = "0.3.4"

@@ -31,6 +31,7 @@ use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 #[cfg(feature = "std")]
 use sp_runtime::traits::Zero;
 use sp_runtime::{
+	generic,
 	traits::{CheckedSub, DispatchInfoOf, SignedExtension},
 	transaction_validity::{
 		InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
@@ -85,7 +86,7 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		type VestingSchedule: VestingSchedule<Self::AccountId, Moment = Self::BlockNumber>;
+		type VestingSchedule: VestingSchedule<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		#[pallet::constant]
 		type Prefix: Get<&'static [u8]>;
 		type MoveClaimOrigin: EnsureOrigin<Self::RuntimeOrigin>;
@@ -131,7 +132,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn vesting)]
 	pub(super) type Vesting<T: Config> =
-		StorageMap<_, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>;
+		StorageMap<_, Identity, EthereumAddress, (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>;
 
 	/// The statement kind that must be signed, if any.
 	#[pallet::storage]
@@ -142,22 +143,16 @@ pub mod pallet {
 	pub(super) type Preclaims<T: Config> = StorageMap<_, Identity, T::AccountId, EthereumAddress>;
 
 	#[allow(clippy::type_complexity)]
+	#[derive(frame_support::DefaultNoBound)]
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub claims:
 			Vec<(EthereumAddress, BalanceOf<T>, Option<T::AccountId>, Option<StatementKind>)>,
-		pub vesting: Vec<(EthereumAddress, (BalanceOf<T>, BalanceOf<T>, T::BlockNumber))>,
-	}
-
-	#[cfg(feature = "std")]
-	impl<T: Config> Default for GenesisConfig<T> {
-		fn default() -> Self {
-			GenesisConfig { claims: Default::default(), vesting: Default::default() }
-		}
+		pub vesting: Vec<(EthereumAddress, (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>))>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// build `Claims`
 			self.claims.iter().map(|(a, b, _, _)| (a, b)).for_each(|(a, b)| {
@@ -257,7 +252,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			who: EthereumAddress,
 			value: BalanceOf<T>,
-			vesting_schedule: Option<(BalanceOf<T>, BalanceOf<T>, T::BlockNumber)>,
+			vesting_schedule: Option<(BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>)>,
 			statement: Option<StatementKind>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
@@ -647,25 +642,23 @@ mod tests {
 		assert_err, assert_noop, assert_ok,
 		dispatch::{DispatchError::BadOrigin, GetDispatchInfo, Pays},
 		ord_parameter_types, parameter_types,
-		traits::{ExistenceRequirement, GenesisBuild, WithdrawReasons},
+		traits::{ExistenceRequirement, WithdrawReasons},
 	};
 
 	use sp_runtime::{
 		testing::Header,
 		traits::{BlakeTwo256, Identity, IdentityLookup},
 		transaction_validity::TransactionLongevity,
+		BuildStorage,
 	};
 
 	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 	type Block = frame_system::mocking::MockBlock<Test>;
 
 	frame_support::construct_runtime!(
-		pub enum Test where
-			Block = Block,
-			NodeBlock = Block,
-			UncheckedExtrinsic = UncheckedExtrinsic,
+		pub enum Test
 		{
-			System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+			System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 			Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 			Vesting: pallet_vesting::{Pallet, Call, Storage, Config<T>, Event<T>},
 			Claims: super::pallet::{Pallet, Call, Storage, Config<T>, Event<T>, ValidateUnsigned},
@@ -679,16 +672,15 @@ mod tests {
 		type BaseCallFilter = frame_support::traits::Everything;
 		type BlockWeights = ();
 		type BlockLength = ();
+		type Block = generic::Block<Header, UncheckedExtrinsic>;
 		type DbWeight = ();
 		type RuntimeOrigin = RuntimeOrigin;
 		type RuntimeCall = RuntimeCall;
-		type Index = u64;
-		type BlockNumber = u64;
+		type Nonce = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
 		type AccountId = u64;
 		type Lookup = IdentityLookup<u64>;
-		type Header = Header;
 		type RuntimeEvent = RuntimeEvent;
 		type BlockHashCount = BlockHashCount;
 		type Version = ();
@@ -716,8 +708,8 @@ mod tests {
 		type MaxReserves = ();
 		type ReserveIdentifier = [u8; 8];
 		type WeightInfo = ();
-		type HoldIdentifier = ();
 		type FreezeIdentifier = ();
+		type RuntimeHoldReason = ();
 		type MaxHolds = ();
 		type MaxFreezes = ();
 	}
@@ -772,7 +764,7 @@ mod tests {
 	// This function basically just builds a genesis storage key/value store according to
 	// our desired mockup.
 	pub fn new_test_ext() -> sp_io::TestExternalities {
-		let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+		let mut t = frame_system::GenesisConfig::<Test>::default().build_storage().unwrap();
 		// We use default for brevity, but you can configure as desired if needed.
 		pallet_balances::GenesisConfig::<Test>::default()
 			.assimilate_storage(&mut t)
