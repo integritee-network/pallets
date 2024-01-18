@@ -33,7 +33,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 
 pub type BlockNumber = u32;
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;q
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
