@@ -31,7 +31,6 @@ use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 #[cfg(feature = "std")]
 use sp_runtime::traits::Zero;
 use sp_runtime::{
-	generic,
 	traits::{CheckedSub, DispatchInfoOf, SignedExtension},
 	transaction_validity::{
 		InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
@@ -634,7 +633,7 @@ mod tests {
 
 	use parity_scale_codec::Encode;
 	use sp_core::H256;
-	use sp_runtime::{DispatchError::Token, TokenError::Frozen};
+	use sp_runtime::{generic, DispatchError::Token, TokenError::Frozen};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
@@ -653,7 +652,6 @@ mod tests {
 	};
 
 	type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-	type Block = frame_system::mocking::MockBlock<Test>;
 
 	frame_support::construct_runtime!(
 		pub enum Test

@@ -19,7 +19,6 @@ use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
 	AllowSkippingAttestation, Error,
-	Error::TcbInfoIsOutdated,
 	Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode, SgxEnclave, SovereignEnclaves,
 };
 use frame_support::{assert_err, assert_ok};
@@ -32,10 +31,9 @@ use sgx_verify::{
 	verify_dcap_quote,
 };
 use sp_keyring::AccountKeyring;
-use std::default::Default;
+
 use teerex_primitives::{
-	AnySigner, Cpusvn, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
-	SgxQuotingEnclave, SgxReportData, SgxStatus, SgxTcbInfoOnChain, TcbStatus, TcbVersionStatus,
+	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus, SgxTcbInfoOnChain, TcbStatus, TcbVersionStatus,
 };
 use test_utils::test_data::{
 	consts::*,
@@ -161,7 +159,7 @@ fn outdated_tcb_status_is_reported_correctly() {
 	let quoting_enclave = qe_identity.to_quoting_enclave();
 
 	let quote_bytes = hex::decode(TEST2_DCAP_QUOTE_HEX.trim()).unwrap();
-	let (fmspc, tcb_info, report) =
+	let (_fmspc, tcb_info, _report) =
 		verify_dcap_quote(quote_bytes.as_slice(), 1693475073000, &quoting_enclave).unwrap();
 	assert_eq!(tcb_info_onchain.verify_examinee(&tcb_info), Some(SgxStatus::GroupOutOfDate));
 }

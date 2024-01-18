@@ -34,7 +34,6 @@ pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 
 pub type BlockNumber = u32;
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 pub type UncheckedExtrinsic =
 	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
@@ -149,7 +148,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	let teerex_config = pallet_teerex::GenesisConfig::<Test> {
+	let _teerex_config = pallet_teerex::GenesisConfig::<Test> {
 		allow_sgx_debug_mode: true,
 		allow_skipping_attestation: true,
 		_config: Default::default(),
