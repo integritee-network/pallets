@@ -17,7 +17,7 @@
 
 use super::*;
 use crate::{Error, Event as EnclaveBridgeEvent};
-use enclave_bridge_primitives::{ShardIdentifier};
+use enclave_bridge_primitives::ShardIdentifier;
 use frame_support::{assert_noop, assert_ok};
 use sp_keyring::AccountKeyring;
 use teerex_primitives::EnclaveFingerprint;

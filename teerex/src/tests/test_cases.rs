@@ -18,8 +18,8 @@
 use crate::{
 	mock::*,
 	test_helpers::{register_test_quoting_enclave, register_test_tcb_info},
-	AllowSkippingAttestation, Error,
-	Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode, SgxEnclave, SovereignEnclaves,
+	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode,
+	SgxEnclave, SovereignEnclaves,
 };
 use frame_support::{assert_err, assert_ok};
 use hex_literal::hex;
@@ -33,7 +33,8 @@ use sgx_verify::{
 use sp_keyring::AccountKeyring;
 
 use teerex_primitives::{
-	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode, SgxReportData, SgxStatus, SgxTcbInfoOnChain, TcbStatus, TcbVersionStatus,
+	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
+	SgxReportData, SgxStatus, SgxTcbInfoOnChain, TcbStatus, TcbVersionStatus,
 };
 use test_utils::test_data::{
 	consts::*,
