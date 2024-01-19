@@ -28,8 +28,6 @@ pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
-#[cfg(feature = "std")]
-use sp_runtime::traits::Zero;
 use sp_runtime::{
 	traits::{CheckedSub, DispatchInfoOf, SignedExtension},
 	transaction_validity::{
@@ -150,9 +148,11 @@ pub mod pallet {
 		pub vesting: Vec<(EthereumAddress, (BalanceOf<T>, BalanceOf<T>, BlockNumberFor<T>))>,
 	}
 
+	#[cfg(feature = "std")]
 	#[pallet::genesis_build]
 	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
+			use sp_runtime::traits::Zero;
 			// build `Claims`
 			self.claims.iter().map(|(a, b, _, _)| (a, b)).for_each(|(a, b)| {
 				Claims::<T>::insert(a, b);
