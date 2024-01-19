@@ -47,19 +47,18 @@ test-utils = { path = "../test-utils" }
 default = ["std"]
 std = [
     "codec/std",
-    "log/std",
-    "scale-info/std",
-    "serde",
-    # local
-    "pallet-teerex/std",
     "enclave-bridge-primitives/std",
-    # substrate
     "frame-support/std",
     "frame-system/std",
+    "log/std",
+    "pallet-teerex/std",
+    "scale-info/std",
+    "serde",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "teerex-primitives/std",
     "timestamp/std",
 ]
 runtime-benchmarks = [

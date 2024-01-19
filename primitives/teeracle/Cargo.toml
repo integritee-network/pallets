@@ -22,6 +22,6 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 default = ["std"]
 std = [
     "common-primitives/std",
-    "substrate-fixed/std",
     "sp-std/std",
+    "substrate-fixed/std",
 ]

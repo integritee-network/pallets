@@ -31,13 +31,12 @@ sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "po
 default = ["std"]
 std = [
     "codec/std",
-    "log/std",
-    "scale-info/std",
-    "serde",
-    # substrate dependencies
     "frame-support/std",
     "frame-system/std",
+    "log/std",
     "pallet-balances/std",
+    "scale-info/std",
+    "serde",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",

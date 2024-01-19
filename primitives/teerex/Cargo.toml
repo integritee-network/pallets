@@ -31,7 +31,6 @@ std = [
     "log/std",
     "scale-info/std",
     "serde/std",
-    # substrate
     "sp-core/std",
     "sp-runtime/std",
     "sp-std/std",

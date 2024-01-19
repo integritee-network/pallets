@@ -36,24 +36,24 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 default = ["std"]
 no_std = []
 std = [
+    "claims-primitives/std",
+    "frame-support/std",
+    "frame-system/std",
     "parity-scale-codec/std",
     "rustc-hex/std",
     "scale-info/std",
-    "serde_derive",
     "serde/std",
-    "sp-std/std",
+    "serde_derive",
     "sp-io/std",
-    "frame-support/std",
     "sp-runtime/std",
-    "frame-system/std",
-    "claims-primitives/std",
+    "sp-std/std",
 ]
 runtime-benchmarks = [
-    "libsecp256k1/hmac",
-    "libsecp256k1/static-context",
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
+    "libsecp256k1/hmac",
+    "libsecp256k1/static-context",
 ]
 
 try-runtime = ["frame-support/try-runtime"]

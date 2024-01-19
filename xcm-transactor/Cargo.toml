@@ -49,17 +49,16 @@ default = ["std"]
 std = [
     "codec/std",
     "cumulus-primitives-core/std",
-    "log/std",
-    "scale-info/std",
-    # substrate
     "frame-support/std",
     "frame-system/std",
+    "log/std",
+    "scale-info/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
-    "xcm/std",
     "xcm-transactor-primitives/std",
+    "xcm/std",
 ]
 runtime-benchmarks = []
 

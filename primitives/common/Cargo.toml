@@ -23,6 +23,6 @@ std = [
     "codec/std",
     "scale-info/std",
     "sp-core/std",
-    "sp-std/std",
     "sp-runtime/std",
+    "sp-std/std",
 ]

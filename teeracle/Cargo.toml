@@ -49,20 +49,18 @@ timestamp = { package = "pallet-timestamp", git = "https://github.com/paritytech
 default = ["std"]
 std = [
     "codec/std",
-    "log/std",
-    "scale-info/std",
-    # local
-    "pallet-teerex/std",
-    "teeracle-primitives/std",
-    # encointer
-    "substrate-fixed/std",
-    # substrate
     "frame-support/std",
     "frame-system/std",
+    "log/std",
+    "pallet-teerex/std",
+    "scale-info/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "substrate-fixed/std",
+    "teeracle-primitives/std",
+    "teerex-primitives/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

@@ -23,10 +23,10 @@ default = ["std"]
 no_std = []
 std = [
     "parity-scale-codec/std",
-    "scale-info/std",
     "rustc-hex/std",
-    "sp-std/std",
+    "scale-info/std",
+    "serde/std",
     "sp-io/std",
     "sp-runtime/std",
-    "serde/std",
+    "sp-std/std",
 ]
