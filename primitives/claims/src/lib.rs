@@ -17,12 +17,16 @@
 
 //!Primitives for claims
 #![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::String};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 use sp_runtime::RuntimeDebug;
-
+use sp_std::vec::Vec;
 /// Copied from https://github.com/paritytech/polkadot/blob/master/primitives/src/v1/mod.rs
 /// Custom validity errors used in Polkadot while validating transactions.
 #[repr(u8)]
@@ -44,8 +48,9 @@ impl From<ValidityError> for u8 {
 }
 
 /// The kind of statement an account needs to make for a claim to be valid.
-#[derive(Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(
+	Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, Serialize, Deserialize,
+)]
 pub enum StatementKind {
 	/// Statement required to be made by non-SAFT holders.
 	Regular,
@@ -81,7 +86,6 @@ impl Default for StatementKind {
 #[derive(Clone, Copy, PartialEq, Eq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct EthereumAddress(pub [u8; 20]);
 
-#[cfg(feature = "std")]
 impl Serialize for EthereumAddress {
 	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	where
@@ -92,7 +96,6 @@ impl Serialize for EthereumAddress {
 	}
 }
 
-#[cfg(feature = "std")]
 impl<'de> Deserialize<'de> for EthereumAddress {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where

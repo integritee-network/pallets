@@ -18,7 +18,7 @@ frame-benchmarking = { optional = true, default-features = false, git = "https:/
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", features = ["serde"] }
 sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
 # local
