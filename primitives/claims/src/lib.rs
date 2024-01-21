@@ -49,10 +49,21 @@ impl From<ValidityError> for u8 {
 
 /// The kind of statement an account needs to make for a claim to be valid.
 #[derive(
-	Encode, Decode, Clone, Copy, Eq, PartialEq, RuntimeDebug, TypeInfo, Serialize, Deserialize,
+	Encode,
+	Decode,
+	Clone,
+	Copy,
+	Eq,
+	PartialEq,
+	Default,
+	RuntimeDebug,
+	TypeInfo,
+	Serialize,
+	Deserialize,
 )]
 pub enum StatementKind {
 	/// Statement required to be made by non-SAFT holders.
+	#[default]
 	Regular,
 	/// Statement required to be made by SAFT holders.
 	Saft,
