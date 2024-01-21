@@ -74,12 +74,6 @@ impl StatementKind {
 	}
 }
 
-impl Default for StatementKind {
-	fn default() -> Self {
-		StatementKind::Regular
-	}
-}
-
 /// An Ethereum address (i.e. 20 bytes, used to represent an Ethereum account).
 ///
 /// This gets serialized to the 0x-prefixed hex representation.
