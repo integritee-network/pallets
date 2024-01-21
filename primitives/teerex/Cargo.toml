@@ -12,7 +12,7 @@ codec = { version = "3.6.1", default-features = false, features = ["derive"], pa
 common-primitives = { path = "../common", default-features = false }
 derive_more = "0.99.16"
 log = { version = "0.4.14", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
 serde = { version = "1.0.171", default-features = false }
 
 # substrate dependencies

@@ -10,8 +10,8 @@ edition = "2021"
 [dependencies]
 parity-scale-codec = { version = "3.6.1", default-features = false, features = ["derive"] }
 rustc-hex = { version = "2.1.0", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
-serde = { version = "1.0.171", default-features = false }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
+serde = { version = "1.0.171", default-features = false, optional = true }
 
 # substrate dependencies
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
@@ -20,7 +20,7 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 
 [features]
 default = ["std"]
-no_std = []
+serde_derive = ["serde"]
 std = [
     "parity-scale-codec/std",
     "rustc-hex/std",

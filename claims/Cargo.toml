@@ -9,7 +9,7 @@ edition = "2021"
 libsecp256k1 = { version = "0.7.0", default-features = false, optional = true }
 parity-scale-codec = { version = "3.6.1", default-features = false, features = ["derive"] }
 rustc-hex = { version = "2.1.0", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
 serde = { version = "1.0.171", default-features = false }
 serde_derive = { version = "1.0.171", optional = true }
 
@@ -22,7 +22,7 @@ sp-runtime = { default-features = false, git = "https://github.com/paritytech/su
 sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
 
 # local
-claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false }
+claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false, features = ["serde_derive"] }
 
 [dev-dependencies]
 hex-literal = "0.3.3"
