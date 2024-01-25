@@ -28,16 +28,11 @@ use sp_std::prelude::*;
 
 pub const TEEREX: &str = "teerex";
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, Default, sp_core::RuntimeDebug, TypeInfo)]
 pub enum SgxBuildMode {
 	Debug,
+	#[default]
 	Production,
-}
-
-impl Default for SgxBuildMode {
-	fn default() -> Self {
-		SgxBuildMode::Production
-	}
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]

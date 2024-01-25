@@ -33,7 +33,7 @@ pub mod pallet {
 		type Moment: Parameter
 			+ Default
 			+ AtLeast32Bit
-			+ Scale<Self::BlockNumber, Output = Self::Moment>
+			+ Scale<BlockNumberFor<Self>, Output = Self::Moment>
 			+ Copy
 			+ MaxEncodedLen
 			+ scale_info::StaticTypeInfo;
@@ -44,12 +44,12 @@ pub mod pallet {
 	pub enum Event<T: Config<I>, I: 'static = ()> {
 		/// a parentchain block has been registered
 		SetBlock {
-			block_number: T::BlockNumber,
+			block_number: BlockNumberFor<T>,
 			parent_hash: T::Hash,
 			block_hash: T::Hash,
 		},
 		SetCreationBlock {
-			block_number: T::BlockNumber,
+			block_number: BlockNumberFor<T>,
 			block_hash: T::Hash,
 		},
 		ShardVaultInitialized {
@@ -97,7 +97,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn block_number)]
 	pub(super) type Number<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, T::BlockNumber, OptionQuery>;
+		StorageValue<_, BlockNumberFor<T>, OptionQuery>;
 
 	/// The current block timestamp. Set by `set_now`.
 	/// this is not guaranteed by the pallet to be consistent with block_number or hash
@@ -127,7 +127,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn creation_block_number)]
 	pub(super) type CreationBlockNumber<T: Config<I>, I: 'static = ()> =
-		StorageValue<_, T::BlockNumber, OptionQuery>;
+		StorageValue<_, BlockNumberFor<T>, OptionQuery>;
 
 	/// The creation block timestamp. Set by `set_creation_timestamp`.
 	#[pallet::storage]
@@ -142,7 +142,7 @@ pub mod pallet {
 	impl<T: Config<I>, I: 'static> Pallet<T, I> {
 		#[pallet::call_index(0)]
 		#[pallet::weight(T::WeightInfo::set_block())]
-		pub fn set_block(origin: OriginFor<T>, header: T::Header) -> DispatchResult {
+		pub fn set_block(origin: OriginFor<T>, header: HeaderFor<T>) -> DispatchResult {
 			ensure_root(origin)?;
 			<Number<T, I>>::put(header.number());
 			<ParentHash<T, I>>::put(header.parent_hash());
@@ -203,7 +203,7 @@ pub mod pallet {
 		}
 		#[pallet::call_index(5)]
 		#[pallet::weight(T::WeightInfo::set_creation_block())]
-		pub fn set_creation_block(origin: OriginFor<T>, header: T::Header) -> DispatchResult {
+		pub fn set_creation_block(origin: OriginFor<T>, header: HeaderFor<T>) -> DispatchResult {
 			ensure_root(origin)?;
 			<CreationBlockNumber<T, I>>::put(header.number());
 			<CreationBlockHash<T, I>>::put(header.hash());
