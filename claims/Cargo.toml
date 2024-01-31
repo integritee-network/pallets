@@ -6,31 +6,31 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-libsecp256k1 = { version = "0.7.0", default-features = false, optional = true }
-parity-scale-codec = { version = "3.6.1", default-features = false, features = ["derive"] }
-rustc-hex = { version = "2.1.0", default-features = false }
-scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
-serde = { version = "1.0.171", default-features = false }
-serde_derive = { version = "1.0.171", optional = true }
+parity-scale-codec = { workspace = true }
+libsecp256k1 = { workspace = true, optional = true }
+rustc-hex = { workspace = true }
+scale-info = { workspace = true }
+serde = { workspace = true }
+serde_derive = { workspace = true, optional = true }
 
 # substrate dependencies
-frame-benchmarking = { optional = true, default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0", features = ["serde"] }
-sp-std = { package = "sp-std", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 # local
 claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false, features = ["serde_derive"] }
 
 [dev-dependencies]
-hex-literal = "0.3.3"
-libsecp256k1 = "0.7.0"
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
-pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-serde_json = { version = "1.0" }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v1.0.0" }
+hex-literal = { workspace = true }
+libsecp256k1 = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-vesting = { workspace = true }
+serde_json = { workspace = true }
+sp-core = { workspace = true }
 
 [features]
 default = ["std"]
@@ -39,6 +39,7 @@ std = [
     "claims-primitives/std",
     "frame-support/std",
     "frame-system/std",
+    "pallet-balances/std",
     "parity-scale-codec/std",
     "rustc-hex/std",
     "scale-info/std",

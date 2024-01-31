@@ -26,9 +26,9 @@ use crate::{
 		},
 	},
 };
-use codec::Decode;
 use frame_support::assert_err;
 use hex_literal::hex;
+use parity_scale_codec::Decode;
 
 #[test]
 fn verify_ias_report_should_work() {

@@ -16,8 +16,8 @@
 */
 
 use crate::mock::*;
-use codec::{Decode, Encode};
 use frame_support::assert_ok;
+use parity_scale_codec::{Decode, Encode};
 use teerex_primitives::{EnclaveFingerprint, MultiEnclave, SgxEnclave};
 use test_utils::TestEnclave;
 

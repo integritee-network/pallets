@@ -17,3 +17,41 @@ members = [
     "primitives/common",
     "primitives/xcm-transactor",
 ]
+
+[workspace.dependencies]
+base64 = { version = "0.13", default-features = false, features = ["alloc"] }
+chrono = { version = "0.4", default-features = false, features = ["serde"] }
+parity-scale-codec = { version = "3.6.1", default-features = false, features = ["derive"] }
+cumulus-primitives-core = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v1.0.0" }
+der = { default-features = false, version = "0.6.0" }
+env_logger = "0.9.0"
+externalities = { package = "sp-externalities", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
+hex-literal = "0.3.2"
+libsecp256k1 = { version = "0.7.0", default-features = false }
+log = { version = "0.4.14", default-features = false }
+pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
+rustc-hex = { version = "2.1.0", default-features = false }
+scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
+serde = { version = "1.0.171", features = ["derive"] }
+serde_derive = { version = "1.0.171" }
+serde_json = { version = "1.0" }
+sgx-verify = { path = "sgx-verify", default-features = false }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
+teerex-primitives = { path = "../primitives/teerex", default-features = false }
+timestamp = { package = "pallet-timestamp", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+webpki = { git = "https://github.com/rustls/webpki", version = "=0.102.0-alpha.3", rev = "da923ed", package = "rustls-webpki", default-features = false, features = ["alloc", "ring"] }
+x509-cert = { default-features = false, version = "0.1.0", features = ["alloc"] }
+xcm = { default-features = false, git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0" }
+derive_more = "0.99.16"

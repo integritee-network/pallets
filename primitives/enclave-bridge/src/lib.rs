@@ -17,8 +17,8 @@
 
 //!Primitives for enclave-bridge
 #![cfg_attr(not(feature = "std"), no_std)]
-use codec::{Decode, Encode};
 pub use common_primitives::{EnclaveFingerprint, ShardIdentifier};
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::prelude::*;
 

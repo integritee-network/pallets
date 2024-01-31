@@ -16,12 +16,12 @@
 */
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, FullCodec};
 pub use cumulus_primitives_core::ParaId;
 use frame_support::{
 	pallet_prelude::{Get, PhantomData},
 	RuntimeDebug,
 };
+use parity_scale_codec::{Decode, Encode, FullCodec};
 use sp_std::vec;
 use xcm::{latest::Weight as XcmWeight, prelude::*};
 

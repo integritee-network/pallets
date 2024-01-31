@@ -16,10 +16,10 @@
 */
 
 use crate::{mock::*, Error, Event as SidechainEvent};
-use codec::Encode;
 use enclave_bridge_primitives::{ShardConfig, ShardIdentifier};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use pallet_teerex::Pallet as Teerex;
+use parity_scale_codec::Encode;
 use sidechain_primitives::SidechainBlockConfirmation;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;

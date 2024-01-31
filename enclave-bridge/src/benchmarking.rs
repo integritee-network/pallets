@@ -20,10 +20,10 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
-use codec::{Decode, Encode};
 use frame_benchmarking::{benchmarks, v2::*};
 use frame_system::RawOrigin;
 use pallet_teerex::Pallet as Teerex;
+use parity_scale_codec::{Decode, Encode};
 use sp_runtime::traits::{Bounded, Hash, StaticLookup};
 use sp_std::vec;
 use teerex_primitives::{MultiEnclave, SgxEnclave};

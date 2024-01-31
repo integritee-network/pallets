@@ -18,9 +18,9 @@
 //!Primitives for teerex
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate derive_more;
-use codec::{Decode, Encode};
 pub use common_primitives::{AnySigner, EnclaveFingerprint, OpaqueSigner};
 use derive_more::From;
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::MultiSigner;

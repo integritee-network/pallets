@@ -17,7 +17,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResultWithPostInfo},
 	ensure,
@@ -25,6 +24,7 @@ use frame_support::{
 	traits::Get,
 };
 use frame_system::{self, ensure_signed};
+use parity_scale_codec::Encode;
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
 };

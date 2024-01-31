@@ -8,26 +8,26 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+parity-scale-codec = { workspace = true }
 # local
 common-primitives = { path = "../common", default-features = false }
 
 # substrate
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-support = { workspace = true }
+sp-std = { workspace = true }
 
 # xcm/polkadot
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v1.0.0", default-features = false }
+xcm = { workspace = true }
 
 # cumulus
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v1.0.0", default-features = false }
+cumulus-primitives-core = { workspace = true }
 
 [features]
 default = ["std"]
 ksm = []
 dot = []
 std = [
-    "codec/std",
+    "parity-scale-codec/std",
     "common-primitives/std",
     "cumulus-primitives-core/std",
     "frame-support/std",

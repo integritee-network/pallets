@@ -16,9 +16,9 @@
 */
 
 use crate::{mock::*, Config, Error};
-use codec::{Decode, Encode};
 use cumulus_primitives_core::ParaId;
 use frame_support::{assert_noop, assert_ok};
+use parity_scale_codec::{Decode, Encode};
 use sp_keyring::AccountKeyring;
 use xcm_transactor_primitives::*;
 

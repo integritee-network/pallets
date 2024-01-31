@@ -12,10 +12,10 @@ edition = "2021"
 common-primitives = { path = "../common", default-features = false }
 
 # encointer
-substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
+substrate-fixed = { workspace = true }
 
 # substrate
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-std = { workspace = true }
 
 
 [features]
