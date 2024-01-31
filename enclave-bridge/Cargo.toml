@@ -37,9 +37,9 @@ test-utils = { path = "../test-utils", optional = true }
 [dev-dependencies]
 env_logger = { workspace = true }
 externalities = { workspace = true }
-frame-benchmarking = { workspace = true }
+frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
-pallet-balances = { workspace = true }
+pallet-balances = { workspace = true, features = ["std"] }
 sp-keyring = { workspace = true }
 test-utils = { path = "../test-utils" }
 

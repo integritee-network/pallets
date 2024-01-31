@@ -35,7 +35,7 @@ libsecp256k1 = { version = "0.7.0", default-features = false }
 log = { version = "0.4.14", default-features = false }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+pallet-vesting = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
 rustc-hex = { version = "2.1.0", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
