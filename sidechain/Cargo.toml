@@ -57,7 +57,7 @@ std = [
 	"pallet-timestamp/std",
 	"parity-scale-codec/std",
 	"scale-info/std",
-	"serde",
+	"serde/std",
 	"sidechain-primitives/std",
 	"sp-core/std",
 	"sp-io/std",

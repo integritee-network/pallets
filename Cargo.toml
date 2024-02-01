@@ -27,7 +27,7 @@ hex = { default-features = false, version = "0.4.3", features = ["alloc"] }
 hex-literal = "0.3.3"
 log = { version = "0.4.14", default-features = false }
 rustc-hex = { version = "2.1.0", default-features = false }
-serde = { version = "1.0.171", features = ["alloc", "derive"] }
+serde = { version = "1.0.171", default-features = false, features = ["alloc", "derive"] }
 serde_derive = { version = "1.0.171" }
 serde_json = { version = "1.0" }
 
