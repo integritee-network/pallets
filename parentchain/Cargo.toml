@@ -9,8 +9,8 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 log = { workspace = true }
+parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
@@ -28,19 +28,19 @@ env_logger = { workspace = true }
 sp-keyring = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-balances/std",
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"serde/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-balances/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "serde/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 ]
 
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = ["frame-support/try-runtime"]

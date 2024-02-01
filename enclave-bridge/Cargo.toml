@@ -9,8 +9,8 @@ license = "MS-RSL"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 log = { workspace = true }
+parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 
@@ -22,11 +22,11 @@ teerex-primitives = { path = "../primitives/teerex", default-features = false }
 # substrate dependencies
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+pallet-timestamp = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-pallet-timestamp = { workspace = true }
 
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
@@ -44,33 +44,33 @@ sp-keyring = { workspace = true }
 test-utils = { path = "../test-utils" }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"enclave-bridge-primitives/std",
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-teerex/std",
-	"pallet-timestamp/std",
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"serde/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"teerex-primitives/std",
+    "enclave-bridge-primitives/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-teerex/std",
+    "pallet-timestamp/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "serde/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "teerex-primitives/std",
 ]
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"hex-literal",
-	"pallet-balances",
-	"pallet-timestamp/runtime-benchmarks",
-	"test-utils",
-	"pallet-teerex/runtime-benchmarks"
+    "frame-benchmarking",
+    "hex-literal",
+    "pallet-balances",
+    "pallet-timestamp/runtime-benchmarks",
+    "test-utils",
+    "pallet-teerex/runtime-benchmarks",
 ]
 
 try-runtime = [
-	"frame-support/try-runtime",
-	"pallet-teerex/try-runtime"
+    "frame-support/try-runtime",
+    "pallet-teerex/try-runtime",
 ]

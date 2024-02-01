@@ -15,5 +15,5 @@ sgx-verify = { default-features = false, features = ["test-data"], path = "../te
 teerex-primitives = { default-features = false, path = "../primitives/teerex" }
 
 [features]
-default = [ 'std' ]
-std = [ "log/std", "sgx-verify/std", "teerex-primitives/std" ]
+default = ['std']
+std = ["log/std", "sgx-verify/std", "teerex-primitives/std"]

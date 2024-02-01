@@ -9,8 +9,8 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 log = { workspace = true }
+parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 
 # local
@@ -32,8 +32,8 @@ sp-std = { workspace = true }
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
-test-utils = { path = "../test-utils", optional = true }
 pallet-timestamp = { workspace = true, optional = true }
+test-utils = { path = "../test-utils", optional = true }
 
 [dev-dependencies]
 externalities = { workspace = true }
@@ -46,31 +46,31 @@ pallet-timestamp = { workspace = true }
 
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-teerex/std",
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"substrate-fixed/std",
-	"teeracle-primitives/std",
-	"teerex-primitives/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-teerex/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "substrate-fixed/std",
+    "teeracle-primitives/std",
+    "teerex-primitives/std",
 ]
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"hex-literal",
-	"pallet-timestamp/runtime-benchmarks",
-	"test-utils",
-	"pallet-teerex/runtime-benchmarks"
+    "frame-benchmarking",
+    "hex-literal",
+    "pallet-timestamp/runtime-benchmarks",
+    "test-utils",
+    "pallet-teerex/runtime-benchmarks",
 ]
 
 try-runtime = [
-	"frame-support/try-runtime", 
-	"pallet-teerex/try-runtime"
+    "frame-support/try-runtime",
+    "pallet-teerex/try-runtime",
 ]

@@ -9,9 +9,9 @@ license = "MS-RSL"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 hex = { workspace = true }
 log = { workspace = true }
+parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
 webpki = { workspace = true }
@@ -23,11 +23,11 @@ teerex-primitives = { path = "../primitives/teerex", default-features = false }
 # substrate dependencies
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+pallet-timestamp = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-pallet-timestamp = { workspace = true }
 
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
@@ -47,29 +47,29 @@ serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"frame-support/std",
-	"frame-system/std",
-	"log/std",
-	"pallet-timestamp/std",
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"serde/std",
-	"sgx-verify/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"teerex-primitives/std",
-	"webpki/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "pallet-timestamp/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "serde/std",
+    "sgx-verify/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "teerex-primitives/std",
+    "webpki/std",
 ]
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"hex-literal",
-	"pallet-balances",
-	"pallet-timestamp/runtime-benchmarks",
-	"test-utils",
+    "frame-benchmarking",
+    "hex-literal",
+    "pallet-balances",
+    "pallet-timestamp/runtime-benchmarks",
+    "test-utils",
 ]
 
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = ["frame-support/try-runtime"]

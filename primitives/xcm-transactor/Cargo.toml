@@ -23,14 +23,14 @@ xcm = { workspace = true }
 cumulus-primitives-core = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 ksm = []
 dot = []
 std = [
-	"common-primitives/std",
-	"cumulus-primitives-core/std",
-	"frame-support/std",
-	"parity-scale-codec/std",
-	"sp-std/std",
-	"xcm/std",
+    "common-primitives/std",
+    "cumulus-primitives-core/std",
+    "frame-support/std",
+    "parity-scale-codec/std",
+    "sp-std/std",
+    "xcm/std",
 ]

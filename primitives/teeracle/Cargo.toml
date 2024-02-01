@@ -19,5 +19,5 @@ sp-std = { workspace = true }
 
 
 [features]
-default = [ "std" ]
-std = [ "common-primitives/std", "sp-std/std", "substrate-fixed/std" ]
+default = ["std"]
+std = ["common-primitives/std", "sp-std/std", "substrate-fixed/std"]

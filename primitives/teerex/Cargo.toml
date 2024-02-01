@@ -8,10 +8,10 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 common-primitives = { path = "../common", default-features = false }
 derive_more = { workspace = true }
 log = { workspace = true }
+parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true }
 
@@ -24,14 +24,14 @@ sp-std = { workspace = true }
 hex-literal = { workspace = true }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 std = [
-	"common-primitives/std",
-	"log/std",
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"serde/std",
-	"sp-core/std",
-	"sp-runtime/std",
-	"sp-std/std",
+    "common-primitives/std",
+    "log/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "serde/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-std/std",
 ]

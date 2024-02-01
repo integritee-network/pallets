@@ -21,14 +21,14 @@ sp-std = { workspace = true }
 
 
 [features]
-default = [ "full_crypto", "std" ]
-full_crypto = [ "sp-core/full_crypto" ]
+default = ["full_crypto", "std"]
+full_crypto = ["sp-core/full_crypto"]
 std = [
-	"parity-scale-codec/std",
-	"scale-info/std",
-	"serde/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "serde/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 ]

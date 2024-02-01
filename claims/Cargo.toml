@@ -6,8 +6,8 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
 libsecp256k1 = { workspace = true, optional = true }
+parity-scale-codec = { workspace = true }
 rustc-hex = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true }
@@ -29,32 +29,32 @@ hex-literal = { workspace = true }
 libsecp256k1 = { workspace = true, features = ["std"] }
 pallet-balances = { workspace = true, features = ["std"] }
 pallet-vesting = { workspace = true, features = ["std"] }
-serde_json = { workspace = true, features = ["std"]}
+serde_json = { workspace = true, features = ["std"] }
 sp-core = { workspace = true, features = ["std"] }
 
 [features]
-default = [ "std" ]
+default = ["std"]
 
 std = [
-	"claims-primitives/std",
-	"frame-support/std",
-	"frame-system/std",
-	"pallet-balances/std",
-	"parity-scale-codec/std",
-	"rustc-hex/std",
-	"scale-info/std",
-	"serde/std",
-	"serde_derive",
-	"sp-io/std",
-	"sp-runtime/std",
-	"sp-std/std",
+    "claims-primitives/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-balances/std",
+    "parity-scale-codec/std",
+    "rustc-hex/std",
+    "scale-info/std",
+    "serde/std",
+    "serde_derive",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
 ]
 runtime-benchmarks = [
-	"frame-benchmarking",
-	"frame-support/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"libsecp256k1/hmac",
-	"libsecp256k1/static-context",
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "libsecp256k1/hmac",
+    "libsecp256k1/static-context",
 ]
 
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = ["frame-support/try-runtime"]
