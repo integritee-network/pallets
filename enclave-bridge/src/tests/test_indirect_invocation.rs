@@ -55,7 +55,7 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 
 		let amount = 50;
 
-		assert_ok!(Balances::transfer(
+		assert_ok!(Balances::transfer_allow_death(
 			RuntimeOrigin::signed(shielder),
 			bonding_account.clone(),
 			1 << 50

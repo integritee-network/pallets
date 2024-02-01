@@ -4657,6 +4657,7 @@ dependencies = [
  "cumulus-primitives-core",
  "frame-support",
  "parity-scale-codec",
+ "sp-runtime",
  "sp-std",
  "staging-xcm",
 ]
