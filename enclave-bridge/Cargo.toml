@@ -67,6 +67,10 @@ runtime-benchmarks = [
 	"pallet-balances",
 	"pallet-timestamp/runtime-benchmarks",
 	"test-utils",
+	"pallet-teerex/runtime-benchmarks"
 ]
 
-try-runtime = [ "frame-support/try-runtime" ]
+try-runtime = [
+	"frame-support/try-runtime", 
+	"pallet-teerex/try-runtime"
+]
