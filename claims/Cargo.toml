@@ -29,12 +29,12 @@ hex-literal = { workspace = true }
 libsecp256k1 = { workspace = true, features = ["std"] }
 pallet-balances = { workspace = true, features = ["std"] }
 pallet-vesting = { workspace = true, features = ["std"] }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["std"]}
 sp-core = { workspace = true, features = ["std"] }
 
 [features]
 default = [ "std" ]
-no_std = []
+
 std = [
 	"claims-primitives/std",
 	"frame-support/std",

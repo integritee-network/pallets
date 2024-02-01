@@ -29,7 +29,7 @@ log = { version = "0.4.14", default-features = false }
 rustc-hex = { version = "2.1.0", default-features = false }
 serde = { version = "1.0.171", default-features = false, features = ["alloc", "derive"] }
 serde_derive = { version = "1.0.171" }
-serde_json = { version = "1.0" }
+serde_json = { version = "1.0", default-features = false }
 
 # crypto [no_std]
 der = { default-features = false, version = "0.6.0" }
