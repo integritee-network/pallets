@@ -19,7 +19,7 @@ teeracle-primitives = { path = "../primitives/teeracle", default-features = fals
 teerex-primitives = { path = "../primitives/teerex", default-features = false }
 
 # encointer
-substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
+substrate-fixed = { workspace = true }
 
 # substrate
 frame-support = { workspace = true }

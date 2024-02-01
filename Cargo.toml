@@ -52,7 +52,7 @@ sp-core = { version = "25.0.0", default-features = false }
 sp-io = { version = "27.0.0", default-features = false }
 sp-runtime = { version = "28.0.0", default-features = false }
 sp-std = { version = "12.0.0", default-features = false }
-substrate-fixed = { tag = "v0.5.9", default-features = false, git = "https://github.com/encointer/substrate-fixed.git" }
+substrate-fixed = { version = "0.5.9", default-features = false }
 staging-xcm = { version = "4.0.0", default-features = false }
 
 # dev-deps [std]
