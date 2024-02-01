@@ -17,8 +17,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 //!Primitives for all pallets
 extern crate derive_more;
-use codec::{Decode, Encode};
 use derive_more::From;
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_core::{bounded::BoundedVec, ConstU32, H256};
 use sp_runtime::MultiSigner;

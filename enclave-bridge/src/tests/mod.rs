@@ -16,8 +16,8 @@
 */
 
 use crate::mock::*;
-use codec::{Decode, Encode};
 use frame_support::assert_ok;
+use parity_scale_codec::{Decode, Encode};
 use teerex_primitives::{EnclaveFingerprint, MultiEnclave, SgxEnclave};
 use test_utils::TestEnclave;
 
@@ -32,7 +32,7 @@ fn get_bonding_account(enclave: &MultiEnclave<Vec<u8>>) -> AccountId {
 }
 
 fn now() -> u64 {
-	<timestamp::Pallet<Test>>::get()
+	<pallet_timestamp::Pallet<Test>>::get()
 }
 
 fn register_sovereign_test_enclave(

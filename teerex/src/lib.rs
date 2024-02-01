@@ -17,7 +17,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
 use frame_support::{
 	dispatch::{DispatchErrorWithPostInfo, DispatchResultWithPostInfo},
 	ensure,
@@ -25,6 +24,7 @@ use frame_support::{
 	traits::Get,
 };
 use frame_system::{self, ensure_signed};
+use parity_scale_codec::Encode;
 use sgx_verify::{
 	deserialize_enclave_identity, deserialize_tcb_info, extract_certs, verify_certificate_chain,
 };
@@ -61,7 +61,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + timestamp::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		#[pallet::constant]
@@ -340,7 +340,7 @@ pub mod pallet {
 					enclave
 				},
 				SgxAttestationMethod::Dcap { proxied } => {
-					let verification_time = <timestamp::Pallet<T>>::get();
+					let verification_time = <pallet_timestamp::Pallet<T>>::get();
 
 					let qe = <SgxQuotingEnclaveRegistry<T>>::get();
 					let (fmspc, tcb_info, report) = sgx_verify::verify_dcap_quote(
@@ -409,7 +409,7 @@ pub mod pallet {
 						// insert mrenclave if the ra_report represents one, otherwise insert default
 						<MrEnclave>::decode(&mut proof.as_slice()).unwrap_or_default(),
 						MrSigner::default(),
-						<timestamp::Pallet<T>>::get().saturated_into(),
+						<pallet_timestamp::Pallet<T>>::get().saturated_into(),
 						SgxBuildMode::default(),
 						SgxStatus::Invalid,
 					)
@@ -455,7 +455,7 @@ pub mod pallet {
 			ensure_signed(origin)?;
 			let enclave = Self::sovereign_enclaves(&enclave_signer)
 				.ok_or(Error::<T>::EnclaveIsNotRegistered)?;
-			let now = <timestamp::Pallet<T>>::get();
+			let now = <pallet_timestamp::Pallet<T>>::get();
 			let oldest_acceptable_attestation_time = now
 				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
 				.saturated_into::<u64>();
@@ -479,7 +479,7 @@ pub mod pallet {
 			ensure_signed(origin)?;
 			let enclave =
 				Self::proxied_enclaves(&address).ok_or(Error::<T>::EnclaveIsNotRegistered)?;
-			let now = <timestamp::Pallet<T>>::get();
+			let now = <pallet_timestamp::Pallet<T>>::get();
 			let oldest_acceptable_attestation_time = now
 				.saturating_sub(T::MaxAttestationRenewalPeriod::get())
 				.saturated_into::<u64>();
@@ -587,7 +587,7 @@ impl<T: Config> Pallet<T> {
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
 	) -> Result<SgxQuotingEnclave, DispatchErrorWithPostInfo> {
-		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let verification_time: u64 = <pallet_timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
 		let intermediate_slices: Vec<webpki::types::CertificateDer> =
@@ -614,7 +614,7 @@ impl<T: Config> Pallet<T> {
 		signature: Vec<u8>,
 		certificate_chain: Vec<u8>,
 	) -> Result<(Fmspc, SgxTcbInfoOnChain), DispatchErrorWithPostInfo> {
-		let verification_time: u64 = <timestamp::Pallet<T>>::get().saturated_into();
+		let verification_time: u64 = <pallet_timestamp::Pallet<T>>::get().saturated_into();
 		let certs = extract_certs(&certificate_chain);
 		ensure!(certs.len() >= 2, Error::<T>::CertificateChainIsTooShort);
 		log::trace!(target: TEEREX, "Self::verify_tcb_info, certs len is >= 2.");
@@ -638,7 +638,7 @@ impl<T: Config> Pallet<T> {
 	fn ensure_timestamp_within_24_hours(report_timestamp: u64) -> DispatchResultWithPostInfo {
 		use sp_runtime::traits::CheckedSub;
 
-		let elapsed_time = <timestamp::Pallet<T>>::get()
+		let elapsed_time = <pallet_timestamp::Pallet<T>>::get()
 			.checked_sub(&T::Moment::saturated_from(report_timestamp))
 			.ok_or("Underflow while calculating elapsed time since report creation")?;
 

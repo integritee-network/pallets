@@ -50,7 +50,7 @@ benchmarks! {
 	// Benchmark `register_sgx_enclave` with the worst possible conditions (DCAP sovereign is more involved than Ias or proxied DCAP):
 	// * dcap registration succeeds with `proxied: false`
 	register_sgx_enclave {
-		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
 		register_test_quoting_enclave::<T>(signer.clone());
@@ -66,7 +66,7 @@ benchmarks! {
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
 	// * quoting enclave registration succeeds
 	register_quoting_enclave {
-		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
 	}: _(RawOrigin::Signed(signer), QUOTING_ENCLAVE.to_vec(), QUOTING_ENCLAVE_SIGNATURE.to_vec(), QE_IDENTITY_ISSUER_CHAIN.to_vec())
@@ -78,7 +78,7 @@ benchmarks! {
 	// Benchmark `register_tcb_info` with the worst possible conditions:
 	// * tcb registration succeeds
 	register_tcb_info {
-		timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		register_test_quoting_enclave::<T>(signer.clone());
 
@@ -95,7 +95,7 @@ benchmarks! {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
 		add_sovereign_enclaves_to_registry::<T>(&accounts);
-		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
+		pallet_timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
@@ -111,7 +111,7 @@ benchmarks! {
 		add_proxied_enclaves_to_registry::<T>(&accounts);
 		let (key0, value0) = <ProxiedEnclaves<T>>::iter()
 		.collect::<Vec<(EnclaveInstanceAddress<T::AccountId>, MultiEnclave<Vec<u8>>)>>()[0].clone();
-		timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
+		pallet_timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), key0.clone())
 	verify {
