@@ -35,7 +35,7 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_std::vec;
-	use xcm::latest::{prelude::*, Weight as XcmWeight};
+	use staging_xcm::latest::{prelude::*, Weight as XcmWeight};
 	use xcm_transactor_primitives::*;
 
 	#[pallet::pallet]

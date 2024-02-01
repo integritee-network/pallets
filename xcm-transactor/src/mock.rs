@@ -28,7 +28,7 @@ use sp_runtime::{
 };
 
 use sp_runtime::BuildStorage;
-use xcm::latest::prelude::*;
+use staging_xcm::latest::prelude::*;
 use xcm_transactor_primitives::*;
 
 pub type Signature = sp_runtime::MultiSignature;

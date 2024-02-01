@@ -23,7 +23,7 @@ use frame_support::{
 };
 use parity_scale_codec::{Decode, Encode, FullCodec};
 use sp_std::vec;
-use xcm::{latest::Weight as XcmWeight, prelude::*};
+use staging_xcm::{latest::Weight as XcmWeight, prelude::*};
 
 pub trait BuildRelayCall {
 	type RelayCall: FullCodec;

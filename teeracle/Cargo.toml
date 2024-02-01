@@ -36,7 +36,7 @@ pallet-timestamp = { workspace = true, optional = true }
 test-utils = { path = "../test-utils", optional = true }
 
 [dev-dependencies]
-externalities = { workspace = true }
+sp-externalities = { workspace = true }
 frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
 sp-keyring = { workspace = true }
