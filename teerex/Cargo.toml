@@ -27,7 +27,7 @@ sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
-timestamp = { workspace = true }
+pallet-timestamp = { workspace = true }
 
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
@@ -60,7 +60,7 @@ std = [
     "sp-runtime/std",
     "sp-std/std",
     "teerex-primitives/std",
-    "timestamp/std",
+    "pallet-timestamp/std",
     "webpki/std",
 ]
 runtime-benchmarks = [
@@ -68,7 +68,7 @@ runtime-benchmarks = [
     "hex-literal",
     "pallet-balances",
     "test-utils",
-    "timestamp/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
 ]
 
 try-runtime = ["frame-support/try-runtime"]

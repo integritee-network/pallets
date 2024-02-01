@@ -49,7 +49,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system,
 		Balances: pallet_balances,
-		Timestamp: timestamp,
+		Timestamp: pallet_timestamp,
 		Teerex: pallet_teerex,
 		Teeracle: pallet_teeracle,
 	}
@@ -112,7 +112,7 @@ parameter_types! {
 
 pub type Moment = u64;
 
-impl timestamp::Config for Test {
+impl pallet_timestamp::Config for Test {
 	type Moment = Moment;
 	type OnTimestampSet = ();
 	type MinimumPeriod = MinimumPeriod;

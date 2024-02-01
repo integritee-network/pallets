@@ -64,7 +64,9 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + timestamp::Config + pallet_teerex::Config {
+	pub trait Config:
+		frame_system::Config + pallet_timestamp::Config + pallet_teerex::Config
+	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
 		type WeightInfo: WeightInfo;

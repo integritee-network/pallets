@@ -33,7 +33,7 @@ sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 test-utils = { path = "../test-utils", optional = true }
-timestamp = { workspace = true, optional = true }
+pallet-timestamp = { workspace = true, optional = true }
 
 [dev-dependencies]
 externalities = { workspace = true }
@@ -42,7 +42,7 @@ hex-literal = { workspace = true }
 sp-keyring = { workspace = true }
 pallet-balances = { workspace = true, features = ["std"] }
 test-utils = { path = "../test-utils" }
-timestamp = { workspace = true }
+pallet-timestamp = { workspace = true }
 
 
 [features]
@@ -66,7 +66,7 @@ runtime-benchmarks = [
     "frame-benchmarking",
     "hex-literal",
     "test-utils",
-    "timestamp/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
 ]
 
 try-runtime = ["frame-support/try-runtime"]
