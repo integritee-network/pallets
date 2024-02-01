@@ -9,7 +9,7 @@ license = "MS-RSL"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["full"] }
 log = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true, optional = true }
