@@ -1404,7 +1404,7 @@ mod tests {
 mod benchmarking {
 	use super::{pallet::Call, *};
 	use frame_benchmarking::{account, benchmarks};
-	use frame_support::dispatch::UnfilteredDispatchable;
+	use frame_support::traits::UnfilteredDispatchable;
 	use frame_system::RawOrigin;
 	use secp_utils::*;
 	use sp_runtime::{traits::ValidateUnsigned, DispatchResult};
