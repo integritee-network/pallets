@@ -46,29 +46,29 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-    "parity-scale-codec/std",
-    "frame-support/std",
-    "frame-system/std",
-    "log/std",
-    "scale-info/std",
-    "serde",
-    "sgx-verify/std",
-    "sp-core/std",
-    "sp-io/std",
-    "sp-runtime/std",
-    "sp-std/std",
-    "teerex-primitives/std",
-    "pallet-timestamp/std",
-    "webpki/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-timestamp/std",
+	"parity-scale-codec/std",
+	"scale-info/std",
+	"serde",
+	"sgx-verify/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"teerex-primitives/std",
+	"webpki/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
-    "hex-literal",
-    "pallet-balances",
-    "test-utils",
-    "pallet-timestamp/runtime-benchmarks",
+	"frame-benchmarking",
+	"hex-literal",
+	"pallet-balances",
+	"pallet-timestamp/runtime-benchmarks",
+	"test-utils",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]

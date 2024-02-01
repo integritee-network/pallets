@@ -33,28 +33,28 @@ serde_json = { workspace = true }
 sp-core = { workspace = true, features = ["std"] }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 no_std = []
 std = [
-    "claims-primitives/std",
-    "frame-support/std",
-    "frame-system/std",
-    "pallet-balances/std",
-    "parity-scale-codec/std",
-    "rustc-hex/std",
-    "scale-info/std",
-    "serde/std",
-    "serde_derive",
-    "sp-io/std",
-    "sp-runtime/std",
-    "sp-std/std",
+	"claims-primitives/std",
+	"frame-support/std",
+	"frame-system/std",
+	"pallet-balances/std",
+	"parity-scale-codec/std",
+	"rustc-hex/std",
+	"scale-info/std",
+	"serde/std",
+	"serde_derive",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-    "libsecp256k1/hmac",
-    "libsecp256k1/static-context",
+	"frame-benchmarking",
+	"frame-support/runtime-benchmarks",
+	"frame-system/runtime-benchmarks",
+	"libsecp256k1/hmac",
+	"libsecp256k1/static-context",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]

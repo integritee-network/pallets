@@ -45,21 +45,21 @@ sp-keyring = { workspace = true }
 
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-    "parity-scale-codec/std",
-    "cumulus-primitives-core/std",
-    "frame-support/std",
-    "frame-system/std",
-    "log/std",
-    "scale-info/std",
-    "sp-core/std",
-    "sp-io/std",
-    "sp-runtime/std",
-    "sp-std/std",
-    "xcm-transactor-primitives/std",
-    "xcm/std",
+	"cumulus-primitives-core/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"parity-scale-codec/std",
+	"scale-info/std",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"xcm-transactor-primitives/std",
+	"xcm/std",
 ]
 runtime-benchmarks = []
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]

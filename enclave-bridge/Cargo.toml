@@ -44,29 +44,29 @@ sp-keyring = { workspace = true }
 test-utils = { path = "../test-utils" }
 
 [features]
-default = ["std"]
+default = [ "std" ]
 std = [
-    "parity-scale-codec/std",
-    "enclave-bridge-primitives/std",
-    "frame-support/std",
-    "frame-system/std",
-    "log/std",
-    "pallet-teerex/std",
-    "scale-info/std",
-    "serde",
-    "sp-core/std",
-    "sp-io/std",
-    "sp-runtime/std",
-    "sp-std/std",
-    "teerex-primitives/std",
-    "pallet-timestamp/std",
+	"enclave-bridge-primitives/std",
+	"frame-support/std",
+	"frame-system/std",
+	"log/std",
+	"pallet-teerex/std",
+	"pallet-timestamp/std",
+	"parity-scale-codec/std",
+	"scale-info/std",
+	"serde",
+	"sp-core/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
+	"teerex-primitives/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
-    "hex-literal",
-    "pallet-balances",
-    "test-utils",
-    "pallet-timestamp/runtime-benchmarks",
+	"frame-benchmarking",
+	"hex-literal",
+	"pallet-balances",
+	"pallet-timestamp/runtime-benchmarks",
+	"test-utils",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [ "frame-support/try-runtime" ]

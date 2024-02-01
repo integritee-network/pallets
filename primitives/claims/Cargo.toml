@@ -19,14 +19,14 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 [features]
-default = ["std"]
-serde_derive = ["serde"]
+default = [ "std" ]
+serde_derive = [ "serde" ]
 std = [
-    "parity-scale-codec/std",
-    "rustc-hex/std",
-    "scale-info/std",
-    "serde/std",
-    "sp-io/std",
-    "sp-runtime/std",
-    "sp-std/std",
+	"parity-scale-codec/std",
+	"rustc-hex/std",
+	"scale-info/std",
+	"serde/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"sp-std/std",
 ]
