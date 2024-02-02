@@ -14,10 +14,11 @@ common-primitives = { path = "../common", default-features = false }
 
 # substrate
 frame-support = { workspace = true }
+sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 # xcm/polkadot
-xcm = { workspace = true }
+staging-xcm = { workspace = true }
 
 # cumulus
 cumulus-primitives-core = { workspace = true }
@@ -32,5 +33,5 @@ std = [
     "frame-support/std",
     "parity-scale-codec/std",
     "sp-std/std",
-    "xcm/std",
+    "staging-xcm/std",
 ]

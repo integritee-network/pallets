@@ -631,13 +631,13 @@ mod tests {
 
 	use parity_scale_codec::Encode;
 	use sp_core::H256;
-	use sp_runtime::{generic, DispatchError::Token, TokenError::Frozen};
+	use sp_runtime::{generic, DispatchError, TokenError};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
 	use frame_support::{
 		assert_err, assert_noop, assert_ok,
-		dispatch::{DispatchError::BadOrigin, GetDispatchInfo, Pays},
+		dispatch::{GetDispatchInfo, Pays},
 		ord_parameter_types, parameter_types,
 		traits::{ExistenceRequirement, WithdrawReasons},
 	};
@@ -706,6 +706,7 @@ mod tests {
 		type WeightInfo = ();
 		type FreezeIdentifier = ();
 		type RuntimeHoldReason = ();
+		type RuntimeFreezeReason = ();
 		type MaxHolds = ();
 		type MaxFreezes = ();
 	}
@@ -826,7 +827,7 @@ mod tests {
 			assert_eq!(Balances::free_balance(42), 0);
 			assert_noop!(
 				Claims::move_claim(RuntimeOrigin::signed(1), eth(&alice()), eth(&bob()), None),
-				BadOrigin
+				DispatchError::BadOrigin
 			);
 			assert_ok!(Claims::move_claim(
 				RuntimeOrigin::signed(6),
@@ -1128,7 +1129,7 @@ mod tests {
 					180,
 					ExistenceRequirement::AllowDeath
 				),
-				Token(Frozen),
+				DispatchError::Token(TokenError::Frozen),
 			);
 		});
 	}
@@ -1403,7 +1404,7 @@ mod tests {
 mod benchmarking {
 	use super::{pallet::Call, *};
 	use frame_benchmarking::{account, benchmarks};
-	use frame_support::dispatch::UnfilteredDispatchable;
+	use frame_support::traits::UnfilteredDispatchable;
 	use frame_system::RawOrigin;
 	use secp_utils::*;
 	use sp_runtime::{traits::ValidateUnsigned, DispatchResult};

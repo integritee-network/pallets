@@ -28,7 +28,7 @@ use sp_runtime::{
 };
 
 use sp_runtime::BuildStorage;
-use xcm::latest::prelude::*;
+use staging_xcm::latest::prelude::*;
 use xcm_transactor_primitives::*;
 
 pub type Signature = sp_runtime::MultiSignature;
@@ -103,6 +103,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type RuntimeFreezeReason = ();
 	type FreezeIdentifier = ();
 	type MaxHolds = ();
 	type MaxFreezes = ();
