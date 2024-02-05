@@ -49,6 +49,7 @@ serde_json = { workspace = true, features = ["std"] }
 [features]
 default = ["std"]
 std = [
+    "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
     "log/std",
@@ -65,7 +66,7 @@ std = [
     "webpki/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
+    "frame-benchmarking/runtime-benchmarks",
     "hex-literal",
     "pallet-balances",
     "pallet-timestamp/runtime-benchmarks",

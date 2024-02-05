@@ -47,6 +47,7 @@ test-utils = { path = "../test-utils" }
 default = ["std"]
 std = [
     "enclave-bridge-primitives/std",
+    "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
     "log/std",
@@ -62,7 +63,7 @@ std = [
     "teerex-primitives/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
+    "frame-benchmarking/runtime-benchmarks",
     "hex-literal",
     "pallet-balances",
     "pallet-timestamp/runtime-benchmarks",
