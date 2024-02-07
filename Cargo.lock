@@ -993,7 +993,7 @@ name = "enclave-bridge-primitives"
 version = "0.1.0"
 dependencies = [
  "common-primitives",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -1490,12 +1490,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hex-literal"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
 name = "hex-literal"
@@ -2110,7 +2104,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.4",
+ "hex-literal",
  "libsecp256k1",
  "pallet-balances",
  "pallet-vesting",
@@ -2135,7 +2129,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "pallet-balances",
  "pallet-teerex",
@@ -2181,7 +2175,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "pallet-balances",
  "pallet-enclave-bridge",
@@ -2208,7 +2202,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "pallet-balances",
  "pallet-teerex",
@@ -2236,7 +2230,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "hex",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "pallet-balances",
  "pallet-timestamp",
@@ -2301,7 +2295,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "pallet-balances",
  "parity-scale-codec",
@@ -2469,7 +2463,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee4508ff6b035edc08c54bb61238500179963f6f1eb8266dce6a5625509124bc"
 dependencies = [
  "bitvec",
- "hex-literal 0.4.1",
+ "hex-literal",
  "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
@@ -3018,7 +3012,7 @@ dependencies = [
  "der 0.6.1",
  "frame-support",
  "hex",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "parity-scale-codec",
  "ring",
@@ -3834,7 +3828,7 @@ version = "0.1.0"
 dependencies = [
  "common-primitives",
  "derive_more",
- "hex-literal 0.3.4",
+ "hex-literal",
  "log",
  "parity-scale-codec",
  "scale-info",

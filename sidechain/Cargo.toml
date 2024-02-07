@@ -34,7 +34,7 @@ frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 pallet-balances = { workspace = true, optional = true }
 teerex-primitives = { path = "../primitives/teerex", default-features = false }
-test-utils = { path = "../test-utils", optional = true }
+test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
 env_logger = { workspace = true }
