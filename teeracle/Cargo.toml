@@ -33,7 +33,7 @@ sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 pallet-timestamp = { workspace = true, optional = true }
-test-utils = { path = "../test-utils", optional = true }
+test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
 sp-externalities = { workspace = true }
@@ -48,6 +48,7 @@ pallet-timestamp = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
     "log/std",
@@ -63,7 +64,7 @@ std = [
     "teerex-primitives/std",
 ]
 runtime-benchmarks = [
-    "frame-benchmarking",
+    "frame-benchmarking/runtime-benchmarks",
     "hex-literal",
     "pallet-timestamp/runtime-benchmarks",
     "test-utils",

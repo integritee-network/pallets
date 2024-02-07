@@ -17,6 +17,7 @@ scale-info = { workspace = true }
 xcm-transactor-primitives = { default-features = false, path = "../primitives/xcm-transactor", features = ["dot", "ksm"] }
 
 # substrate
+frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 sp-core = { workspace = true }
@@ -48,6 +49,7 @@ sp-keyring = { workspace = true }
 default = ["std"]
 std = [
     "cumulus-primitives-core/std",
+    "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
     "log/std",
@@ -60,6 +62,6 @@ std = [
     "xcm-transactor-primitives/std",
     "staging-xcm/std",
 ]
-runtime-benchmarks = []
+runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 
 try-runtime = ["frame-support/try-runtime"]
