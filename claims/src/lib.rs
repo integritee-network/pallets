@@ -672,6 +672,7 @@ mod tests {
 		type DbWeight = ();
 		type RuntimeOrigin = RuntimeOrigin;
 		type RuntimeCall = RuntimeCall;
+		type RuntimeTask = RuntimeTask;
 		type Nonce = u64;
 		type Hash = H256;
 		type Hashing = BlakeTwo256;
@@ -721,6 +722,7 @@ mod tests {
 		type RuntimeEvent = RuntimeEvent;
 		type Currency = Balances;
 		type BlockNumberToBalance = Identity;
+		type BlockNumberProvider = System;
 		type MinVestedTransfer = MinVestedTransfer;
 		type WeightInfo = ();
 		const MAX_VESTING_SCHEDULES: u32 = 28;
