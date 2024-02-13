@@ -89,7 +89,7 @@ pub trait DropAssetsWeigher {
 	fn default() -> Weight;
 }
 
-pub struct TrappistDropAssets<
+pub struct IntegriteeDropAssets<
 	AssetId,
 	AssetIdInfoGetter,
 	AssetsPallet,
@@ -111,7 +111,7 @@ pub struct TrappistDropAssets<
 
 impl<AssetId, AssetIdInfoGetter, AssetsPallet, BalancesPallet, XcmPallet, AccountId, Weigher>
 	DropAssets
-	for TrappistDropAssets<
+	for IntegriteeDropAssets<
 		AssetId,
 		AssetIdInfoGetter,
 		AssetsPallet,
