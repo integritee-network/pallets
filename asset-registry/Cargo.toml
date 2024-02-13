@@ -10,15 +10,15 @@ edition = "2021"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-parity-scale-codec = { workspace = true, features = ["derive"] }
-scale-info = { workspace = true }
-sp-runtime = { workspace = true }
-sp-std = { workspace = true }
 frame-benchmarking = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-assets = { workspace = true }
 pallet-balances = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 
 staging-xcm = { workspace = true }
 
@@ -48,28 +48,28 @@ cumulus-primitives-core = { workspace = true }
 [features]
 default = ["std"]
 std = [
-	"parity-scale-codec/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"pallet-assets/std",
-	"pallet-balances/std",
-	"frame-benchmarking/std",
-	"frame-support/std",
-	"frame-system/std",
-	"scale-info/std",
-	"xcm-primitives/std",
-	"staging-xcm/std",
-	"staging-xcm-executor/std",
-	"staging-xcm-builder/std",
-	"pallet-xcm/std",
-	"polkadot-core-primitives/std",
-	"polkadot-runtime-parachains/std",
-	"polkadot-parachain-primitives/std",
-	"staging-parachain-info/std",
-	"parachains-common/std",
-	"cumulus-pallet-dmp-queue/std",
-	"cumulus-pallet-xcmp-queue/std",
-	"cumulus-primitives-core/std",
+    "parity-scale-codec/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "pallet-assets/std",
+    "pallet-balances/std",
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "scale-info/std",
+    "xcm-primitives/std",
+    "staging-xcm/std",
+    "staging-xcm-executor/std",
+    "staging-xcm-builder/std",
+    "pallet-xcm/std",
+    "polkadot-core-primitives/std",
+    "polkadot-runtime-parachains/std",
+    "polkadot-parachain-primitives/std",
+    "staging-parachain-info/std",
+    "parachains-common/std",
+    "cumulus-pallet-dmp-queue/std",
+    "cumulus-pallet-xcmp-queue/std",
+    "cumulus-primitives-core/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
