@@ -76,9 +76,9 @@ impl<
 			(Fungible(ref amount), Concrete(ref id)) => (amount, id),
 			_ => return Err(MatchError::AssetNotHandled),
 		};
-		let what = ConvertAssetId::convert(id).ok_or_else(|| MatchError::AssetNotHandled)?;
+		let what = ConvertAssetId::convert(id).ok_or(MatchError::AssetNotHandled)?;
 		let amount = ConvertBalance::convert_back(amount)
-			.ok_or_else(|| MatchError::AmountToBalanceConversionFailed)?;
+			.ok_or(MatchError::AmountToBalanceConversionFailed)?;
 		Ok((what, amount))
 	}
 }

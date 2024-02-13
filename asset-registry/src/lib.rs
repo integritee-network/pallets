@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::large_enum_variant)]
 
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
@@ -93,6 +94,7 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
+	#[allow(clippy::large_enum_variant)]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
 		#[pallet::weight(<T as pallet::Config>::WeightInfo::register_reserve_asset())]
