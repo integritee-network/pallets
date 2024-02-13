@@ -25,7 +25,7 @@ use frame_support::{
 use sp_runtime::traits::MaybeEquivalence;
 #[cfg(not(test))]
 use sp_runtime::DispatchResult;
-use sp_std::{borrow::Borrow, marker::PhantomData};
+use sp_std::marker::PhantomData;
 use staging_xcm::{
 	latest::{
 		AssetId::Concrete, Fungibility::Fungible, Junctions::Here, MultiAsset, MultiLocation,
@@ -47,7 +47,7 @@ where
 	AssetIdInfoGetter: AssetMultiLocationGetter<AssetId>,
 {
 	fn convert(asset_multi_location: &MultiLocation) -> Option<AssetId> {
-		AssetIdInfoGetter::get_asset_id(asset_multi_location.borrow())
+		AssetIdInfoGetter::get_asset_id(asset_multi_location)
 	}
 
 	fn convert_back(asset_id: &AssetId) -> Option<MultiLocation> {
