@@ -82,7 +82,7 @@ pub mod dot {
 	}
 }
 
-#[cfg(feature = "ksm")]
+#[cfg(all(feature = "ksm", not(feature = "dot")))]
 pub use ksm::*;
 
 #[cfg(feature = "dot")]

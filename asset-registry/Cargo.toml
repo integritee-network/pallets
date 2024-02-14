@@ -1,0 +1,75 @@
+[package]
+name = "pallet-asset-registry"
+version = "0.0.1"
+description = "pallet for XCM Asset Registry."
+authors = ["Parity Technologies <admin@parity.io>"]
+license = "Apache-2.0"
+edition = "2021"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+frame-benchmarking = { workspace = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-assets = { workspace = true }
+pallet-balances = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+staging-xcm = { workspace = true }
+xcm-primitives = { path = "../primitives/xcm", default-features = false }
+
+[dev-dependencies]
+cumulus-pallet-dmp-queue = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+pallet-xcm = { workspace = true }
+parachains-common = { workspace = true }
+polkadot-core-primitives = { workspace = true }
+polkadot-parachain-primitives = { workspace = true }
+polkadot-runtime-parachains = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+staging-parachain-info = { workspace = true }
+staging-xcm = { workspace = true }
+staging-xcm-builder = { workspace = true }
+staging-xcm-executor = { workspace = true }
+xcm-simulator = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "cumulus-pallet-dmp-queue/std",
+    "cumulus-pallet-xcmp-queue/std",
+    "cumulus-primitives-core/std",
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-assets/std",
+    "pallet-balances/std",
+    "pallet-xcm/std",
+    "parachains-common/std",
+    "parity-scale-codec/std",
+    "polkadot-core-primitives/std",
+    "polkadot-parachain-primitives/std",
+    "polkadot-runtime-parachains/std",
+    "scale-info/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "staging-parachain-info/std",
+    "staging-xcm-builder/std",
+    "staging-xcm-executor/std",
+    "staging-xcm/std",
+    "xcm-primitives/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "pallet-assets/runtime-benchmarks",
+    "pallet-xcm/runtime-benchmarks",
+    "staging-xcm-builder/runtime-benchmarks",
+]
+try-runtime = ["frame-support/try-runtime"]
