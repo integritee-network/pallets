@@ -130,7 +130,7 @@ pub mod pallet {
 						<Error<T>>::AncestorHashMismatch
 					);
 				} else {
-					Err(<Error<T>>::AncestorMissing)
+					return Err(Error::<T>::AncestorMissing.into())
 				}
 			}
 			Self::finalize_block(shard, finalization_candidate, &sender);
