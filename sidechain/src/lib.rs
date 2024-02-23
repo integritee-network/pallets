@@ -68,10 +68,16 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// A proposed block is unexpected.
-		ReceivedUnexpectedSidechainBlock,
-		/// The value for the next finalization candidate is invalid.
-		InvalidNextFinalizationCandidateBlockNumber,
+		/// A proposed finalization candidate block is outdated
+		FinalizationCandidateIsOutdated,
+		/// The provided last finalized ancestor block number doesn't match.
+		/// This can mean a fork happened or the sender validateer is not up to date with L1
+		AncestorNumberMismatch,
+		/// The provided last finalized ancestor block hash doesn't match.
+		/// This can mean a fork happened or the sender validateer is not up to date with L1
+		AncestorHashMismatch,
+		/// sender hasn't provided an ancestor although an ancestor has been finalized
+		AncestorMissing,
 	}
 
 	#[pallet::storage]
@@ -87,9 +93,8 @@ pub mod pallet {
 		pub fn confirm_imported_sidechain_block(
 			origin: OriginFor<T>,
 			shard: ShardIdentifier,
-			block_number: u64,
-			_next_finalization_candidate_block_number: u64, //fixme: can be removed next time we introduce breaking changes
-			block_header_hash: H256,
+			latest_finalized_ancestor: Option<SidechainBlockConfirmation>,
+			finalization_candidate: SidechainBlockConfirmation,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let (_enclave, shard_status) =
@@ -100,7 +105,8 @@ pub mod pallet {
 				)?;
 
 			// TODO: Simple but robust logic for now:
-			// accept all blocks from first registered enclave for shard as long as blocknumber monotonically increases.
+			// https://github.com/integritee-network/pallets/issues/254
+			// accept only blocks from first validateer in shard_status
 			if sender != shard_status[0].signer {
 				log::debug!(
 					"Ignore block confirmation from registered enclave with index > 1: {:?}",
@@ -108,17 +114,26 @@ pub mod pallet {
 				);
 				return Ok(().into())
 			}
-			if let Some(ancestor) = Self::latest_sidechain_block_confirmation(shard) {
-				ensure!(
-					ancestor.block_number < block_number,
-					<Error<T>>::ReceivedUnexpectedSidechainBlock
-				);
+
+			if let Some(known_ancestor) = Self::latest_sidechain_block_confirmation(shard) {
+				if let Some(provided_ancestor) = latest_finalized_ancestor {
+					ensure!(
+						finalization_candidate.block_number > known_ancestor.block_number,
+						<Error<T>>::FinalizationCandidateIsOutdated
+					);
+					ensure!(
+						known_ancestor.block_number == provided_ancestor.block_number,
+						<Error<T>>::AncestorNumberMismatch
+					);
+					ensure!(
+						known_ancestor.block_header_hash == provided_ancestor.block_header_hash,
+						<Error<T>>::AncestorHashMismatch
+					);
+				} else {
+					Err(<Error<T>>::AncestorMissing)
+				}
 			}
-			Self::finalize_block(
-				shard,
-				SidechainBlockConfirmation { block_number, block_header_hash },
-				&sender,
-			);
+			Self::finalize_block(shard, finalization_candidate, &sender);
 			Ok(().into())
 		}
 	}
