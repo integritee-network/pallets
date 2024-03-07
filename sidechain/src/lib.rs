@@ -116,22 +116,20 @@ pub mod pallet {
 			}
 
 			if let Some(known_ancestor) = Self::latest_sidechain_block_confirmation(shard) {
-				if let Some(provided_ancestor) = latest_finalized_ancestor {
-					ensure!(
-						finalization_candidate.block_number > known_ancestor.block_number,
-						<Error<T>>::FinalizationCandidateIsOutdated
-					);
-					ensure!(
-						known_ancestor.block_number == provided_ancestor.block_number,
-						<Error<T>>::AncestorNumberMismatch
-					);
-					ensure!(
-						known_ancestor.block_header_hash == provided_ancestor.block_header_hash,
-						<Error<T>>::AncestorHashMismatch
-					);
-				} else {
-					return Err(Error::<T>::AncestorMissing.into())
-				}
+				let provided_ancestor =
+					latest_finalized_ancestor.ok_or(Error::<T>::AncestorMissing)?;
+				ensure!(
+					finalization_candidate.block_number > known_ancestor.block_number,
+					<Error<T>>::FinalizationCandidateIsOutdated
+				);
+				ensure!(
+					known_ancestor.block_number == provided_ancestor.block_number,
+					<Error<T>>::AncestorNumberMismatch
+				);
+				ensure!(
+					known_ancestor.block_header_hash == provided_ancestor.block_header_hash,
+					<Error<T>>::AncestorHashMismatch
+				);
 			}
 			Self::finalize_block(shard, finalization_candidate, &sender);
 			Ok(().into())
