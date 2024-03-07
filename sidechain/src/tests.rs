@@ -20,7 +20,7 @@ use enclave_bridge_primitives::{ShardConfig, ShardIdentifier};
 use frame_support::{assert_err, assert_ok, dispatch::DispatchResultWithPostInfo};
 use pallet_teerex::Pallet as Teerex;
 use parity_scale_codec::Encode;
-use sidechain_primitives::SidechainBlockConfirmation;
+use sidechain_primitives::{SidechainBlockConfirmation, SidechainBlockNumber};
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use teerex_primitives::{
@@ -37,27 +37,43 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 fn confirm_imported_sidechain_block_works_for_correct_shard() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let hash = H256::default();
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
-		let block_number = 1;
-		let next_finalization_block_candidate = 20;
+		let block_a =
+			SidechainBlockConfirmation { block_number: 2, block_header_hash: [2; 32].into() };
+
+		let block_b =
+			SidechainBlockConfirmation { block_number: 25, block_header_hash: [25; 32].into() };
 
 		register_ias_enclave7();
 
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(signer7.clone()),
 			shard7,
-			block_number,
-			next_finalization_block_candidate,
-			hash
+			None,
+			block_a
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard: shard7,
-			block_number,
-			block_header_hash: hash,
+			block_number: block_a.block_number,
+			block_header_hash: block_a.block_header_hash,
+			validateer: signer7.clone(),
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_ok!(Sidechain::confirm_imported_sidechain_block(
+			RuntimeOrigin::signed(signer7.clone()),
+			shard7,
+			Some(block_a),
+			block_b
+		));
+
+		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
+			shard: shard7,
+			block_number: block_b.block_number,
+			block_header_hash: block_b.block_header_hash,
 			validateer: signer7,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -68,21 +84,21 @@ fn confirm_imported_sidechain_block_works_for_correct_shard() {
 fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let hash = H256::default();
+
 		let signer7 = get_signer(TEST7_SIGNER_PUB);
 		let shard4 = H256::from_slice(&TEST4_MRENCLAVE);
 
 		register_ias_enclave7();
 
-		let block_number = 1;
+		let block_a =
+			SidechainBlockConfirmation { block_number: 2, block_header_hash: [2; 32].into() };
 
 		assert_err!(
 			Sidechain::confirm_imported_sidechain_block(
 				RuntimeOrigin::signed(signer7),
 				shard4,
-				block_number,
-				block_number,
-				hash
+				None,
+				block_a
 			),
 			pallet_enclave_bridge::Error::<Test>::WrongFingerprintForShard
 		);
@@ -90,97 +106,43 @@ fn confirm_imported_sidechain_block_from_shard_neq_mrenclave_errs() {
 }
 
 #[test]
-fn confirm_imported_sidechain_block_correct_order() {
+fn confirm_imported_sidechain_block_outdated_candidate_block_number_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_ias_enclave7();
 
-		assert_ok!(confirm_sidechain_block7(1, 2, H256::random(), true));
+		assert_ok!(confirm_sidechain_block7(None, 100, true));
 		assert_eq!(
 			Sidechain::latest_sidechain_block_confirmation(shard7)
 				.unwrap_or_default()
 				.block_number,
-			1
+			100
 		);
-		assert_ok!(confirm_sidechain_block7(2, 3, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			2
-		);
-		assert_ok!(confirm_sidechain_block7(3, 4, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			3
-		);
-		assert_ok!(confirm_sidechain_block7(4, 5, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			4
-		);
-		assert_ok!(confirm_sidechain_block7(5, 6, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			5
-		);
-	})
-}
-
-#[test]
-fn confirm_imported_sidechain_block_outdated_successor_fails() {
-	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
-
-		register_ias_enclave7();
-
-		assert_ok!(confirm_sidechain_block7(11, 42, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			11
-		);
-		assert_ok!(confirm_sidechain_block7(22, 42, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			22
-		);
-
 		// resubmission must fail
+		assert_err!(confirm_sidechain_block7(None, 100, true), Error::<Test>::AncestorMissing);
+
+		assert_ok!(confirm_sidechain_block7(Some(100), 101, true));
+		assert_eq!(
+			Sidechain::latest_sidechain_block_confirmation(shard7)
+				.unwrap_or_default()
+				.block_number,
+			101
+		);
+		// resubmission must fail with correct ancestor too
 		assert_err!(
-			confirm_sidechain_block7(22, 42, H256::random(), true),
-			Error::<Test>::ReceivedUnexpectedSidechainBlock
+			confirm_sidechain_block7(Some(100), 101, true),
+			Error::<Test>::FinalizationCandidateIsOutdated
 		);
 		// outdated blocks must fail
 		assert_err!(
-			confirm_sidechain_block7(21, 42, H256::random(), true),
-			Error::<Test>::ReceivedUnexpectedSidechainBlock
+			confirm_sidechain_block7(Some(101), 101, true),
+			Error::<Test>::FinalizationCandidateIsOutdated
 		);
-
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			22
-		);
-		assert_ok!(confirm_sidechain_block7(44, 42, H256::random(), true));
-		assert_eq!(
-			Sidechain::latest_sidechain_block_confirmation(shard7)
-				.unwrap_or_default()
-				.block_number,
-			44
+		assert_err!(
+			confirm_sidechain_block7(Some(101), 100, true),
+			Error::<Test>::FinalizationCandidateIsOutdated
 		);
 	})
 }
@@ -192,7 +154,7 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 
 		register_ias_enclave(TEST7_SIGNER_PUB, TEST7_CERT);
-		assert_ok!(confirm_sidechain_block(shard7, TEST7_SIGNER_PUB, 1, 2, H256::default(), true));
+		assert_ok!(confirm_sidechain_block(shard7, TEST7_SIGNER_PUB, None, 1, true));
 		assert_eq!(
 			Sidechain::latest_sidechain_block_confirmation(shard7)
 				.unwrap_or_default()
@@ -202,7 +164,13 @@ fn dont_process_confirmation_of_second_registered_enclave() {
 		register_ias_enclave(TEST6_SIGNER_PUB, TEST6_CERT);
 
 		System::reset_events();
-		assert_ok!(confirm_sidechain_block(shard7, TEST6_SIGNER_PUB, 1, 2, H256::default(), false));
+		assert_ok!(confirm_sidechain_block(shard7, TEST6_SIGNER_PUB, Some(1), 2, false));
+		assert_eq!(
+			Sidechain::latest_sidechain_block_confirmation(shard7)
+				.unwrap_or_default()
+				.block_number,
+			1
+		);
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard: shard7,
 			block_number: 1,
@@ -222,7 +190,6 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from(enclave.fingerprint());
-		let hash = H256::default();
 		// initialize shard
 		assert_ok!(EnclaveBridge::update_shard_config(
 			RuntimeOrigin::signed(enclave_signer.clone()),
@@ -231,18 +198,20 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 			0,
 		));
 
+		let block_a =
+			SidechainBlockConfirmation { block_number: 1, block_header_hash: H256::default() };
+
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(enclave_signer.clone()),
 			shard,
-			1,
-			2,
-			hash
+			None,
+			block_a,
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard,
-			block_number: 1,
-			block_header_hash: hash,
+			block_number: block_a.block_number,
+			block_header_hash: block_a.block_header_hash,
 			validateer: enclave_signer.clone(),
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -256,41 +225,56 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 			1,
 		));
 
+		let block_b =
+			SidechainBlockConfirmation { block_number: 2, block_header_hash: H256::default() };
+
 		// should still work with old enclave because update not yet enacted
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(enclave_signer.clone()),
 			shard,
-			2,
-			3,
-			hash
+			Some(block_a),
+			block_b
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard,
-			block_number: 2,
-			block_header_hash: hash,
+			block_number: block_b.block_number,
+			block_header_hash: block_b.block_header_hash,
 			validateer: enclave_signer.clone(),
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
-		run_to_block(2);
-
 		// enclave upgrade of instance takes place
 		register_sovereign_test_enclave(&enclave_signer, new_fingerprint);
+
+		let block_c =
+			SidechainBlockConfirmation { block_number: 3, block_header_hash: H256::default() };
+
+		// before enactment, new enclave should not yet be allowed to finalize
+		assert_err!(
+			Sidechain::confirm_imported_sidechain_block(
+				RuntimeOrigin::signed(enclave_signer.clone()),
+				shard,
+				Some(block_b),
+				block_c
+			),
+			pallet_enclave_bridge::Error::<Test>::WrongFingerprintForShard
+		);
+
+		run_to_block(2);
 
 		// now retry as new enclave with same signer
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(enclave_signer.clone()),
 			shard,
-			3,
-			4,
-			hash
+			Some(block_b),
+			block_c
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard,
-			block_number: 3,
-			block_header_hash: hash,
+			block_number: block_c.block_number,
+			block_header_hash: block_c.block_header_hash,
 			validateer: enclave_signer,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -306,19 +290,19 @@ fn two_sidechains_with_different_fingerprint_works() {
 		let enclave1 =
 			register_sovereign_test_enclave(&enclave_signer1, EnclaveFingerprint::default());
 		let shard1 = ShardIdentifier::from(enclave1.fingerprint());
-		let hash1 = H256::default();
+		let shard1_block_a =
+			SidechainBlockConfirmation { block_number: 1, block_header_hash: H256::default() };
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(enclave_signer1.clone()),
 			shard1,
-			1,
-			2,
-			hash1
+			None,
+			shard1_block_a
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard: shard1,
-			block_number: 1,
-			block_header_hash: hash1,
+			block_number: shard1_block_a.block_number,
+			block_header_hash: shard1_block_a.block_header_hash,
 			validateer: enclave_signer1.clone(),
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -329,20 +313,22 @@ fn two_sidechains_with_different_fingerprint_works() {
 		let enclave2 =
 			register_sovereign_test_enclave(&enclave_signer2, EnclaveFingerprint::from([1u8; 32]));
 		let shard2 = ShardIdentifier::from(enclave2.fingerprint());
-		let hash2 = H256::from([2u8; 32]);
+		let shard2_block_a = SidechainBlockConfirmation {
+			block_number: 1,
+			block_header_hash: H256::from([2u8; 32]),
+		};
 
 		assert_ok!(Sidechain::confirm_imported_sidechain_block(
 			RuntimeOrigin::signed(enclave_signer2.clone()),
 			shard2,
-			1,
-			10,
-			hash2
+			None,
+			shard2_block_a
 		));
 
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard: shard2,
-			block_number: 1,
-			block_header_hash: hash2,
+			block_number: shard2_block_a.block_number,
+			block_header_hash: shard2_block_a.block_header_hash,
 			validateer: enclave_signer2.clone(),
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -361,11 +347,17 @@ fn two_sidechains_with_different_fingerprint_works() {
 		assert_eq!(shard_status2[0].last_activity, 2u32);
 		assert_eq!(
 			Sidechain::latest_sidechain_block_confirmation(shard1),
-			Some(SidechainBlockConfirmation { block_number: 1, block_header_hash: hash1 })
+			Some(SidechainBlockConfirmation {
+				block_number: shard1_block_a.block_number,
+				block_header_hash: shard1_block_a.block_header_hash
+			})
 		);
 		assert_eq!(
 			Sidechain::latest_sidechain_block_confirmation(shard2),
-			Some(SidechainBlockConfirmation { block_number: 1, block_header_hash: hash2 })
+			Some(SidechainBlockConfirmation {
+				block_number: shard2_block_a.block_number,
+				block_header_hash: shard2_block_a.block_header_hash
+			})
 		);
 	})
 }
@@ -388,18 +380,16 @@ fn register_ias_enclave(signer_pub_key: &MrSigner, cert: &[u8]) {
 }
 
 fn confirm_sidechain_block7(
-	block_number: u64,
-	next_finalized_block_number: u64,
-	block_header_hash: H256,
+	maybe_ancestor_block_number: Option<u8>,
+	candidate_block_number: u8,
 	assert_event: bool,
 ) -> DispatchResultWithPostInfo {
 	let shard7 = H256::from_slice(&TEST7_MRENCLAVE);
 	confirm_sidechain_block(
 		shard7,
 		TEST7_SIGNER_PUB,
-		block_number,
-		next_finalized_block_number,
-		block_header_hash,
+		maybe_ancestor_block_number,
+		candidate_block_number,
 		assert_event,
 	)
 }
@@ -407,28 +397,35 @@ fn confirm_sidechain_block7(
 fn confirm_sidechain_block(
 	shard: H256,
 	signer_pub_key: &[u8; 32],
-	block_number: u64,
-	next_finalized_block_number: u64,
-	block_header_hash: H256,
+	maybe_ancestor_block_number: Option<u8>,
+	candidate_block_number: u8,
 	assert_event: bool,
 ) -> DispatchResultWithPostInfo {
 	let signer = get_signer(signer_pub_key);
 	if assert_event {
 		System::reset_events();
 	}
+	let maybe_ancestor =
+		maybe_ancestor_block_number.map(|block_number| SidechainBlockConfirmation {
+			block_number: block_number as SidechainBlockNumber,
+			block_header_hash: [block_number; 32].into(),
+		});
+	let candidate = SidechainBlockConfirmation {
+		block_number: candidate_block_number as SidechainBlockNumber,
+		block_header_hash: [candidate_block_number; 32].into(),
+	};
 	Sidechain::confirm_imported_sidechain_block(
 		RuntimeOrigin::signed(signer.clone()),
 		shard,
-		block_number,
-		next_finalized_block_number,
-		block_header_hash,
+		maybe_ancestor,
+		candidate,
 	)?;
 
 	if assert_event {
 		let expected_event = RuntimeEvent::Sidechain(SidechainEvent::FinalizedSidechainBlock {
 			shard,
-			block_number,
-			block_header_hash,
+			block_number: candidate.block_number,
+			block_header_hash: candidate.block_header_hash,
 			validateer: signer,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
