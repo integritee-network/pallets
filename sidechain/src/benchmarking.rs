@@ -56,10 +56,15 @@ benchmarks! {
 		add_enclaves_to_registry::<T>(&accounts);
 
 		let shard: ShardIdentifier = H256::from_slice(&TEST4_SETUP.mrenclave);
-		let hash: H256 = [2; 32].into();
-		let block_number = 1;
-		let next_finalization_candidate_block_number = 20;
-	}: _(RawOrigin::Signed(accounts[0].clone()), shard, block_number, next_finalization_candidate_block_number, hash)
+		let ancestor = SidechainBlockConfirmation {
+			block_number: 2,
+			block_header_hash: [2; 32].into()
+		};
+		let candidate = SidechainBlockConfirmation {
+			block_number: 25,
+			block_header_hash: [25; 32].into()
+		};
+	}: _(RawOrigin::Signed(accounts[0].clone()), shard, Some(ancestor), candidate)
 	verify {
 		assert_latest_worker_update::<T>(&accounts[0], &shard)
 	}
