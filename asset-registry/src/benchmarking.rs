@@ -24,7 +24,7 @@ use frame_support::assert_ok;
 use frame_system::RawOrigin;
 use staging_xcm::opaque::latest::{
 	Junction::{GeneralIndex, PalletInstance, Parachain},
-	Junctions, Location,
+	Location,
 };
 
 benchmarks! {
@@ -32,9 +32,9 @@ benchmarks! {
 		let asset_id = T::BenchmarkHelper::get_registered_asset();
 		let asset_location = Location {
 			parents: 1,
-			interior: Junctions::X3(Parachain(Default::default()), PalletInstance(Default::default()), GeneralIndex(Default::default()))
+			interior: [Parachain(Default::default()), PalletInstance(Default::default()), GeneralIndex(Default::default())].into()
 		};
-	}: _(RawOrigin::Root, asset_id.clone(), asset_location)
+	}: _(RawOrigin::Root, asset_id.clone(), asset_location.clone())
 	verify {
 		assert_eq!(AssetIdLocation::<T>::get(asset_id), Some(asset_location));
 	}
@@ -43,7 +43,7 @@ benchmarks! {
 		let asset_id = T::BenchmarkHelper::get_registered_asset();
 		let asset_location = Location {
 			parents: 1,
-			interior: Junctions::X3(Parachain(Default::default()), PalletInstance(Default::default()), GeneralIndex(Default::default()))
+			interior: [Parachain(Default::default()), PalletInstance(Default::default()), GeneralIndex(Default::default())].into()
 		};
 		assert_ok!(AssetRegistry::<T>::register_reserve_asset(RawOrigin::Root.into(), asset_id.clone(), asset_location));
 		assert!(AssetIdLocation::<T>::contains_key(asset_id.clone()));
