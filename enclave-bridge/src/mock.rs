@@ -18,7 +18,7 @@
 // Creating mock runtime here
 use crate as pallet_enclave_bridge;
 use crate::Config;
-use frame_support::{self, parameter_types};
+use frame_support::{self, derive_impl, parameter_types};
 use frame_system as system;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
@@ -60,6 +60,7 @@ frame_support::construct_runtime!(
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 }
+#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -106,7 +107,6 @@ impl pallet_balances::Config for Test {
 	type RuntimeHoldReason = ();
 	type RuntimeFreezeReason = ();
 	type FreezeIdentifier = ();
-	type MaxHolds = ();
 	type MaxFreezes = ();
 }
 

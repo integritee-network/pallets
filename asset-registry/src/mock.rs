@@ -16,7 +16,10 @@
 // limitations under the License.
 
 use crate as pallet_asset_registry;
-use frame_support::traits::{AsEnsureOriginWithArg, ConstU16, ConstU64};
+use frame_support::{
+	derive_impl,
+	traits::{AsEnsureOriginWithArg, ConstU16, ConstU64},
+};
 use frame_system as system;
 use sp_core::H256;
 use sp_runtime::{
@@ -42,6 +45,7 @@ frame_support::construct_runtime!(
 	}
 );
 
+#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig as frame_system::DefaultConfig)]
 impl system::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type BaseCallFilter = frame_support::traits::Everything;
@@ -100,7 +104,6 @@ impl pallet_balances::Config for Test {
 	type RuntimeFreezeReason = ();
 	type MaxLocks = ();
 	type MaxReserves = ();
-	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
 

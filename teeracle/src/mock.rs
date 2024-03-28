@@ -15,7 +15,7 @@
 
 */
 use crate as pallet_teeracle;
-use frame_support::parameter_types;
+use frame_support::{derive_impl, parameter_types};
 use frame_system as system;
 use pallet_teeracle::Config;
 use sp_core::H256;
@@ -58,6 +58,8 @@ frame_support::construct_runtime!(
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 }
+
+#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig as frame_system::DefaultConfig)]
 impl frame_system::Config for Test {
 	type BaseCallFilter = frame_support::traits::Everything;
 	type BlockWeights = ();
@@ -103,7 +105,6 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = ();
 	type RuntimeFreezeReason = ();
 	type FreezeIdentifier = ();
-	type MaxHolds = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = ();
 }

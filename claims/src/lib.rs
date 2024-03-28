@@ -20,7 +20,7 @@
 
 use claims_primitives::{EcdsaSignature, EthereumAddress, StatementKind, ValidityError};
 use frame_support::{
-	ensure,
+	derive_impl, ensure,
 	traits::{Currency, Get, IsSubType, VestingSchedule},
 	weights::Weight,
 };
@@ -664,6 +664,7 @@ mod tests {
 	parameter_types! {
 		pub const BlockHashCount: u32 = 250;
 	}
+	#[derive_impl(frame_system::config_preludes::SolochainDefaultConfig as frame_system::DefaultConfig)]
 	impl frame_system::Config for Test {
 		type BaseCallFilter = frame_support::traits::Everything;
 		type BlockWeights = ();
@@ -708,7 +709,6 @@ mod tests {
 		type FreezeIdentifier = ();
 		type RuntimeHoldReason = ();
 		type RuntimeFreezeReason = ();
-		type MaxHolds = ();
 		type MaxFreezes = ();
 	}
 

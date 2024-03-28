@@ -27,37 +27,33 @@ use sp_runtime::traits::MaybeEquivalence;
 use sp_runtime::DispatchResult;
 use sp_std::marker::PhantomData;
 use staging_xcm::{
-	latest::{
-		AssetId::Concrete, Fungibility::Fungible, Junctions::Here, MultiAsset, MultiLocation,
-	},
-	v3::XcmContext,
+	latest::{Asset, AssetId, Fungibility::Fungible, Junctions::Here, Location},
+	v4::XcmContext,
 };
 use staging_xcm_executor::{
 	traits::{DropAssets, Error as MatchError, MatchesFungibles},
-	Assets,
+	AssetsInHolding,
 };
 
-pub struct AsAssetMultiLocation<AssetId, AssetIdInfoGetter>(
-	PhantomData<(AssetId, AssetIdInfoGetter)>,
-);
-impl<AssetId, AssetIdInfoGetter> MaybeEquivalence<MultiLocation, AssetId>
-	for AsAssetMultiLocation<AssetId, AssetIdInfoGetter>
+pub struct AsAssetLocation<AssetId, AssetIdInfoGetter>(PhantomData<(AssetId, AssetIdInfoGetter)>);
+impl<AssetId, AssetIdInfoGetter> MaybeEquivalence<Location, AssetId>
+	for AsAssetLocation<AssetId, AssetIdInfoGetter>
 where
 	AssetId: Clone,
-	AssetIdInfoGetter: AssetMultiLocationGetter<AssetId>,
+	AssetIdInfoGetter: AssetLocationGetter<AssetId>,
 {
-	fn convert(asset_multi_location: &MultiLocation) -> Option<AssetId> {
-		AssetIdInfoGetter::get_asset_id(asset_multi_location)
+	fn convert(asset_location: &Location) -> Option<AssetId> {
+		AssetIdInfoGetter::get_asset_id(asset_location)
 	}
 
-	fn convert_back(asset_id: &AssetId) -> Option<MultiLocation> {
-		AssetIdInfoGetter::get_asset_multi_location(asset_id.clone())
+	fn convert_back(asset_id: &AssetId) -> Option<Location> {
+		AssetIdInfoGetter::get_asset_location(asset_id.clone())
 	}
 }
 
-pub trait AssetMultiLocationGetter<AssetId> {
-	fn get_asset_multi_location(asset_id: AssetId) -> Option<MultiLocation>;
-	fn get_asset_id(asset_multi_location: &MultiLocation) -> Option<AssetId>;
+pub trait AssetLocationGetter<AssetId> {
+	fn get_asset_location(asset_id: AssetId) -> Option<Location>;
+	fn get_asset_id(asset_location: &Location) -> Option<AssetId>;
 }
 
 pub struct ConvertedRegisteredAssetId<AssetId, Balance, ConvertAssetId, ConvertBalance>(
@@ -66,14 +62,14 @@ pub struct ConvertedRegisteredAssetId<AssetId, Balance, ConvertAssetId, ConvertB
 impl<
 		AssetId: Clone,
 		Balance: Clone,
-		ConvertAssetId: MaybeEquivalence<MultiLocation, AssetId>,
+		ConvertAssetId: MaybeEquivalence<Location, AssetId>,
 		ConvertBalance: MaybeEquivalence<Balance, u128>,
 	> MatchesFungibles<AssetId, Balance>
 	for ConvertedRegisteredAssetId<AssetId, Balance, ConvertAssetId, ConvertBalance>
 {
-	fn matches_fungibles(a: &MultiAsset) -> Result<(AssetId, Balance), MatchError> {
+	fn matches_fungibles(a: &Asset) -> Result<(AssetId, Balance), MatchError> {
 		let (amount, id) = match (&a.fun, &a.id) {
-			(Fungible(ref amount), Concrete(ref id)) => (amount, id),
+			(Fungible(ref amount), AssetId(id)) => (amount, id),
 			_ => return Err(MatchError::AssetNotHandled),
 		};
 		let what = ConvertAssetId::convert(id).ok_or(MatchError::AssetNotHandled)?;
@@ -120,15 +116,15 @@ impl<AssetId, AssetIdInfoGetter, AssetsPallet, BalancesPallet, XcmPallet, Accoun
 		AccountId,
 		Weigher,
 	> where
-	AssetIdInfoGetter: AssetMultiLocationGetter<AssetId>,
+	AssetIdInfoGetter: AssetLocationGetter<AssetId>,
 	AssetsPallet: Inspect<AccountId, AssetId = AssetId>,
 	BalancesPallet: Currency<AccountId>,
 	XcmPallet: DropAssets,
 	Weigher: DropAssetsWeigher,
 {
 	// assets are whatever the Holding Register had when XCVM halts
-	fn drop_assets(origin: &MultiLocation, mut assets: Assets, context: &XcmContext) -> Weight {
-		const NATIVE_LOCATION: MultiLocation = MultiLocation { parents: 0, interior: Here };
+	fn drop_assets(origin: &Location, mut assets: AssetsInHolding, context: &XcmContext) -> Weight {
+		const NATIVE_LOCATION: Location = Location { parents: 0, interior: Here };
 
 		let mut weight: Weight = {
 			assets.non_fungible.clear();
@@ -136,7 +132,7 @@ impl<AssetId, AssetIdInfoGetter, AssetsPallet, BalancesPallet, XcmPallet, Accoun
 		};
 
 		assets.fungible.retain(|id, &mut amount| {
-			if let Concrete(location) = id {
+			if let AssetId(location) = id {
 				match AssetIdInfoGetter::get_asset_id(location) {
 					Some(asset_id) => {
 						weight.saturating_accrue(Weigher::fungible());
