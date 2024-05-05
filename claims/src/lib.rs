@@ -20,7 +20,7 @@
 
 use claims_primitives::{EcdsaSignature, EthereumAddress, StatementKind, ValidityError};
 use frame_support::{
-	derive_impl, ensure,
+	ensure,
 	traits::{Currency, Get, IsSubType, VestingSchedule},
 	weights::Weight,
 };
