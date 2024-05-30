@@ -20,7 +20,7 @@
 
 use claims_primitives::{EcdsaSignature, EthereumAddress, StatementKind, ValidityError};
 use frame_support::{
-	derive_impl, ensure,
+	ensure,
 	traits::{Currency, Get, IsSubType, VestingSchedule},
 	weights::Weight,
 };
@@ -636,7 +636,7 @@ mod tests {
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
 	use frame_support::{
-		assert_err, assert_noop, assert_ok,
+		assert_err, assert_noop, assert_ok, derive_impl,
 		dispatch::{GetDispatchInfo, Pays},
 		ord_parameter_types, parameter_types,
 		traits::{ExistenceRequirement, WithdrawReasons},
