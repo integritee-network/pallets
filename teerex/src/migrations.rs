@@ -136,7 +136,7 @@ pub mod v2 {
 	impl<T: Config + frame_system::Config> OnRuntimeUpgrade for MigrateV1toV2<T> {
 		#[cfg(feature = "try-runtime")]
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
-			let current_version = Pallet::<T>::current_storage_version();
+			let current_version = Pallet::<T>::in_code_storage_version();
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 			ensure!(onchain_version == 1 && current_version == 2, "only migration from v1 to v2");
 
@@ -151,7 +151,7 @@ pub mod v2 {
 
 		/// we simply purge the enclave registry as it renews within 24h anyway
 		fn on_runtime_upgrade() -> Weight {
-			let current_version = Pallet::<T>::current_storage_version();
+			let current_version = Pallet::<T>::in_code_storage_version();
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 
 			log::info!(

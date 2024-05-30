@@ -41,7 +41,7 @@ pub mod pallet {
 
 	use staging_xcm::latest::{
 		Junction::{AccountId32, AccountKey20, GeneralIndex, PalletInstance, Parachain},
-		MultiLocation,
+		Location,
 	};
 
 	#[pallet::pallet]
@@ -67,18 +67,16 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	pub type AssetIdMultiLocation<T: Config> =
-		StorageMap<_, Blake2_128Concat, AssetIdOf<T>, MultiLocation>;
+	pub type AssetIdLocation<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, Location>;
 
 	#[pallet::storage]
-	pub type AssetMultiLocationId<T: Config> =
-		StorageMap<_, Blake2_128Concat, MultiLocation, AssetIdOf<T>>;
+	pub type AssetLocationId<T: Config> = StorageMap<_, Blake2_128Concat, Location, AssetIdOf<T>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		ReserveAssetRegistered { asset_id: AssetIdOf<T>, asset_multi_location: MultiLocation },
-		ReserveAssetUnregistered { asset_id: AssetIdOf<T>, asset_multi_location: MultiLocation },
+		ReserveAssetRegistered { asset_id: AssetIdOf<T>, asset_location: Location },
+		ReserveAssetUnregistered { asset_id: AssetIdOf<T>, asset_location: Location },
 	}
 
 	#[pallet::error]
@@ -89,8 +87,8 @@ pub mod pallet {
 		AssetDoesNotExist,
 		/// The Asset ID is not registered
 		AssetIsNotRegistered,
-		/// Invalid MultiLocation
-		WrongMultiLocation,
+		/// Invalid Location
+		WrongLocation,
 	}
 
 	#[pallet::call]
@@ -101,7 +99,7 @@ pub mod pallet {
 		pub fn register_reserve_asset(
 			origin: OriginFor<T>,
 			asset_id: AssetIdOf<T>,
-			asset_multi_location: MultiLocation,
+			asset_location: Location,
 		) -> DispatchResult {
 			T::ReserveAssetModifierOrigin::ensure_origin(origin)?;
 
@@ -110,22 +108,19 @@ pub mod pallet {
 
 			// verify asset is not yet registered
 			ensure!(
-				!AssetIdMultiLocation::<T>::contains_key(asset_id.clone()),
+				!AssetIdLocation::<T>::contains_key(asset_id.clone()),
 				Error::<T>::AssetAlreadyRegistered
 			);
 
-			// verify MultiLocation is valid
-			ensure!(
-				Self::valid_asset_location(&asset_multi_location),
-				Error::<T>::WrongMultiLocation
-			);
+			// verify Location is valid
+			ensure!(Self::valid_asset_location(&asset_location), Error::<T>::WrongLocation);
 
-			// register asset_id => asset_multi_location
-			AssetIdMultiLocation::<T>::insert(asset_id.clone(), asset_multi_location);
-			// register asset_multi_location => asset_id
-			AssetMultiLocationId::<T>::insert(asset_multi_location, asset_id.clone());
+			// register asset_id => asset_location
+			AssetIdLocation::<T>::insert(asset_id.clone(), asset_location.clone());
+			// register asset_location => asset_id
+			AssetLocationId::<T>::insert(asset_location.clone(), asset_id.clone());
 
-			Self::deposit_event(Event::ReserveAssetRegistered { asset_id, asset_multi_location });
+			Self::deposit_event(Event::ReserveAssetRegistered { asset_id, asset_location });
 			Ok(())
 		}
 
@@ -137,14 +132,14 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::ReserveAssetModifierOrigin::ensure_origin(origin)?;
 
-			// remove asset_id => asset_multi_location, while getting the value
-			let asset_multi_location =
-				AssetIdMultiLocation::<T>::mutate_exists(asset_id.clone(), Option::take)
+			// remove asset_id => asset_location, while getting the value
+			let asset_location =
+				AssetIdLocation::<T>::mutate_exists(asset_id.clone(), Option::take)
 					.ok_or(Error::<T>::AssetIsNotRegistered)?;
-			// remove asset_multi_location => asset_id
-			AssetMultiLocationId::<T>::remove(asset_multi_location);
+			// remove asset_location => asset_id
+			AssetLocationId::<T>::remove(asset_location.clone());
 
-			Self::deposit_event(Event::ReserveAssetUnregistered { asset_id, asset_multi_location });
+			Self::deposit_event(Event::ReserveAssetUnregistered { asset_id, asset_location });
 			Ok(())
 		}
 	}
@@ -152,8 +147,8 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		//Validates that the location points to an asset (Native, Frame based, Erc20) as described
 		// in the xcm-format:  https://github.com/paritytech/xcm-format#concrete-identifiers
-		fn valid_asset_location(location: &MultiLocation) -> bool {
-			let (split_multilocation, last_junction) = location.split_last_interior();
+		fn valid_asset_location(location: &Location) -> bool {
+			let (split_multilocation, last_junction) = location.clone().split_last_interior();
 
 			let check = matches!(
 				last_junction,
@@ -174,13 +169,13 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> xcm_primitives::AssetMultiLocationGetter<AssetIdOf<T>> for Pallet<T> {
-		fn get_asset_multi_location(asset_id: AssetIdOf<T>) -> Option<MultiLocation> {
-			AssetIdMultiLocation::<T>::get(asset_id)
+	impl<T: Config> xcm_primitives::AssetLocationGetter<AssetIdOf<T>> for Pallet<T> {
+		fn get_asset_location(asset_id: AssetIdOf<T>) -> Option<Location> {
+			AssetIdLocation::<T>::get(asset_id)
 		}
 
-		fn get_asset_id(asset_type: &MultiLocation) -> Option<AssetIdOf<T>> {
-			AssetMultiLocationId::<T>::get(asset_type)
+		fn get_asset_id(asset_type: &Location) -> Option<AssetIdOf<T>> {
+			AssetLocationId::<T>::get(asset_type)
 		}
 	}
 }

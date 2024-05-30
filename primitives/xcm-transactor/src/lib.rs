@@ -101,8 +101,7 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 		weight: XcmWeight,
 		buy_execution_fee: u128,
 	) -> Xcm<()> {
-		let asset =
-			MultiAsset { id: Concrete(Here.into()), fun: Fungibility::Fungible(buy_execution_fee) };
+		let asset: Asset = (AssetId(Location::new(1, Here)), buy_execution_fee).into();
 		Xcm(vec![
 			WithdrawAsset(asset.clone().into()),
 			BuyExecution { fees: asset, weight_limit: Unlimited },
@@ -114,7 +113,7 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 			RefundSurplus,
 			DepositAsset {
 				assets: All.into(),
-				beneficiary: X1(Parachain(Id::get().into())).into(),
+				beneficiary: Location::new(1, Parachain(Id::get().into())),
 			},
 		])
 	}

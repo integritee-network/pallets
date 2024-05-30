@@ -18,16 +18,19 @@
 use frame_support::{assert_noop, assert_ok};
 use staging_xcm::latest::prelude::*;
 
-use crate::{mock::*, AssetIdMultiLocation, AssetMultiLocationId, Error};
+use crate::{mock::*, AssetIdLocation, AssetLocationId, Error};
 
-const STATEMINE_ASSET_MULTI_LOCATION: MultiLocation = MultiLocation {
-	parents: 1,
-	interior: X3(
-		Parachain(StatemineParaIdInfo::get()),
-		PalletInstance(StatemineAssetsInstanceInfo::get()),
-		GeneralIndex(StatemineAssetIdInfo::get()),
-	),
-};
+pub fn asset_hub_asset_location() -> Location {
+	Location {
+		parents: 1,
+		interior: [
+			Parachain(StatemineParaIdInfo::get()),
+			PalletInstance(StatemineAssetsInstanceInfo::get()),
+			GeneralIndex(StatemineAssetIdInfo::get()),
+		]
+		.into(),
+	}
+}
 
 mod register_reserve_assest {
 	use super::*;
@@ -38,15 +41,15 @@ mod register_reserve_assest {
 			assert_ok!(AssetRegistry::register_reserve_asset(
 				RuntimeOrigin::root(),
 				LOCAL_ASSET_ID,
-				STATEMINE_ASSET_MULTI_LOCATION,
+				asset_hub_asset_location(),
 			));
 
 			assert_eq!(
-				AssetIdMultiLocation::<Test>::get(LOCAL_ASSET_ID),
-				Some(STATEMINE_ASSET_MULTI_LOCATION)
+				AssetIdLocation::<Test>::get(LOCAL_ASSET_ID),
+				Some(asset_hub_asset_location())
 			);
 			assert_eq!(
-				AssetMultiLocationId::<Test>::get(STATEMINE_ASSET_MULTI_LOCATION),
+				AssetLocationId::<Test>::get(asset_hub_asset_location()),
 				Some(LOCAL_ASSET_ID)
 			);
 		});
@@ -61,7 +64,7 @@ mod register_reserve_assest {
 				AssetRegistry::register_reserve_asset(
 					RuntimeOrigin::root(),
 					unexisting_asset_id,
-					STATEMINE_ASSET_MULTI_LOCATION,
+					asset_hub_asset_location(),
 				),
 				Error::<Test>::AssetDoesNotExist
 			);
@@ -74,14 +77,14 @@ mod register_reserve_assest {
 			assert_ok!(AssetRegistry::register_reserve_asset(
 				RuntimeOrigin::root(),
 				LOCAL_ASSET_ID,
-				STATEMINE_ASSET_MULTI_LOCATION,
+				asset_hub_asset_location(),
 			));
 
 			assert_noop!(
 				AssetRegistry::register_reserve_asset(
 					RuntimeOrigin::root(),
 					LOCAL_ASSET_ID,
-					STATEMINE_ASSET_MULTI_LOCATION,
+					asset_hub_asset_location(),
 				),
 				Error::<Test>::AssetAlreadyRegistered
 			);
@@ -91,26 +94,28 @@ mod register_reserve_assest {
 	#[test]
 	fn valid_locations_succeed() {
 		let native_frame_based_currency =
-			MultiLocation { parents: 1, interior: X2(Parachain(1000), PalletInstance(1)) };
-		let multiasset_pallet_instance = MultiLocation {
+			Location { parents: 1, interior: [Parachain(1000), PalletInstance(1)].into() };
+		let multiasset_pallet_instance = Location {
 			parents: 1,
-			interior: X3(Parachain(1000), PalletInstance(1), GeneralIndex(2)),
+			interior: [Parachain(1000), PalletInstance(1), GeneralIndex(2)].into(),
 		};
-		let relay_native_currency = MultiLocation { parents: 1, interior: Junctions::Here };
-		let erc20_frame_sm_asset = MultiLocation {
+		let relay_native_currency = Location { parents: 1, interior: Junctions::Here };
+		let erc20_frame_sm_asset = Location {
 			parents: 1,
-			interior: X3(
+			interior: [
 				Parachain(1000),
 				PalletInstance(2),
 				AccountId32 { network: Some(Rococo), id: [0; 32] },
-			),
+			]
+			.into(),
 		};
-		let erc20_ethereum_sm_asset = MultiLocation {
+		let erc20_ethereum_sm_asset = Location {
 			parents: 1,
-			interior: X2(
+			interior: [
 				Parachain(2000),
 				AccountKey20 { network: Some(Ethereum { chain_id: 56 }), key: [0; 20] },
-			),
+			]
+			.into(),
 		};
 
 		new_test_ext().execute_with(|| {
@@ -152,15 +157,13 @@ mod register_reserve_assest {
 
 	#[test]
 	fn invalid_locations_fail() {
-		let governance_location = MultiLocation {
+		let governance_location = Location {
 			parents: 1,
-			interior: X2(
-				Parachain(1000),
-				Plurality { id: BodyId::Executive, part: BodyPart::Voice },
-			),
+			interior: [Parachain(1000), Plurality { id: BodyId::Executive, part: BodyPart::Voice }]
+				.into(),
 		};
 		let invalid_general_index =
-			MultiLocation { parents: 1, interior: X2(Parachain(1000), GeneralIndex(1u128)) };
+			Location { parents: 1, interior: [Parachain(1000), GeneralIndex(1u128)].into() };
 
 		new_test_ext().execute_with(|| {
 			assert_noop!(
@@ -169,7 +172,7 @@ mod register_reserve_assest {
 					LOCAL_ASSET_ID,
 					governance_location,
 				),
-				Error::<Test>::WrongMultiLocation
+				Error::<Test>::WrongLocation
 			);
 
 			assert_noop!(
@@ -178,7 +181,7 @@ mod register_reserve_assest {
 					LOCAL_ASSET_ID,
 					invalid_general_index,
 				),
-				Error::<Test>::WrongMultiLocation
+				Error::<Test>::WrongLocation
 			);
 		})
 	}
@@ -193,7 +196,7 @@ mod unregister_reserve_asset {
 			assert_ok!(AssetRegistry::register_reserve_asset(
 				RuntimeOrigin::root(),
 				LOCAL_ASSET_ID,
-				STATEMINE_ASSET_MULTI_LOCATION,
+				asset_hub_asset_location(),
 			));
 
 			assert_ok!(AssetRegistry::unregister_reserve_asset(
@@ -201,8 +204,8 @@ mod unregister_reserve_asset {
 				LOCAL_ASSET_ID
 			));
 
-			assert!(AssetIdMultiLocation::<Test>::get(LOCAL_ASSET_ID).is_none());
-			assert!(AssetMultiLocationId::<Test>::get(STATEMINE_ASSET_MULTI_LOCATION).is_none());
+			assert!(AssetIdLocation::<Test>::get(LOCAL_ASSET_ID).is_none());
+			assert!(AssetLocationId::<Test>::get(asset_hub_asset_location()).is_none());
 		});
 	}
 
