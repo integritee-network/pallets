@@ -41,34 +41,34 @@ webpki = { version = "=0.102.0-alpha.3", default-features = false, features = ["
 x509-cert = { version = "0.1.0", default-features = false, features = ["alloc"] }
 
 # polkadot-sdk and ecosystem crates [no_std]
-cumulus-pallet-dmp-queue = { version = "0.10.0", default-features = false }
-cumulus-pallet-xcmp-queue = { version = "0.10.0", default-features = false }
-cumulus-primitives-core = { version = "0.10.0", default-features = false }
-frame-benchmarking = { version = "31.0.0", default-features = false }
-frame-support = { version = "31.0.0", default-features = false }
-frame-system = { version = "31.0.0", default-features = false }
-pallet-assets = { version = "32.0.0", default-features = false }
-pallet-balances = { version = "31.0.0", default-features = false }
-pallet-timestamp = { version = "30.0.0", default-features = false }
-pallet-vesting = { version = "31.0.0", default-features = false }
-pallet-xcm = { version = "10.0.0", default-features = false }
-parachains-common = { version = "10.0.0", default-features = false }
+cumulus-pallet-dmp-queue = { version = "0.11.0", default-features = false }
+cumulus-pallet-xcmp-queue = { version = "0.11.0", default-features = false }
+cumulus-primitives-core = { version = "0.11.0", default-features = false }
+frame-benchmarking = { version = "32.0.0", default-features = false }
+frame-support = { version = "32.0.0", default-features = false }
+frame-system = { version = "32.0.0", default-features = false }
+pallet-assets = { version = "33.0.0", default-features = false }
+pallet-balances = { version = "33.0.0", default-features = false }
+pallet-timestamp = { version = "31.0.0", default-features = false }
+pallet-vesting = { version = "32.0.0", default-features = false }
+pallet-xcm = { version = "11.0.0", default-features = false }
+parachains-common = { version = "11.0.0", default-features = false }
 parity-scale-codec = { version = "3.6.5", default-features = false, features = ["derive"] }
-polkadot-core-primitives = { version = "10.0.0", default-features = false }
-polkadot-parachain-primitives = { version = "9.0.0", default-features = false }
+polkadot-core-primitives = { version = "11.0.0", default-features = false }
+polkadot-parachain-primitives = { version = "10.0.0", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
-sp-core = { version = "31.0.0", default-features = false }
-sp-io = { version = "33.0.0", default-features = false }
-sp-runtime = { version = "34.0.0", default-features = false }
+sp-core = { version = "32.0.0", default-features = false }
+sp-io = { version = "34.0.0", default-features = false }
+sp-runtime = { version = "35.0.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
-staging-parachain-info = { version = "0.10.0", default-features = false }
-staging-xcm = { version = "10.0.0", default-features = false }
-staging-xcm-builder = { version = "10.0.0", default-features = false }
-staging-xcm-executor = { version = "10.0.0", default-features = false }
+staging-parachain-info = { version = "0.11.0", default-features = false }
+staging-xcm = { version = "11.0.0", default-features = false }
+staging-xcm-builder = { version = "11.0.0", default-features = false }
+staging-xcm-executor = { version = "11.0.0", default-features = false }
 substrate-fixed = { version = "0.5.9", default-features = false }
 
 # dev-deps [std]
-sp-keyring = { version = "34.0.0", default-features = false }
-sp-externalities = { version = "0.27.0", default-features = false }
-polkadot-runtime-parachains = { version = "10.0.0" }
-xcm-simulator = { version = "10.0.0" }
+sp-keyring = { version = "35.0.0", default-features = false }
+sp-externalities = { version = "0.28.0", default-features = false }
+polkadot-runtime-parachains = { version = "11.0.0" }
+xcm-simulator = { version = "11.0.0" }
