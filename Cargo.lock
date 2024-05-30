@@ -2634,6 +2634,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-session",
  "parity-scale-codec",
+ "rand_chacha",
  "scale-info",
  "serde",
  "sp-application-crypto",
@@ -3068,6 +3069,7 @@ dependencies = [
  "log",
  "pallet-asset-rate",
  "pallet-authorship",
+ "pallet-babe",
  "pallet-balances",
  "pallet-broker",
  "pallet-election-provider-multi-phase",
@@ -3164,6 +3166,7 @@ dependencies = [
  "sp-std",
  "staging-xcm",
  "staging-xcm-executor",
+ "static_assertions",
 ]
 
 [[package]]

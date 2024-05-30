@@ -64,6 +64,11 @@ std = [
     "sp-std/std",
     "teerex-primitives/std",
     "webpki/std",
+    "hex/std",
+    "pallet-balances?/std",
+    "serde_json/std",
+    "sp-externalities/std",
+    "sp-keyring/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
@@ -71,6 +76,16 @@ runtime-benchmarks = [
     "pallet-balances",
     "pallet-timestamp/runtime-benchmarks",
     "test-utils",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances?/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances?/try-runtime",
+    "pallet-timestamp/try-runtime",
+    "sp-runtime/try-runtime",
+]

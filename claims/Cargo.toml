@@ -49,6 +49,10 @@ std = [
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "libsecp256k1?/std",
+    "pallet-vesting/std",
+    "serde_json/std",
+    "sp-core/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
@@ -56,6 +60,15 @@ runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "libsecp256k1/hmac",
     "libsecp256k1/static-context",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-vesting/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances/try-runtime",
+    "pallet-vesting/try-runtime",
+    "sp-runtime/try-runtime",
+]
