@@ -78,6 +78,28 @@ jobs:
           name: license
           path: license.html
 
+  cargo-zepter:
+    name: Cargo Zepter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install stable Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Install Zepter
+        run: cargo install --locked -q zepter && zepter --version
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Don't clone historic commits.
+
+      - name: Check features
+        run: zepter run check
+
   cargo-toml-fmt:
     runs-on: ubuntu-latest
     container: "tamasfe/taplo:0.7.0-alpine"

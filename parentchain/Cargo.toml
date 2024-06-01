@@ -41,6 +41,12 @@ std = [
     "sp-io/std",
     "sp-runtime/std",
     "sp-std/std",
+    "sp-keyring/std",
 ]
 
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-balances/try-runtime",
+    "sp-runtime/try-runtime",
+]

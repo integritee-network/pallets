@@ -34,4 +34,5 @@ std = [
     "parity-scale-codec/std",
     "sp-std/std",
     "staging-xcm/std",
+    "sp-runtime/std",
 ]
