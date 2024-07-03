@@ -66,7 +66,7 @@ pub mod pallet {
 			> + InspectLockableCurrency<Self::AccountId>;
 
 		/// Just the `Currency::Balance` type; we have this item to allow us to constrain it to
-		/// `CheckedDiv`.
+		/// `CheckedDiv` and `From<Moment>`.
 		type CurrencyBalance: sp_runtime::traits::AtLeast32BitUnsigned
 			+ parity_scale_codec::FullCodec
 			+ Copy
@@ -74,6 +74,7 @@ pub mod pallet {
 			+ sp_std::fmt::Debug
 			+ Default
 			+ CheckedDiv
+			+ From<Self::Moment>
 			+ TypeInfo
 			+ MaxEncodedLen;
 

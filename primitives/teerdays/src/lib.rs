@@ -17,12 +17,10 @@ pub struct TeerDayBond<Balance, Moment> {
 impl<Balance, Moment> TeerDayBond<Balance, Moment>
 where
 	Moment: Clone + Copy + Encode + Decode + Saturating,
-	Balance: AtLeast32BitUnsigned + Clone + Copy + Encode + Decode + Default,
+	Balance: AtLeast32BitUnsigned + Clone + Copy + Encode + Decode + Default + From<Moment>,
 {
 	pub fn update(self, now: Moment) -> Self {
-		let elapsed = now.saturating_sub(self.last_updated);
-		let elapsed_enc = Encode::encode(&elapsed);
-		let elapsed = Balance::decode(&mut &elapsed_enc[..]).unwrap(); //fixme!
+		let elapsed: Balance = now.saturating_sub(self.last_updated).into();
 		let new_tokentime =
 			self.accumulated_tokentime.saturating_add(self.bond.saturating_mul(elapsed));
 		Self { bond: self.bond, last_updated: now, accumulated_tokentime: new_tokentime }
