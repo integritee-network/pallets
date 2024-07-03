@@ -21,7 +21,10 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{Currency, LockIdentifier};
+use frame_support::{
+	pallet_prelude::DispatchResult,
+	traits::{Currency, LockIdentifier},
+};
 pub use pallet::*;
 use teerdays_primitives::TeerDayBond;
 
@@ -38,7 +41,10 @@ pub mod pallet {
 		traits::{Currency, InspectLockableCurrency, LockableCurrency, WithdrawReasons},
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::traits::Zero;
+	use sp_runtime::{
+		traits::{CheckedDiv, Zero},
+		Saturating,
+	};
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 	#[pallet::pallet]
@@ -53,8 +59,23 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 
 		/// The bonding balance.
-		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
-			+ InspectLockableCurrency<Self::AccountId>;
+		type Currency: LockableCurrency<
+				Self::AccountId,
+				Moment = BlockNumberFor<Self>,
+				Balance = Self::CurrencyBalance,
+			> + InspectLockableCurrency<Self::AccountId>;
+
+		/// Just the `Currency::Balance` type; we have this item to allow us to constrain it to
+		/// `CheckedDiv`.
+		type CurrencyBalance: sp_runtime::traits::AtLeast32BitUnsigned
+			+ parity_scale_codec::FullCodec
+			+ Copy
+			+ MaybeSerializeDeserialize
+			+ sp_std::fmt::Debug
+			+ Default
+			+ CheckedDiv
+			+ TypeInfo
+			+ MaxEncodedLen;
 
 		#[pallet::constant]
 		type MomentsPerDay: Get<Self::Moment>;
@@ -64,6 +85,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		Bonded { account: T::AccountId, amount: BalanceOf<T> },
+		Unbonded { account: T::AccountId, amount: BalanceOf<T> },
 	}
 
 	#[pallet::error]
@@ -72,14 +94,16 @@ pub mod pallet {
 		AlreadyBonded,
 		/// Insufficient bond
 		InsufficientBond,
+		/// account has no bond
+		NoBond,
 		/// Some corruption in internal state.
 		BadState,
 	}
 
 	/// Lazy
 	#[pallet::storage]
-	#[pallet::getter(fn teerdays)]
-	pub type TeerDays<T: Config> =
+	#[pallet::getter(fn teerday_bonds)]
+	pub type TeerDayBonds<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, TeerDayBondOf<T>, OptionQuery>;
 
 	#[pallet::hooks]
@@ -88,13 +112,13 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
-		#[pallet::weight(<T as Config>::WeightInfo::bond())]
+		#[pallet::weight(< T as Config >::WeightInfo::bond())]
 		pub fn bond(
 			origin: OriginFor<T>,
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
-			ensure!(!TeerDays::<T>::contains_key(&signer), Error::<T>::AlreadyBonded);
+			ensure!(!TeerDayBonds::<T>::contains_key(&signer), Error::<T>::AlreadyBonded);
 			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
 
 			frame_system::Pallet::<T>::inc_consumers(&signer).map_err(|_| Error::<T>::BadState)?;
@@ -106,13 +130,81 @@ pub mod pallet {
 			let teerday_bond = TeerDayBondOf::<T> {
 				bond: value,
 				last_updated: pallet_timestamp::Pallet::<T>::get(),
-				accumulated_teerdays: BalanceOf::<T>::zero(),
+				accumulated_tokentime: BalanceOf::<T>::zero(),
 			};
-			TeerDays::<T>::insert(&signer, teerday_bond);
+			TeerDayBonds::<T>::insert(&signer, teerday_bond);
+			Ok(())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
+		pub fn unbond(
+			origin: OriginFor<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+
+			let bond = TeerDayBonds::<T>::get(&signer).ok_or(Error::<T>::NoBond)?;
+			let now = pallet_timestamp::Pallet::<T>::get();
+			let bond = bond.update(now);
+
+			let new_bonded_amount = bond.bond.saturating_sub(value);
+
+			// burn tokentime pro rata
+			let new_tokentime = bond
+				.accumulated_tokentime
+				.checked_div(&bond.bond)
+				.unwrap_or_default()
+				.saturating_mul(new_bonded_amount);
+
+			let new_bond = TeerDayBondOf::<T> {
+				bond: new_bonded_amount,
+				last_updated: now,
+				accumulated_tokentime: new_tokentime,
+			};
+
+			if new_bond.bond < T::Currency::minimum_balance() {
+				TeerDayBonds::<T>::remove(&signer);
+				T::Currency::remove_lock(TEERDAYS_ID, &signer);
+				frame_system::Pallet::<T>::dec_consumers(&signer);
+			} else {
+				TeerDayBonds::<T>::insert(&signer, new_bond);
+				T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond.bond, WithdrawReasons::all());
+			}
+			Self::deposit_event(Event::<T>::Unbonded { account: signer.clone(), amount: value });
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
+		pub fn update_other(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			let bond = TeerDayBonds::<T>::get(&signer).ok_or(Error::<T>::NoBond)?;
+			let now = pallet_timestamp::Pallet::<T>::get();
+			let bond = bond.update(now);
+			TeerDayBonds::<T>::insert(&signer, bond);
 			Ok(())
 		}
 	}
 }
+
+/*
+impl<T: Config> Pallet<T> {
+	fn do_update_teerdays(account: T::AccountId) -> DispatchResult {
+		let bond = TeerDayBonds::<T>::get(&account).ok_or(Error::<T>::NoBond)?;
+		let new_bond = bond.update(now);
+		TeerDayBonds::<T>::insert(account, new_bond);
+		Ok(())
+	}
+	fn do_withdraw_unbonded(controller: &T::AccountId, num_slashing_spans: u32) -> DispatchResult {
+		let current_bond = crate::TeerDayBonds(controller).map_err(|_| Error::<T>::NoBond)?;
+		let free_balance = T::Currency::free_balance(controller);
+		let value = current_bond.bond.min(free_balance);
+		T::Currency::remove_lock(TEERDAYS_ID, controller);
+		T::Currency::set_lock(TEERDAYS_ID, controller, value, WithdrawReasons::all());
+		Ok(())
+	}
+}*/
 
 #[cfg(test)]
 mod mock;

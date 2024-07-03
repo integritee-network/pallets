@@ -87,15 +87,15 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-pub type Balance = u64;
+pub type Balance = u128;
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const ExistentialDeposit: u128 = 1;
 }
 
 impl pallet_balances::Config for Test {
 	type MaxLocks = ();
-	type Balance = u64;
+	type Balance = Balance;
 	type DustRemoval = ();
 	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ExistentialDeposit;
@@ -131,6 +131,7 @@ impl Config for Test {
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
 	type Currency = Balances;
+	type CurrencyBalance = Balance;
 }
 
 // This function basically just builds a genesis storage key/value store according to

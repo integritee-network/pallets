@@ -24,6 +24,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_teerdays.
 pub trait WeightInfo {
 	fn bond() -> Weight;
+	fn unbond() -> Weight;
 }
 
 /// Weights for pallet_sidechain using the Integritee parachain node and recommended hardware.
@@ -34,11 +35,21 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
+	fn unbond() -> Weight {
+		Weight::from_parts(46_200_000, 0u64)
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(2))
+	}
 }
 
 // For tests
 impl WeightInfo for () {
 	fn bond() -> Weight {
+		Weight::from_parts(46_200_000, 0u64)
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(2))
+	}
+	fn unbond() -> Weight {
 		Weight::from_parts(46_200_000, 0u64)
 			.saturating_add(RocksDbWeight::get().reads(1))
 			.saturating_add(RocksDbWeight::get().writes(2))
