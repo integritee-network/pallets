@@ -2672,6 +2672,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-teerdays"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+ "teerdays-primitives",
+]
+
+[[package]]
 name = "pallet-teerex"
 version = "0.10.0"
 dependencies = [
@@ -4727,6 +4748,17 @@ dependencies = [
  "common-primitives",
  "sp-std",
  "substrate-fixed",
+]
+
+[[package]]
+name = "teerdays-primitives"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
