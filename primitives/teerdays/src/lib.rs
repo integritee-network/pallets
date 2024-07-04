@@ -1,9 +1,6 @@
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned},
-	Saturating,
-};
+use sp_runtime::{traits::AtLeast32BitUnsigned, Saturating};
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, Default, sp_core::RuntimeDebug, TypeInfo)]
 pub struct TeerDayBond<Balance, Moment> {
