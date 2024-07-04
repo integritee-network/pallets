@@ -4,7 +4,6 @@ use frame_support::{
 	traits::{OnFinalize, OnInitialize},
 };
 use sp_keyring::AccountKeyring;
-use sp_runtime::Saturating;
 
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
@@ -41,7 +40,7 @@ fn bonding_works() {
 		assert_eq!(teerdays.last_updated, now);
 
 		let account_info = System::account(&alice);
-		assert_eq!(account_info.consumers, 2);
+		assert_eq!(account_info.consumers, 1);
 		assert_eq!(account_info.data.frozen, amount);
 	})
 }
@@ -52,6 +51,11 @@ fn unbonding_works() {
 		let now: Moment = 42;
 		set_timestamp(now);
 		let alice = AccountKeyring::Alice.to_account_id();
+
+		let account_info = System::account(&alice);
+		assert_eq!(account_info.consumers, 0);
+		assert_eq!(account_info.data.frozen, 0);
+
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 
@@ -79,8 +83,19 @@ fn unbonding_works() {
 		);
 
 		let account_info = System::account(&alice);
-		assert_eq!(account_info.consumers, 2);
+		assert_eq!(account_info.consumers, 1);
 		assert_eq!(account_info.data.frozen, amount - unbond_amount);
+
+		run_to_block(3);
+		let now = now + MomentsPerDay::get();
+		set_timestamp(now);
+
+		// unbond more than we have -> should saturate
+		assert_ok!(TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), amount));
+		assert!(TeerDays::teerday_bonds(&alice).is_none());
+		let account_info = System::account(&alice);
+		assert_eq!(account_info.consumers, 0);
+		assert_eq!(account_info.data.frozen, 0);
 	})
 }
 

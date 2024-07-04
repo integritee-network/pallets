@@ -21,10 +21,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::{
-	pallet_prelude::DispatchResult,
-	traits::{Currency, LockIdentifier},
-};
+use frame_support::traits::{Currency, LockIdentifier};
 pub use pallet::*;
 use teerdays_primitives::TeerDayBond;
 
@@ -87,6 +84,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		Bonded { account: T::AccountId, amount: BalanceOf<T> },
 		Unbonded { account: T::AccountId, amount: BalanceOf<T> },
+		BondUpdated { account: T::AccountId, bond: TeerDayBondOf<T> },
 	}
 
 	#[pallet::error]
@@ -122,8 +120,6 @@ pub mod pallet {
 			ensure!(!TeerDayBonds::<T>::contains_key(&signer), Error::<T>::AlreadyBonded);
 			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
 
-			frame_system::Pallet::<T>::inc_consumers(&signer).map_err(|_| Error::<T>::BadState)?;
-
 			let free_balance = T::Currency::free_balance(&signer);
 			let value = value.min(free_balance);
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
@@ -145,9 +141,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 
-			let bond = TeerDayBonds::<T>::get(&signer).ok_or(Error::<T>::NoBond)?;
-			let now = pallet_timestamp::Pallet::<T>::get();
-			let bond = bond.update(now);
+			let bond = Self::do_update_teerdays(&signer)?;
+			let now = bond.last_updated;
 
 			let new_bonded_amount = bond.bond.saturating_sub(value);
 
@@ -167,7 +162,6 @@ pub mod pallet {
 			if new_bond.bond < T::Currency::minimum_balance() {
 				TeerDayBonds::<T>::remove(&signer);
 				T::Currency::remove_lock(TEERDAYS_ID, &signer);
-				frame_system::Pallet::<T>::dec_consumers(&signer);
 			} else {
 				TeerDayBonds::<T>::insert(&signer, new_bond);
 				T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond.bond, WithdrawReasons::all());
@@ -179,24 +173,28 @@ pub mod pallet {
 		#[pallet::call_index(3)]
 		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
 		pub fn update_other(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
-			let signer = ensure_signed(origin)?;
-			let bond = TeerDayBonds::<T>::get(&signer).ok_or(Error::<T>::NoBond)?;
-			let now = pallet_timestamp::Pallet::<T>::get();
-			let bond = bond.update(now);
-			TeerDayBonds::<T>::insert(&signer, bond);
+			let _signer = ensure_signed(origin)?;
+			let _bond = Self::do_update_teerdays(&who)?;
 			Ok(())
 		}
 	}
 }
 
-/*
 impl<T: Config> Pallet<T> {
-	fn do_update_teerdays(account: T::AccountId) -> DispatchResult {
-		let bond = TeerDayBonds::<T>::get(&account).ok_or(Error::<T>::NoBond)?;
-		let new_bond = bond.update(now);
-		TeerDayBonds::<T>::insert(account, new_bond);
-		Ok(())
+	/// accumulates pending tokentime and updates state
+	/// bond must exist
+	/// returns the updated bond and deposits an event `BondUpdated`
+	fn do_update_teerdays(
+		account: &T::AccountId,
+	) -> Result<TeerDayBondOf<T>, sp_runtime::DispatchError> {
+		let bond = TeerDayBonds::<T>::get(account).ok_or(Error::<T>::NoBond)?;
+		let now = pallet_timestamp::Pallet::<T>::get();
+		let bond = bond.update(now);
+		TeerDayBonds::<T>::insert(account, bond);
+		Self::deposit_event(Event::<T>::BondUpdated { account: account.clone(), bond });
+		Ok(bond)
 	}
+	/*
 	fn do_withdraw_unbonded(controller: &T::AccountId, num_slashing_spans: u32) -> DispatchResult {
 		let current_bond = crate::TeerDayBonds(controller).map_err(|_| Error::<T>::NoBond)?;
 		let free_balance = T::Currency::free_balance(controller);
@@ -204,8 +202,8 @@ impl<T: Config> Pallet<T> {
 		T::Currency::remove_lock(TEERDAYS_ID, controller);
 		T::Currency::set_lock(TEERDAYS_ID, controller, value, WithdrawReasons::all());
 		Ok(())
-	}
-}*/
+	}*/
+}
 
 #[cfg(test)]
 mod mock;
