@@ -124,11 +124,13 @@ impl pallet_timestamp::Config for Test {
 
 parameter_types! {
 	pub const MomentsPerDay: u64 = 86_400_000; // [ms/d]
+	pub const UnlockPeriod: u64 = 86_400_000; // [ms]
 }
 
 impl Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
+	type UnlockPeriod = MomentsPerDay;
 	type WeightInfo = ();
 	type Currency = Balances;
 	type CurrencyBalance = Balance;

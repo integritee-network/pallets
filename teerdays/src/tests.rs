@@ -1,6 +1,6 @@
-use crate::{mock::*, BalanceOf, Event as TeerDaysEvent};
+use crate::{mock::*, BalanceOf, Error, Event as TeerDaysEvent};
 use frame_support::{
-	assert_ok,
+	assert_noop, assert_ok,
 	traits::{OnFinalize, OnInitialize},
 };
 use sp_keyring::AccountKeyring;
@@ -45,7 +45,7 @@ fn bonding_works() {
 	})
 }
 #[test]
-fn unbonding_works() {
+fn unbonding_and_delayed_withdraw_works() {
 	new_test_ext().execute_with(|| {
 		run_to_block(1);
 		let now: Moment = 42;
@@ -82,17 +82,39 @@ fn unbonding_works() {
 			tokentime_accumulated.saturating_mul(amount - unbond_amount) / amount
 		);
 
+		// can't unbond again
+		assert_noop!(
+			TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), unbond_amount),
+			Error::<Test>::PendingUnlock
+		);
+		// withdrawing not yet possible. fails silently
+		assert_noop!(
+			TeerDays::withdraw_unbonded(RuntimeOrigin::signed(alice.clone())),
+			Error::<Test>::PendingUnlock
+		);
+
+		run_to_block(3);
+		let now = now + UnlockPeriod::get();
+		set_timestamp(now);
+		assert_ok!(TeerDays::withdraw_unbonded(RuntimeOrigin::signed(alice.clone())));
+
 		let account_info = System::account(&alice);
 		assert_eq!(account_info.consumers, 1);
 		assert_eq!(account_info.data.frozen, amount - unbond_amount);
 
-		run_to_block(3);
+		run_to_block(4);
 		let now = now + MomentsPerDay::get();
 		set_timestamp(now);
 
 		// unbond more than we have -> should saturate
 		assert_ok!(TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), amount));
 		assert!(TeerDays::teerday_bonds(&alice).is_none());
+
+		run_to_block(5);
+		let now = now + UnlockPeriod::get();
+		set_timestamp(now);
+		assert_ok!(TeerDays::withdraw_unbonded(RuntimeOrigin::signed(alice.clone())));
+
 		let account_info = System::account(&alice);
 		assert_eq!(account_info.consumers, 0);
 		assert_eq!(account_info.data.frozen, 0);

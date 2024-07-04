@@ -21,8 +21,11 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use frame_support::traits::{Currency, LockIdentifier};
+use frame_support::traits::{
+	Currency, InspectLockableCurrency, LockIdentifier, LockableCurrency, WithdrawReasons,
+};
 pub use pallet::*;
+use sp_runtime::Saturating;
 use teerdays_primitives::TeerDayBond;
 
 pub(crate) const TEERDAYS_ID: LockIdentifier = *b"teerdays";
@@ -77,6 +80,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type MomentsPerDay: Get<Self::Moment>;
+
+		#[pallet::constant]
+		type UnlockPeriod: Get<Self::Moment>;
 	}
 
 	#[pallet::event]
@@ -84,7 +90,8 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		Bonded { account: T::AccountId, amount: BalanceOf<T> },
 		Unbonded { account: T::AccountId, amount: BalanceOf<T> },
-		BondUpdated { account: T::AccountId, bond: TeerDayBondOf<T> },
+		TokenTimeUpdated { account: T::AccountId, bond: TeerDayBondOf<T> },
+		Withdrawn { account: T::AccountId, amount: BalanceOf<T> },
 	}
 
 	#[pallet::error]
@@ -95,6 +102,10 @@ pub mod pallet {
 		InsufficientBond,
 		/// account has no bond
 		NoBond,
+		/// Can't unbond while unlock is pending
+		PendingUnlock,
+		/// no unlock is pending
+		NotUnlocking,
 		/// Some corruption in internal state.
 		BadState,
 	}
@@ -104,6 +115,11 @@ pub mod pallet {
 	#[pallet::getter(fn teerday_bonds)]
 	pub type TeerDayBonds<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, TeerDayBondOf<T>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn pending_unlock)]
+	pub type PendingUnlock<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, (T::Moment, BalanceOf<T>), OptionQuery>;
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
@@ -140,11 +156,14 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
-
+			ensure!(Self::pending_unlock(&signer).is_none(), Error::<T>::PendingUnlock);
+			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
+			ensure!(TeerDayBonds::<T>::contains_key(&signer), Error::<T>::NoBond);
 			let bond = Self::do_update_teerdays(&signer)?;
 			let now = bond.last_updated;
 
 			let new_bonded_amount = bond.bond.saturating_sub(value);
+			let unbonded_amount = bond.bond.saturating_sub(new_bonded_amount);
 
 			// burn tokentime pro rata
 			let new_tokentime = bond
@@ -161,20 +180,31 @@ pub mod pallet {
 
 			if new_bond.bond < T::Currency::minimum_balance() {
 				TeerDayBonds::<T>::remove(&signer);
-				T::Currency::remove_lock(TEERDAYS_ID, &signer);
 			} else {
 				TeerDayBonds::<T>::insert(&signer, new_bond);
-				T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond.bond, WithdrawReasons::all());
 			}
-			Self::deposit_event(Event::<T>::Unbonded { account: signer.clone(), amount: value });
+			PendingUnlock::<T>::insert(&signer, (now + T::UnlockPeriod::get(), unbonded_amount));
+
+			Self::deposit_event(Event::<T>::Unbonded {
+				account: signer.clone(),
+				amount: unbonded_amount,
+			});
 			Ok(())
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
+		#[pallet::weight(< T as Config >::WeightInfo::update_other())]
 		pub fn update_other(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			let _signer = ensure_signed(origin)?;
 			let _bond = Self::do_update_teerdays(&who)?;
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(< T as Config >::WeightInfo::withdraw_unbonded())]
+		pub fn withdraw_unbonded(origin: OriginFor<T>) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			let _success = Self::maybe_withdraw_unbonded(&signer)?;
 			Ok(())
 		}
 	}
@@ -187,22 +217,37 @@ impl<T: Config> Pallet<T> {
 	fn do_update_teerdays(
 		account: &T::AccountId,
 	) -> Result<TeerDayBondOf<T>, sp_runtime::DispatchError> {
-		let bond = TeerDayBonds::<T>::get(account).ok_or(Error::<T>::NoBond)?;
+		let bond = Self::teerday_bonds(account).ok_or(Error::<T>::NoBond)?;
 		let now = pallet_timestamp::Pallet::<T>::get();
 		let bond = bond.update(now);
 		TeerDayBonds::<T>::insert(account, bond);
-		Self::deposit_event(Event::<T>::BondUpdated { account: account.clone(), bond });
+		Self::deposit_event(Event::<T>::TokenTimeUpdated { account: account.clone(), bond });
 		Ok(bond)
 	}
-	/*
-	fn do_withdraw_unbonded(controller: &T::AccountId, num_slashing_spans: u32) -> DispatchResult {
-		let current_bond = crate::TeerDayBonds(controller).map_err(|_| Error::<T>::NoBond)?;
-		let free_balance = T::Currency::free_balance(controller);
-		let value = current_bond.bond.min(free_balance);
-		T::Currency::remove_lock(TEERDAYS_ID, controller);
-		T::Currency::set_lock(TEERDAYS_ID, controller, value, WithdrawReasons::all());
-		Ok(())
-	}*/
+
+	fn maybe_withdraw_unbonded(account: &T::AccountId) -> Result<bool, sp_runtime::DispatchError> {
+		if let Some((due, amount)) = Self::pending_unlock(account) {
+			let now = pallet_timestamp::Pallet::<T>::get();
+			if now < due {
+				return Err(Error::<T>::PendingUnlock.into())
+			}
+			let locked = T::Currency::balance_locked(TEERDAYS_ID, account);
+			if amount >= locked {
+				T::Currency::remove_lock(TEERDAYS_ID, account);
+			} else {
+				T::Currency::set_lock(
+					TEERDAYS_ID,
+					account,
+					locked.saturating_sub(amount),
+					WithdrawReasons::all(),
+				);
+			}
+			PendingUnlock::<T>::remove(account);
+			Self::deposit_event(Event::<T>::Withdrawn { account: account.clone(), amount });
+			return Ok(true)
+		}
+		Err(Error::<T>::NotUnlocking.into())
+	}
 }
 
 #[cfg(test)]
