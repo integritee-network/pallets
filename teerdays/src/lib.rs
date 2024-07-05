@@ -189,7 +189,7 @@ pub mod pallet {
 			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
 			let bond = Self::do_update_teerdays(&signer)?;
 			let free_balance = T::Currency::free_balance(&signer);
-			// free includes the already bonded amount, so we need to subtract it
+			// free confusingly includes the already bonded amount, so we need to subtract it
 			let value = value.min(free_balance.saturating_sub(bond.value));
 			let new_bond_value = bond.value.saturating_add(value);
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });

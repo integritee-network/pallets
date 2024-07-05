@@ -24,7 +24,6 @@ use super::*;
 use crate::Pallet as TeerDays;
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
-use sp_runtime::traits::CheckedConversion;
 use sp_std::prelude::*;
 
 benchmarks! {
@@ -75,7 +74,6 @@ use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use frame_support::assert_ok;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);
