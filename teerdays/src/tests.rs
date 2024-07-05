@@ -35,7 +35,7 @@ fn bond_works() {
 
 		let teerdays = TeerDays::teerday_bonds(&alice)
 			.expect("TeerDays entry for bonded account should exist");
-		assert_eq!(teerdays.bond, amount);
+		assert_eq!(teerdays.value, amount);
 		assert_eq!(teerdays.accumulated_tokentime, 0);
 		assert_eq!(teerdays.last_updated, now);
 
@@ -71,7 +71,7 @@ fn bond_extra_works() {
 
 		let teerdays = TeerDays::teerday_bonds(&alice)
 			.expect("TeerDays entry for bonded account should exist");
-		assert_eq!(teerdays.bond, amount + extra_amount);
+		assert_eq!(teerdays.value, amount + extra_amount);
 		assert_eq!(teerdays.accumulated_tokentime, amount * 10_000);
 		assert_eq!(teerdays.last_updated, now);
 
@@ -112,7 +112,7 @@ fn unbonding_and_delayed_withdraw_works() {
 
 		let teerdays = TeerDays::teerday_bonds(&alice)
 			.expect("TeerDays entry for bonded account should exist");
-		assert_eq!(teerdays.bond, amount - unbond_amount);
+		assert_eq!(teerdays.value, amount - unbond_amount);
 		assert_eq!(
 			teerdays.accumulated_tokentime,
 			tokentime_accumulated.saturating_mul(amount - unbond_amount) / amount
@@ -176,7 +176,7 @@ fn update_other_works() {
 
 		let teerdays = TeerDays::teerday_bonds(&alice)
 			.expect("TeerDays entry for bonded account should exist");
-		assert_eq!(teerdays.bond, amount);
+		assert_eq!(teerdays.value, amount);
 		assert_eq!(teerdays.last_updated, now);
 		assert_eq!(
 			teerdays.accumulated_tokentime,

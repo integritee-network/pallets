@@ -15,9 +15,7 @@
 	limitations under the License.
 */
 
-use frame_support::{
-	weights::{Weight},
-};
+use frame_support::weights::Weight;
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for pallet_teerdays.

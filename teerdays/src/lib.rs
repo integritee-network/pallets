@@ -100,6 +100,8 @@ pub mod pallet {
 		AlreadyBonded,
 		/// Insufficient bond
 		InsufficientBond,
+		/// Insufficient unbond
+		InsufficientUnbond,
 		/// account has no bond
 		NoBond,
 		/// Can't unbond while unlock is pending
@@ -141,7 +143,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
 			T::Currency::set_lock(TEERDAYS_ID, &signer, value, WithdrawReasons::all());
 			let teerday_bond = TeerDayBondOf::<T> {
-				bond: value,
+				value: value,
 				last_updated: pallet_timestamp::Pallet::<T>::get(),
 				accumulated_tokentime: BalanceOf::<T>::zero(),
 			};
@@ -161,11 +163,11 @@ pub mod pallet {
 
 			let free_balance = T::Currency::free_balance(&signer);
 			let value = value.min(free_balance);
-			let new_bond_value = bond.bond.saturating_add(value);
+			let new_bond_value = bond.value.saturating_add(value);
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
 			T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond_value, WithdrawReasons::all());
 			let teerday_bond = TeerDayBondOf::<T> {
-				bond: new_bond_value,
+				value: new_bond_value,
 				last_updated: bond.last_updated,
 				accumulated_tokentime: bond.accumulated_tokentime,
 			};
@@ -181,28 +183,27 @@ pub mod pallet {
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::pending_unlock(&signer).is_none(), Error::<T>::PendingUnlock);
-			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
-			ensure!(TeerDayBonds::<T>::contains_key(&signer), Error::<T>::NoBond);
+			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientUnbond);
 			let bond = Self::do_update_teerdays(&signer)?;
 			let now = bond.last_updated;
 
-			let new_bonded_amount = bond.bond.saturating_sub(value);
-			let unbonded_amount = bond.bond.saturating_sub(new_bonded_amount);
+			let new_bonded_amount = bond.value.saturating_sub(value);
+			let unbonded_amount = bond.value.saturating_sub(new_bonded_amount);
 
 			// burn tokentime pro rata
 			let new_tokentime = bond
 				.accumulated_tokentime
-				.checked_div(&bond.bond)
+				.checked_div(&bond.value)
 				.unwrap_or_default()
 				.saturating_mul(new_bonded_amount);
 
 			let new_bond = TeerDayBondOf::<T> {
-				bond: new_bonded_amount,
+				value: new_bonded_amount,
 				last_updated: now,
 				accumulated_tokentime: new_tokentime,
 			};
 
-			if new_bond.bond < T::Currency::minimum_balance() {
+			if new_bond.value < T::Currency::minimum_balance() {
 				TeerDayBonds::<T>::remove(&signer);
 			} else {
 				TeerDayBonds::<T>::insert(&signer, new_bond);
@@ -228,7 +229,11 @@ pub mod pallet {
 		#[pallet::weight(< T as Config >::WeightInfo::withdraw_unbonded())]
 		pub fn withdraw_unbonded(origin: OriginFor<T>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
-			let _success = Self::maybe_withdraw_unbonded(&signer)?;
+			let unlocked = Self::try_withdraw_unbonded(&signer)?;
+			Self::deposit_event(Event::<T>::Withdrawn {
+				account: signer.clone(),
+				amount: unlocked,
+			});
 			Ok(())
 		}
 	}
@@ -249,14 +254,17 @@ impl<T: Config> Pallet<T> {
 		Ok(bond)
 	}
 
-	fn maybe_withdraw_unbonded(account: &T::AccountId) -> Result<bool, sp_runtime::DispatchError> {
+	fn try_withdraw_unbonded(
+		account: &T::AccountId,
+	) -> Result<BalanceOf<T>, sp_runtime::DispatchError> {
 		if let Some((due, amount)) = Self::pending_unlock(account) {
 			let now = pallet_timestamp::Pallet::<T>::get();
 			if now < due {
 				return Err(Error::<T>::PendingUnlock.into())
 			}
 			let locked = T::Currency::balance_locked(TEERDAYS_ID, account);
-			if amount >= locked {
+			let amount = amount.min(locked);
+			if amount == locked {
 				T::Currency::remove_lock(TEERDAYS_ID, account);
 			} else {
 				T::Currency::set_lock(
@@ -267,8 +275,7 @@ impl<T: Config> Pallet<T> {
 				);
 			}
 			PendingUnlock::<T>::remove(account);
-			Self::deposit_event(Event::<T>::Withdrawn { account: account.clone(), amount });
-			return Ok(true)
+			return Ok(amount)
 		}
 		Err(Error::<T>::NotUnlocking.into())
 	}
