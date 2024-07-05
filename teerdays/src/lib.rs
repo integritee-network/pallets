@@ -44,6 +44,16 @@
 //! TEERday-based voting. If necessary, this update can be enforced by other pallets using `do_update_teerdays(account)`
 //! Failing to update all bonded accounts may lead to underestimation of total electorate voting power
 //!
+//! #### Numerical stability
+//! Assuming:
+//! - Balance is u128, decimals: 12, total supply cap: 10^7 TEER
+//! - Moment is u64, unit: ms
+//!
+//! 100years in milliseconds (Moment) are 42bits
+//! 10MTEER with 12 digits are 60bits
+//! 100years of total supply locked still fits u128
+//! therefore, it is safe to use the Balance type for TEERdays
+//!
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
