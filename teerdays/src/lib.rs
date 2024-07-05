@@ -18,6 +18,32 @@
 //! # Teerdays Pallet
 //! A pallet which allows bonding native TEER tokens and accumulate TEERdays the longer the tokens are bonded
 //! TEERdays will serve as a basis for governance and other features in the future
+//!
+//! ### Terminology
+//! - **Bonding**: Locking up TEER tokens for a certain period of time into the future.
+//! 	Bonded TEER tokens are not liquid and appear in "frozen" balance but can still be used for voting in network governance
+//! - **Unbonding**: Starting the unlock process of bonded TEER tokens
+//! - **TEERdays**: Accumulated time of bonded TEER tokens
+//! - **TokenTime**: The technical unit of TEERdays storage: TokenTime = Balance (TEER with its 12 digits) * Moment (Milliseconds)
+//!
+//! ### Usage Lifecycle
+//!
+//! 1. Bond TEER tokens: `bond(value)`
+//! 2. Increase Bond if you like: `bond_extra(value)`
+//! 3. *Use your accumulated TEERdays for governance or other features*
+//! 4. Unbond TEER tokens: `unbond(value)`.
+//!    - unbonding is only possible if no unlock is pending
+//!	   - unbonding burns accumulated TEERdays pro rata bonded amount before and after unbonding
+//! 5. wait for `UnlockPeriod` to pass
+//! 6. Withdraw unbonded TEER tokens: `withdraw_unbonded()`
+//!
+//! ### Developer Notes
+//!
+//! Accumulated TokenTime is updated lazily. This means that the `update_other` function must be called if the
+//! total amount of accumulated TEERdays is relevant for i.e. determining the electorate in
+//! TEERday-based voting. If necessary, this update can be enforced by other pallets using `do_update_teerdays(account)`
+//! Failing to update all bonded accounts may lead to underestimation of total electorate voting power
+//!
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -81,6 +107,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type MomentsPerDay: Get<Self::Moment>;
 
+		/// The period of time that must pass before a bond can be unbonded.
+		/// Must use the same unit which the timestamp pallet uses
 		#[pallet::constant]
 		type UnlockPeriod: Get<Self::Moment>;
 	}
