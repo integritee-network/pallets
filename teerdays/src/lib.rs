@@ -143,7 +143,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
 			T::Currency::set_lock(TEERDAYS_ID, &signer, value, WithdrawReasons::all());
 			let teerday_bond = TeerDayBondOf::<T> {
-				value: value,
+				value,
 				last_updated: pallet_timestamp::Pallet::<T>::get(),
 				accumulated_tokentime: BalanceOf::<T>::zero(),
 			};
@@ -160,9 +160,9 @@ pub mod pallet {
 			let signer = ensure_signed(origin)?;
 			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
 			let bond = Self::do_update_teerdays(&signer)?;
-
 			let free_balance = T::Currency::free_balance(&signer);
-			let value = value.min(free_balance);
+			// free includes the already bonded amount, so we need to subtract it
+			let value = value.min(free_balance.saturating_sub(bond.value));
 			let new_bond_value = bond.value.saturating_add(value);
 			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
 			T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond_value, WithdrawReasons::all());
