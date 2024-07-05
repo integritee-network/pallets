@@ -25,6 +25,10 @@ sp-io = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
+# benchmarking
+frame-benchmarking = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
+
 [dev-dependencies]
 env_logger = { workspace = true }
 sp-keyring = { workspace = true }
@@ -32,6 +36,7 @@ sp-keyring = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
     "teerdays-primitives/std",
@@ -52,4 +57,14 @@ try-runtime = [
     "frame-system/try-runtime",
     "pallet-balances/try-runtime",
     "sp-runtime/try-runtime",
+]
+
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "hex-literal",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
 ]

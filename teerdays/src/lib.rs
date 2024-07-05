@@ -250,6 +250,7 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]

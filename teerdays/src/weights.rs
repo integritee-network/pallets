@@ -33,20 +33,14 @@ pub trait WeightInfo {
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn bond() -> Weight {
-		Weight::from_parts(46_200_000, 0u64)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
+		todo!()
 	}
 	fn unbond() -> Weight {
-		Weight::from_parts(46_200_000, 0u64)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
+		todo!()
 	}
 
 	fn update_other() -> Weight {
-		Weight::from_parts(46_200_000, 0u64)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
+		todo!()
 	}
 
 	fn withdraw_unbonded() -> Weight {
@@ -57,14 +51,10 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 // For tests
 impl WeightInfo for () {
 	fn bond() -> Weight {
-		Weight::from_parts(46_200_000, 0u64)
-			.saturating_add(RocksDbWeight::get().reads(1))
-			.saturating_add(RocksDbWeight::get().writes(2))
+		todo!()
 	}
 	fn unbond() -> Weight {
-		Weight::from_parts(46_200_000, 0u64)
-			.saturating_add(RocksDbWeight::get().reads(1))
-			.saturating_add(RocksDbWeight::get().writes(2))
+		todo!()
 	}
 	fn update_other() -> Weight {
 		todo!()

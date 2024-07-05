@@ -2676,8 +2676,10 @@ name = "pallet-teerdays"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "log",
  "pallet-balances",
  "pallet-timestamp",
