@@ -104,9 +104,6 @@ pub mod pallet {
 			+ TypeInfo
 			+ MaxEncodedLen;
 
-		#[pallet::constant]
-		type MomentsPerDay: Get<Self::Moment>;
-
 		/// The period of time that must pass before a bond can be unbonded.
 		/// Must use the same unit which the timestamp pallet uses
 		#[pallet::constant]
@@ -116,9 +113,13 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// An account's bond has been increased by an amount
 		Bonded { account: T::AccountId, amount: BalanceOf<T> },
+		/// An account's bond has been decreased by an amount
 		Unbonded { account: T::AccountId, amount: BalanceOf<T> },
+		/// An account's accumulated tokentime has been updated
 		TokenTimeUpdated { account: T::AccountId, bond: TeerDayBondOf<T> },
+		/// An account has successfully withdrawn a previously unbonded amount after unlock period has passed
 		Withdrawn { account: T::AccountId, amount: BalanceOf<T> },
 	}
 
@@ -140,19 +141,18 @@ pub mod pallet {
 		BadState,
 	}
 
-	/// Lazy
+	/// a store for all active bonds. tokentime is updated lazily
 	#[pallet::storage]
 	#[pallet::getter(fn teerday_bonds)]
 	pub type TeerDayBonds<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, TeerDayBondOf<T>, OptionQuery>;
 
+	/// a store for all pending unlocks which are awaiting the unlock period to pass.
+	/// Withdrawal happens lazily and causes entry removal from this store
 	#[pallet::storage]
 	#[pallet::getter(fn pending_unlock)]
 	pub type PendingUnlock<T: Config> =
 		StorageMap<_, Blake2_128Concat, T::AccountId, (T::Moment, BalanceOf<T>), OptionQuery>;
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {

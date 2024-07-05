@@ -173,10 +173,10 @@ fn unbonding_and_delayed_withdraw_works() {
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 
 		run_to_block(2);
-		let now = now + MomentsPerDay::get();
+		let now = now + UnlockPeriod::get();
 		set_timestamp(now);
 
-		let tokentime_accumulated = amount.saturating_mul(MomentsPerDay::get() as Balance);
+		let tokentime_accumulated = amount.saturating_mul(UnlockPeriod::get() as Balance);
 
 		let unbond_amount = amount / 3;
 		assert_ok!(TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), unbond_amount));
@@ -216,7 +216,7 @@ fn unbonding_and_delayed_withdraw_works() {
 		assert_eq!(account_info.data.frozen, amount - unbond_amount);
 
 		run_to_block(4);
-		let now = now + MomentsPerDay::get();
+		let now = now + UnlockPeriod::get();
 		set_timestamp(now);
 
 		// unbond more than we have -> should saturate
@@ -272,7 +272,7 @@ fn update_other_works() {
 
 		run_to_block(2);
 
-		let now = now + MomentsPerDay::get();
+		let now = now + UnlockPeriod::get();
 		set_timestamp(now);
 
 		assert_ok!(TeerDays::update_other(RuntimeOrigin::signed(alice.clone()), alice.clone()));
@@ -283,7 +283,7 @@ fn update_other_works() {
 		assert_eq!(teerdays.last_updated, now);
 		assert_eq!(
 			teerdays.accumulated_tokentime,
-			amount.saturating_mul(MomentsPerDay::get() as Balance)
+			amount.saturating_mul(UnlockPeriod::get() as Balance)
 		);
 	})
 }
