@@ -16,8 +16,7 @@
 */
 
 use frame_support::{
-	traits::Get,
-	weights::{constants::RocksDbWeight, Weight},
+	weights::{Weight},
 };
 use sp_std::marker::PhantomData;
 

@@ -149,6 +149,30 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(1)]
+		#[pallet::weight(< T as Config >::WeightInfo::bond())]
+		pub fn bond_extra(
+			origin: OriginFor<T>,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
+			let bond = Self::do_update_teerdays(&signer)?;
+
+			let free_balance = T::Currency::free_balance(&signer);
+			let value = value.min(free_balance);
+			let new_bond_value = bond.bond.saturating_add(value);
+			Self::deposit_event(Event::<T>::Bonded { account: signer.clone(), amount: value });
+			T::Currency::set_lock(TEERDAYS_ID, &signer, new_bond_value, WithdrawReasons::all());
+			let teerday_bond = TeerDayBondOf::<T> {
+				bond: new_bond_value,
+				last_updated: bond.last_updated,
+				accumulated_tokentime: bond.accumulated_tokentime,
+			};
+			TeerDayBonds::<T>::insert(&signer, teerday_bond);
+			Ok(())
+		}
+
 		#[pallet::call_index(2)]
 		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
 		pub fn unbond(
@@ -250,6 +274,7 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
+#[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 #[cfg(test)]
 mod mock;
