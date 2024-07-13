@@ -39,23 +39,25 @@ std = [
     "frame-benchmarking?/std",
     "frame-support/std",
     "frame-system/std",
-    "teerdays-primitives/std",
     "log/std",
     "pallet-balances/std",
+    "pallet-timestamp/std",
     "parity-scale-codec/std",
     "scale-info/std",
     "serde/std",
     "sp-core/std",
     "sp-io/std",
+    "sp-keyring/std",
     "sp-runtime/std",
     "sp-std/std",
-    "sp-keyring/std",
+    "teerdays-primitives/std",
 ]
 
 try-runtime = [
     "frame-support/try-runtime",
     "frame-system/try-runtime",
     "pallet-balances/try-runtime",
+    "pallet-timestamp/try-runtime",
     "sp-runtime/try-runtime",
 ]
 
