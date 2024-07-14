@@ -38,11 +38,14 @@ jobs:
                  cargo test --all --features runtime-benchmarks,
                  cargo test --all --features dot,
                  cargo test --all --features ksm,
-                 cargo fmt --all -- --check,
+                 cargo +nightly fmt --all -- --check,
                  cargo clippy -- -D warnings
         ]
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install nightly toolchain
+        run: rustup toolchain install nightly --profile minimal --component rustfmt
 
       # With rustup's nice new toml format, we just need to run rustup show to install the toolchain
       # https://github.com/actions-rs/toolchain/issues/126#issuecomment-782989659
