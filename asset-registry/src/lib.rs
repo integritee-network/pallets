@@ -155,7 +155,8 @@ pub mod pallet {
 				Some(AccountId32 { .. }) |
 					Some(AccountKey20 { .. }) |
 					Some(PalletInstance(_)) |
-					Some(Parachain(_)) | None
+					Some(Parachain(_)) |
+					None
 			);
 
 			check |

@@ -115,7 +115,8 @@ impl<AssetId, AssetIdInfoGetter, AssetsPallet, BalancesPallet, XcmPallet, Accoun
 		XcmPallet,
 		AccountId,
 		Weigher,
-	> where
+	>
+where
 	AssetIdInfoGetter: AssetLocationGetter<AssetId>,
 	AssetsPallet: Inspect<AccountId, AssetId = AssetId>,
 	BalancesPallet: Currency<AccountId>,
