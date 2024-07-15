@@ -18,6 +18,7 @@
 use crate::{utils::length_from_raw_data, CertDer};
 use sp_std::convert::TryFrom;
 
+#[allow(dead_code)]
 pub struct EphemeralKey<'a>(&'a [u8]);
 
 pub const PRIME256V1_OID: &[u8; 10] = &[0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07];

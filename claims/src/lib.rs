@@ -423,7 +423,7 @@ pub mod pallet {
 				priority: PRIORITY,
 				requires: vec![],
 				provides: vec![("claims", signer).encode()],
-				longevity: TransactionLongevity::max_value(),
+				longevity: TransactionLongevity::MAX,
 				propagate: true,
 			})
 		}
@@ -480,7 +480,7 @@ impl<T: Config> Pallet<T> {
 		}
 
 		// We first need to deposit the balance to ensure that the account exists.
-		CurrencyOf::<T>::deposit_creating(&dest, balance_due);
+		let _ = CurrencyOf::<T>::deposit_creating(&dest, balance_due);
 
 		// Check if this claim should have a vesting schedule.
 		if let Some(vs) = vesting {
@@ -1317,7 +1317,7 @@ mod tests {
 					priority: 100,
 					requires: vec![],
 					provides: vec![("claims", eth(&alice())).encode()],
-					longevity: TransactionLongevity::max_value(),
+					longevity: TransactionLongevity::MAX,
 					propagate: true,
 				})
 			);
@@ -1350,7 +1350,7 @@ mod tests {
 					priority: 100,
 					requires: vec![],
 					provides: vec![("claims", eth(&dave())).encode()],
-					longevity: TransactionLongevity::max_value(),
+					longevity: TransactionLongevity::MAX,
 					propagate: true,
 				})
 			);

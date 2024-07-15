@@ -386,8 +386,8 @@ pub mod pallet {
 			let new_status: ShardSignerStatusVec<T> = Self::shard_status(shard)
 				.ok_or(Error::<T>::ShardNotFound)?
 				.iter()
+				.filter(|&signer_status| signer_status.signer != subject)
 				.cloned()
-				.filter(|signer_status| signer_status.signer != subject)
 				.collect::<Vec<ShardSignerStatus<T>>>()
 				.try_into()
 				.expect("can only become smaller by filtering");

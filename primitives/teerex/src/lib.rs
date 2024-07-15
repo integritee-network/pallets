@@ -159,7 +159,7 @@ where
 			MultiEnclave::Sgx(enclave) => match enclave.maybe_pubkey() {
 				Some(pubkey) =>
 					AnySigner::from(MultiSigner::from(sp_core::ed25519::Public::from_raw(pubkey))),
-				None => AnySigner::try_from(enclave.report_data.d).unwrap_or_default(),
+				None => AnySigner::from(enclave.report_data.d),
 			},
 		}
 	}
