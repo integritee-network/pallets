@@ -21,7 +21,7 @@
 //!
 //! ### Terminology
 //! - **Bonding**: Locking up TEER tokens for a certain period of time into the future.
-//! 	Bonded TEER tokens are not liquid and appear in "frozen" balance but can still be used for voting in network governance
+//!     Bonded TEER tokens are not liquid and appear in "frozen" balance but can still be used for voting in network governance
 //! - **Unbonding**: Starting the unlock process of bonded TEER tokens
 //! - **TEERdays**: Accumulated time of bonded TEER tokens
 //! - **TokenTime**: The technical unit of TEERdays storage: TokenTime = Balance (TEER with its 12 digits) * Moment (Milliseconds)
@@ -33,7 +33,7 @@
 //! 3. *Use your accumulated TEERdays for governance or other features*
 //! 4. Unbond TEER tokens: `unbond(value)`.
 //!    - unbonding is only possible if no unlock is pending
-//!	   - unbonding burns accumulated TEERdays pro rata bonded amount before and after unbonding
+//!    - unbonding burns accumulated TEERdays pro rata bonded amount before and after unbonding
 //! 5. wait for `UnlockPeriod` to pass
 //! 6. Withdraw unbonded TEER tokens: `withdraw_unbonded()`
 //!
@@ -308,8 +308,7 @@ impl<T: Config> Pallet<T> {
 	fn try_withdraw_unbonded(
 		account: &T::AccountId,
 	) -> Result<BalanceOf<T>, sp_runtime::DispatchError> {
-		let (due, amount) =
-			Self::pending_unlock(account).ok_or_else(|| Error::<T>::NotUnlocking)?;
+		let (due, amount) = Self::pending_unlock(account).ok_or(Error::<T>::NotUnlocking)?;
 		let now = pallet_timestamp::Pallet::<T>::get();
 		if now < due {
 			return Err(Error::<T>::PendingUnlock.into())
@@ -327,7 +326,7 @@ impl<T: Config> Pallet<T> {
 			);
 		}
 		PendingUnlock::<T>::remove(account);
-		return Ok(amount)
+		Ok(amount)
 	}
 }
 
