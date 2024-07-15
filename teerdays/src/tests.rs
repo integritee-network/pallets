@@ -158,7 +158,7 @@ fn bond_extra_saturates_at_free_margin() {
 }
 
 #[test]
-fn unbonding_and_delayed_withdraw_works() {
+fn withrawing_unbonded_after_unlock_period_works() {
 	new_test_ext().execute_with(|| {
 		run_to_block(1);
 		let now: Moment = 42;
@@ -190,6 +190,7 @@ fn unbonding_and_delayed_withdraw_works() {
 		let teerdays = TeerDays::teerday_bonds(&alice)
 			.expect("TeerDays entry for bonded account should exist");
 		assert_eq!(teerdays.value, amount - unbond_amount);
+		// accumulated tokentime is reduced pro-rata
 		assert_eq!(
 			teerdays.accumulated_tokentime,
 			tokentime_accumulated.saturating_mul(amount - unbond_amount) / amount
@@ -200,7 +201,7 @@ fn unbonding_and_delayed_withdraw_works() {
 			TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), unbond_amount),
 			Error::<Test>::PendingUnlock
 		);
-		// withdrawing not yet possible. fails silently
+		// withdrawing not yet possible.
 		assert_noop!(
 			TeerDays::withdraw_unbonded(RuntimeOrigin::signed(alice.clone())),
 			Error::<Test>::PendingUnlock

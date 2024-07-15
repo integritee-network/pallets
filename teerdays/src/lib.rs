@@ -166,6 +166,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Bond TEER tokens. This will lock the tokens in order to start accumulating TEERdays
+		/// The minimum bond is the existential deposit
 		#[pallet::call_index(0)]
 		#[pallet::weight(< T as Config >::WeightInfo::bond())]
 		pub fn bond(
@@ -189,6 +191,8 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Increase an existing bond on the signer's account
+		/// The minimum additional bond specified by `value` must exceed the existential deposit
 		#[pallet::call_index(1)]
 		#[pallet::weight(< T as Config >::WeightInfo::bond())]
 		pub fn bond_extra(
@@ -213,6 +217,11 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Decrease an existing bond on the signer's account
+		/// The minimum unbond specified by `value` must exceed the existential deposit
+		/// If `value` is equal or greater than the current bond, the bond will be removed
+		/// The unbonded amount will still be subject to an unbonding period before the amount can be withdrawn
+		/// Unbonding will burn accumulated TEERdays pro rata.
 		#[pallet::call_index(2)]
 		#[pallet::weight(< T as Config >::WeightInfo::unbond())]
 		pub fn unbond(
@@ -255,6 +264,9 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Update the accumulated tokentime for an account lazily
+		/// This can be helpful if other pallets use TEERdays and need to ensure the total
+		/// accumulated tokentime is up to date.
 		#[pallet::call_index(3)]
 		#[pallet::weight(< T as Config >::WeightInfo::update_other())]
 		pub fn update_other(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
@@ -263,6 +275,7 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Withdraw an unbonded amount after the unbonding period has expired
 		#[pallet::call_index(4)]
 		#[pallet::weight(< T as Config >::WeightInfo::withdraw_unbonded())]
 		pub fn withdraw_unbonded(origin: OriginFor<T>) -> DispatchResult {
@@ -279,7 +292,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	/// accumulates pending tokentime and updates state
-	/// bond must exist
+	/// bond must exist or will err.
 	/// returns the updated bond and deposits an event `BondUpdated`
 	fn do_update_teerdays(
 		account: &T::AccountId,
@@ -295,27 +308,26 @@ impl<T: Config> Pallet<T> {
 	fn try_withdraw_unbonded(
 		account: &T::AccountId,
 	) -> Result<BalanceOf<T>, sp_runtime::DispatchError> {
-		if let Some((due, amount)) = Self::pending_unlock(account) {
-			let now = pallet_timestamp::Pallet::<T>::get();
-			if now < due {
-				return Err(Error::<T>::PendingUnlock.into())
-			}
-			let locked = T::Currency::balance_locked(TEERDAYS_ID, account);
-			let amount = amount.min(locked);
-			if amount == locked {
-				T::Currency::remove_lock(TEERDAYS_ID, account);
-			} else {
-				T::Currency::set_lock(
-					TEERDAYS_ID,
-					account,
-					locked.saturating_sub(amount),
-					WithdrawReasons::all(),
-				);
-			}
-			PendingUnlock::<T>::remove(account);
-			return Ok(amount)
+		let (due, amount) =
+			Self::pending_unlock(account).ok_or_else(|| Error::<T>::NotUnlocking)?;
+		let now = pallet_timestamp::Pallet::<T>::get();
+		if now < due {
+			return Err(Error::<T>::PendingUnlock.into())
 		}
-		Err(Error::<T>::NotUnlocking.into())
+		let locked = T::Currency::balance_locked(TEERDAYS_ID, account);
+		let amount = amount.min(locked);
+		if amount == locked {
+			T::Currency::remove_lock(TEERDAYS_ID, account);
+		} else {
+			T::Currency::set_lock(
+				TEERDAYS_ID,
+				account,
+				locked.saturating_sub(amount),
+				WithdrawReasons::all(),
+			);
+		}
+		PendingUnlock::<T>::remove(account);
+		return Ok(amount)
 	}
 }
 
