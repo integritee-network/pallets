@@ -57,14 +57,6 @@ frame_support::construct_runtime!(
 	}
 );
 
-impl pallet_aura::Config for Test {
-	type AuthorityId = AuraId;
-	type DisabledValidators = ();
-	type MaxAuthorities = ConstU32<32>;
-	type AllowMultipleBlocksPerSlot = ConstBool<false>;
-	type SlotDuration = pallet_aura::MinimumPeriodTimesTwo<Test>;
-}
-
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 }
@@ -97,6 +89,16 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+parameter_types! {
+	pub const SlotDuration: u64 = 6000;
+}
+impl pallet_aura::Config for Test {
+	type AuthorityId = AuraId;
+	type DisabledValidators = ();
+	type MaxAuthorities = ConstU32<32>;
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type SlotDuration = SlotDuration;
+}
 pub type Balance = u64;
 
 parameter_types! {
