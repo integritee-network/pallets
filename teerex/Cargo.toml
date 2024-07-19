@@ -33,10 +33,13 @@ sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 pallet-balances = { workspace = true, optional = true }
+pallet-aura = { workspace = true, optional = true }
+sp-consensus-aura = { workspace = true, optional = true }
 test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
 env_logger = { workspace = true }
+
 sp-externalities = { workspace = true, features = ["std"] }
 frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
@@ -58,6 +61,7 @@ std = [
     "scale-info/std",
     "serde/std",
     "sgx-verify/std",
+    "sp-consensus-aura?/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
@@ -65,6 +69,7 @@ std = [
     "teerex-primitives/std",
     "webpki/std",
     "hex/std",
+    "pallet-aura?/std",
     "pallet-balances?/std",
     "serde_json/std",
     "sp-externalities/std",
@@ -73,12 +78,14 @@ std = [
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
     "hex-literal",
+    "pallet-aura",
     "pallet-balances",
     "pallet-timestamp/runtime-benchmarks",
     "test-utils",
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "pallet-balances?/runtime-benchmarks",
+    "sp-consensus-aura",
     "sp-runtime/runtime-benchmarks",
 ]
 

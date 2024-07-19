@@ -38,6 +38,7 @@ use test_utils::{
 benchmarks! {
 	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
 	update_exchange_rate {
+		//pallet_aura::CurrentSlot::<T>::put(264649964u64.into());
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".into();
@@ -61,6 +62,7 @@ benchmarks! {
 
 	update_oracle {
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
+		//pallet_aura::CurrentSlot::<T>::put(264649964.into());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let oracle_name = OracleDataName::from("Test_Oracle_Name");
 		let data_source = DataSource::from("Test_Source_Name");
