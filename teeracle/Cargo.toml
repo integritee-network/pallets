@@ -32,10 +32,10 @@ sp-std = { workspace = true }
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
-pallet-timestamp = { workspace = true, optional = true }
 pallet-aura = { workspace = true, optional = true }
-test-utils = { default-features = false, path = "../test-utils", optional = true }
+pallet-timestamp = { workspace = true, optional = true }
 sp-consensus-aura = { workspace = true, optional = true }
+test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
 sp-externalities = { workspace = true }
