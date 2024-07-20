@@ -89,6 +89,7 @@ try-runtime = [
     "frame-support/try-runtime",
     "pallet-teerex/try-runtime",
     "frame-system/try-runtime",
+    "pallet-aura?/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-timestamp?/try-runtime",
     "sp-runtime/try-runtime",
