@@ -17,9 +17,10 @@
 
 // Creating mock runtime here
 use crate as pallet_teerex;
-use frame_support::{derive_impl, parameter_types};
+use frame_support::{derive_impl, pallet_prelude::ConstU32, parameter_types, traits::ConstBool};
 use frame_system as system;
 use pallet_teerex::Config;
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::H256;
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
@@ -49,6 +50,7 @@ pub type SignedExtra = (
 frame_support::construct_runtime!(
 	pub enum Test
 	{
+		Aura: pallet_aura::{Pallet, Config<T>, Storage},
 		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
@@ -87,6 +89,16 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+parameter_types! {
+	pub const SlotDuration: u64 = 6000;
+}
+impl pallet_aura::Config for Test {
+	type AuthorityId = AuraId;
+	type DisabledValidators = ();
+	type MaxAuthorities = ConstU32<32>;
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type SlotDuration = SlotDuration;
+}
 pub type Balance = u64;
 
 parameter_types! {
@@ -117,7 +129,7 @@ pub type Moment = u64;
 
 impl pallet_timestamp::Config for Test {
 	type Moment = Moment;
-	type OnTimestampSet = ();
+	type OnTimestampSet = Aura;
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
 }

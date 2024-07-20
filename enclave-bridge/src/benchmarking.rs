@@ -145,6 +145,18 @@ benchmarks! {
 		// and we do more thorough checks in the normal cargo tests.
 		assert_eq!(frame_system::Pallet::<T>::events().len(), 1);
 	}
+
+	purge_enclave_from_shard_status {
+		let accounts: Vec<T::AccountId> = generate_accounts::<T>(1);
+		add_sovereign_enclaves_to_registry::<T>(&accounts);
+
+		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
+		let shard_config = ShardConfig::new(EnclaveFingerprint::default());
+		// initialize
+		let _ = Pallet::<T>::update_shard_config(RawOrigin::Signed(accounts[0].clone()).into(), shard, shard_config.clone(), 0u32.into());
+		<ShardConfigRegistry<T>>::insert(shard, UpgradableShardConfig::from(shard_config.clone()));
+
+	}: _(RawOrigin::Root, shard, accounts[0].clone())
 }
 
 fn add_sovereign_enclaves_to_registry<T: Config>(accounts: &[T::AccountId]) {

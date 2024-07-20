@@ -21,8 +21,9 @@ use crate::{
 	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode,
 	SgxEnclave, SovereignEnclaves,
 };
-use frame_support::{assert_err, assert_ok};
+use frame_support::{assert_err, assert_ok, traits::StorageInstance, StorageValue};
 use hex_literal::hex;
+use pallet_aura::CurrentSlot;
 use sgx_verify::{
 	collateral::EnclaveIdentity,
 	test_data::dcap::{
@@ -30,6 +31,7 @@ use sgx_verify::{
 	},
 	verify_dcap_quote,
 };
+use sp_consensus_aura::Slot;
 use sp_keyring::AccountKeyring;
 
 use teerex_primitives::{
@@ -53,6 +55,13 @@ fn list_proxied_enclaves() -> Vec<(EnclaveInstanceAddress<AccountId>, MultiEncla
 // give get_signer a concrete type
 fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 	test_utils::get_signer(pubkey)
+}
+
+fn set_timestamp(moment: u64) {
+	<pallet_aura::CurrentSlot<Test> as StorageValue<Slot>>::put(Slot::from(
+		moment / SlotDuration::get(),
+	));
+	Timestamp::set_timestamp(moment);
 }
 
 #[test]
@@ -80,7 +89,7 @@ fn set_security_flags_as_non_root_fails() {
 #[test]
 fn add_and_remove_dcap_enclave_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
@@ -98,9 +107,7 @@ fn add_and_remove_dcap_enclave_works() {
 			Teerex::sovereign_enclaves(&signer).unwrap().attestation_timestamp(),
 			TEST_VALID_COLLATERAL_TIMESTAMP
 		);
-		Timestamp::set_timestamp(
-			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1,
-		);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
 		assert_ok!(Teerex::unregister_sovereign_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			signer.clone()
@@ -113,7 +120,7 @@ fn add_and_remove_dcap_enclave_works() {
 #[test]
 fn add_and_remove_dcap_proxied_enclave_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
@@ -133,9 +140,7 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 		));
 		assert_eq!(list_proxied_enclaves().len(), 1);
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
-		Timestamp::set_timestamp(
-			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1,
-		);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
 		assert_ok!(Teerex::unregister_proxied_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			instance_address.clone()
@@ -168,7 +173,7 @@ fn outdated_tcb_status_is_reported_correctly() {
 #[test]
 fn skip_attestation_add_sovereign_enclave_works_if_allowed() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		<AllowSkippingAttestation<Test>>::set(true);
 		let alice = AccountKeyring::Alice.to_account_id();
 		assert_ok!(Teerex::register_sgx_enclave(
@@ -203,7 +208,7 @@ fn skip_attestation_add_sovereign_enclave_works_if_allowed() {
 #[test]
 fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		<AllowSkippingAttestation<Test>>::set(true);
 		let alice = AccountKeyring::Alice.to_account_id();
 		let instance_address = EnclaveInstanceAddress {
@@ -246,7 +251,7 @@ fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 #[test]
 fn unregister_active_sovereign_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice.clone());
@@ -260,7 +265,7 @@ fn unregister_active_sovereign_enclave_fails() {
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
 
-		Timestamp::set_timestamp(
+		set_timestamp(
 			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() / 2 + 1,
 		);
 
@@ -278,7 +283,7 @@ fn unregister_active_sovereign_enclave_fails() {
 #[test]
 fn unregister_active_proxied_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
 		let alice = AccountKeyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
@@ -298,7 +303,7 @@ fn unregister_active_proxied_enclave_fails() {
 		));
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
 
-		Timestamp::set_timestamp(
+		set_timestamp(
 			TEST_VALID_COLLATERAL_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() / 2 + 1,
 		);
 
@@ -320,7 +325,7 @@ fn register_quoting_enclave_works() {
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.mrsigner, [0u8; 32]);
 		assert_eq!(qe.isvprodid, 0);
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		register_test_quoting_enclave::<Test>(alice);
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.isvprodid, 1);
@@ -334,7 +339,7 @@ fn register_quoting_enclave_works() {
 #[test]
 fn register_tcb_info_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
+		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
 		register_test_tcb_info::<Test>(AccountKeyring::Alice.to_account_id());
 		let fmspc = hex!("00906EA10000");
@@ -354,7 +359,7 @@ fn register_tcb_info_works() {
 fn add_enclave_works() {
 	new_test_ext().execute_with(|| {
 		// set the now in the runtime such that the remote attestation reports are within accepted range (24h)
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
@@ -369,7 +374,7 @@ fn add_enclave_works() {
 #[test]
 fn add_and_remove_enclave_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 		let alice = AccountKeyring::Alice.to_account_id();
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
@@ -379,7 +384,8 @@ fn add_and_remove_enclave_works() {
 			SgxAttestationMethod::Ias
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&signer));
-		Timestamp::set_timestamp(TEST4_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
+
+		set_timestamp(TEST4_TIMESTAMP + <MaxAttestationRenewalPeriod>::get() + 1);
 		assert_ok!(Teerex::unregister_sovereign_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			signer.clone()
@@ -392,7 +398,7 @@ fn add_and_remove_enclave_works() {
 #[test]
 fn add_enclave_without_timestamp_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(0);
+		set_timestamp(0);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
@@ -408,7 +414,7 @@ fn add_enclave_without_timestamp_fails() {
 #[test]
 fn list_enclaves_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let e_1: SgxEnclave<Vec<u8>> = SgxEnclave {
 			report_data: SgxReportData::from(TEST4_SIGNER_PUB),
@@ -436,7 +442,7 @@ fn list_enclaves_works() {
 fn register_ias_enclave_with_different_signer_fails() {
 	new_test_ext().execute_with(|| {
 		let signer = get_signer(TEST7_SIGNER_PUB);
-		Timestamp::set_timestamp(TEST7_TIMESTAMP);
+		set_timestamp(TEST7_TIMESTAMP);
 		assert_err!(
 			Teerex::register_sgx_enclave(
 				RuntimeOrigin::signed(signer),
@@ -452,7 +458,7 @@ fn register_ias_enclave_with_different_signer_fails() {
 #[test]
 fn register_ias_enclave_with_to_old_attestation_report_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS + 1);
+		set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS + 1);
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_err!(
 			Teerex::register_sgx_enclave(
@@ -469,7 +475,7 @@ fn register_ias_enclave_with_to_old_attestation_report_fails() {
 #[test]
 fn register_ias_enclave_with_almost_too_old_report_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS - 1);
+		set_timestamp(TEST7_TIMESTAMP + TWENTY_FOUR_HOURS - 1);
 		let signer = get_signer(TEST7_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer),
@@ -483,7 +489,7 @@ fn register_ias_enclave_with_almost_too_old_report_works() {
 #[test]
 fn update_enclave_url_works() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		let url2 = "my fancy url".as_bytes();
@@ -551,31 +557,29 @@ fn debug_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 #[test]
 fn production_mode_enclave_attest_works_when_sgx_debug_mode_is_allowed() {
 	new_test_ext().execute_with(|| {
-		new_test_ext().execute_with(|| {
-			set_timestamp(TEST8_TIMESTAMP);
-			let signer8 = get_signer(TEST8_SIGNER_PUB);
-			let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
-				report_data: SgxReportData::from(TEST8_SIGNER_PUB),
-				mr_enclave: TEST8_MRENCLAVE,
-				timestamp: TEST8_TIMESTAMP,
-				url: Some(URL.to_vec()),
-				build_mode: SgxBuildMode::Production,
-				mr_signer: TEST8_MRSIGNER,
-				attestation_method: SgxAttestationMethod::Ias,
-				status: SgxStatus::Invalid,
-			};
+		set_timestamp(TEST8_TIMESTAMP);
+		let signer8 = get_signer(TEST8_SIGNER_PUB);
+		let e_0: SgxEnclave<Vec<u8>> = SgxEnclave {
+			report_data: SgxReportData::from(TEST8_SIGNER_PUB),
+			mr_enclave: TEST8_MRENCLAVE,
+			timestamp: TEST8_TIMESTAMP,
+			url: Some(URL.to_vec()),
+			build_mode: SgxBuildMode::Production,
+			mr_signer: TEST8_MRSIGNER,
+			attestation_method: SgxAttestationMethod::Ias,
+			status: SgxStatus::Invalid,
+		};
 
-			//Register an enclave compiled in production mode
-			assert_ok!(Teerex::register_sgx_enclave(
-				RuntimeOrigin::signed(signer8.clone()),
-				TEST8_CERT.to_vec(),
-				Some(URL.to_vec()),
-				SgxAttestationMethod::Ias
-			));
-			assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
-			let enclaves = list_sovereign_enclaves();
-			assert!(enclaves.contains(&(signer8, MultiEnclave::from(e_0))));
-		})
+		//Register an enclave compiled in production mode
+		assert_ok!(Teerex::register_sgx_enclave(
+			RuntimeOrigin::signed(signer8.clone()),
+			TEST8_CERT.to_vec(),
+			Some(URL.to_vec()),
+			SgxAttestationMethod::Ias
+		));
+		assert!(<SovereignEnclaves<Test>>::contains_key(&signer8));
+		let enclaves = list_sovereign_enclaves();
+		assert!(enclaves.contains(&(signer8, MultiEnclave::from(e_0))));
 	})
 }
 

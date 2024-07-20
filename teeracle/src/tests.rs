@@ -15,9 +15,10 @@
 
 */
 use crate::{mock::*, ExchangeRates};
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok, StorageValue};
 use hex_literal::hex;
 use pallet_teerex::Error;
+use sp_consensus_aura::Slot;
 use sp_runtime::DispatchError::BadOrigin;
 use substrate_fixed::types::U32F32;
 use teeracle_primitives::*;
@@ -38,7 +39,7 @@ fn get_signer(pubkey: &[u8; 32]) -> AccountId {
 }
 
 fn register_ias_enclave_and_add_oracle_to_whitelist_ok(src: &str) {
-	Timestamp::set_timestamp(TEST4_TIMESTAMP);
+	set_timestamp(TEST4_TIMESTAMP);
 	let signer = get_signer(TEST4_SIGNER_PUB);
 	assert_ok!(Teerex::register_sgx_enclave(
 		RuntimeOrigin::signed(signer.clone()),
@@ -60,6 +61,12 @@ fn update_exchange_rate_dot_dollars_ok(src: &str, rate: Option<U32F32>) {
 	));
 }
 
+fn set_timestamp(moment: u64) {
+	<pallet_aura::CurrentSlot<Test> as StorageValue<Slot>>::put(Slot::from(
+		moment / SlotDuration::get(),
+	));
+	Timestamp::set_timestamp(moment);
+}
 #[test]
 fn update_exchange_rate_works() {
 	new_test_ext().execute_with(|| {
@@ -222,7 +229,7 @@ fn update_oracle_from_not_registered_enclave_fails() {
 #[test]
 fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
@@ -247,7 +254,7 @@ fn update_exchange_rate_from_not_whitelisted_oracle_fails() {
 #[test]
 fn update_oracle_from_not_whitelisted_oracle_fails() {
 	new_test_ext().execute_with(|| {
-		Timestamp::set_timestamp(TEST4_TIMESTAMP);
+		set_timestamp(TEST4_TIMESTAMP);
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),

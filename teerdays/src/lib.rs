@@ -57,6 +57,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub use crate::weights::WeightInfo;
 use frame_support::traits::{
 	Currency, InspectLockableCurrency, LockIdentifier, LockableCurrency, WithdrawReasons,
 };

@@ -36,8 +36,15 @@ use test_utils::{
 };
 
 benchmarks! {
-	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
+	where_clause {
+		where
+			T::AccountId: From<[u8; 32]>,
+			T::Hash: From<[u8; 32]>,
+			T: pallet_aura::Config,
+			T::Moment: CheckedConversion,
+	}
 	update_exchange_rate {
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(TEST4_SETUP.timestamp.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let trading_pair: TradingPairString =  "DOT/USD".into();
@@ -60,6 +67,7 @@ benchmarks! {
 	}
 
 	update_oracle {
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(TEST4_SETUP.timestamp.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(TEST4_SETUP.signer_pub);
 		let oracle_name = OracleDataName::from("Test_Oracle_Name");
@@ -107,6 +115,8 @@ use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
+use frame_support::{traits::Get, StorageValue};
+use sp_consensus_aura::Slot;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(PalletModule, crate::mock::new_test_ext(), crate::mock::Test,);

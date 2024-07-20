@@ -15,10 +15,11 @@
 
 */
 use crate as pallet_teeracle;
-use frame_support::{derive_impl, parameter_types};
+use frame_support::{derive_impl, parameter_types, traits::ConstBool};
 use frame_system as system;
 use pallet_teeracle::Config;
-use sp_core::H256;
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::{ConstU32, H256};
 use sp_keyring::AccountKeyring;
 use sp_runtime::{
 	generic,
@@ -47,6 +48,7 @@ pub type SignedExtra = (
 frame_support::construct_runtime!(
 	pub enum Test
 	{
+		Aura: pallet_aura,
 		System: frame_system,
 		Balances: pallet_balances,
 		Timestamp: pallet_timestamp,
@@ -87,6 +89,16 @@ impl frame_system::Config for Test {
 	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
+parameter_types! {
+	pub const SlotDuration: u64 = 6000;
+}
+impl pallet_aura::Config for Test {
+	type AuthorityId = AuraId;
+	type DisabledValidators = ();
+	type MaxAuthorities = ConstU32<32>;
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+	type SlotDuration = SlotDuration;
+}
 pub type Balance = u64;
 
 parameter_types! {
@@ -117,7 +129,7 @@ pub type Moment = u64;
 
 impl pallet_timestamp::Config for Test {
 	type Moment = Moment;
-	type OnTimestampSet = ();
+	type OnTimestampSet = Aura;
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
 }

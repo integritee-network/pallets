@@ -20,6 +20,7 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
+use core::ops::Add;
 
 use crate::{
 	test_helpers::{get_test_tcb_info, register_test_quoting_enclave, register_test_tcb_info},
@@ -28,6 +29,7 @@ use crate::{
 use frame_benchmarking::{account, benchmarks};
 use frame_system::RawOrigin;
 use sp_runtime::traits::CheckedConversion;
+
 use test_utils::{
 	get_signer,
 	test_data::{consts::*, dcap::*, ias::*},
@@ -45,11 +47,18 @@ benchmarks! {
 	//
 	// Hence, it does not matter how many other enclaves are registered for the benchmark.
 
-	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]>,}
+	where_clause {
+		where
+			T::AccountId: From<[u8; 32]>,
+			T::Hash: From<[u8; 32]>,
+			T: pallet_aura::Config,
+			T::Moment: CheckedConversion,
+	}
 
 	// Benchmark `register_sgx_enclave` with the worst possible conditions (DCAP sovereign is more involved than Ias or proxied DCAP):
 	// * dcap registration succeeds with `proxied: false`
 	register_sgx_enclave {
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(TEST_VALID_COLLATERAL_TIMESTAMP.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
@@ -66,7 +75,9 @@ benchmarks! {
 	// Benchmark `register_quoting_enclave` with the worst possible conditions:
 	// * quoting enclave registration succeeds
 	register_quoting_enclave {
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(TEST_VALID_COLLATERAL_TIMESTAMP.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
+
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 
 	}: _(RawOrigin::Signed(signer), QUOTING_ENCLAVE.to_vec(), QUOTING_ENCLAVE_SIGNATURE.to_vec(), QE_IDENTITY_ISSUER_CHAIN.to_vec())
@@ -78,6 +89,7 @@ benchmarks! {
 	// Benchmark `register_tcb_info` with the worst possible conditions:
 	// * tcb registration succeeds
 	register_tcb_info {
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(TEST_VALID_COLLATERAL_TIMESTAMP.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
 		pallet_timestamp::Pallet::<T>::set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP.checked_into().unwrap());
 		let signer: T::AccountId = get_signer(&TEST1_DCAP_QUOTE_SIGNER);
 		register_test_quoting_enclave::<T>(signer.clone());
@@ -95,7 +107,9 @@ benchmarks! {
 		let enclave_count = 3;
 		let accounts: Vec<T::AccountId> = generate_accounts::<T>(enclave_count);
 		add_sovereign_enclaves_to_registry::<T>(&accounts);
-		pallet_timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
+		let later_timestamp = TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1;
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(later_timestamp.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
+		pallet_timestamp::Pallet::<T>::set_timestamp(later_timestamp.checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), accounts[0].clone())
 	verify {
@@ -111,7 +125,9 @@ benchmarks! {
 		add_proxied_enclaves_to_registry::<T>(&accounts);
 		let (key0, value0) = <ProxiedEnclaves<T>>::iter()
 		.collect::<Vec<(EnclaveInstanceAddress<T::AccountId>, MultiEnclave<Vec<u8>>)>>()[0].clone();
-		pallet_timestamp::Pallet::<T>::set_timestamp((TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1).checked_into().unwrap());
+		let later_timestamp = TEST4_TIMESTAMP + MAX_SILENCE_TIME + 1;
+		<pallet_aura::CurrentSlot<T> as StorageValue<Slot>>::put(Slot::from(later_timestamp.saturating_div(T::SlotDuration::get().checked_into().unwrap())));
+		pallet_timestamp::Pallet::<T>::set_timestamp(later_timestamp.checked_into().unwrap());
 
 	}: _(RawOrigin::Signed(accounts[0].clone()), key0.clone())
 	verify {
@@ -155,6 +171,8 @@ use crate::{Config, Pallet as PalletModule};
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
+use frame_support::StorageValue;
+use sp_consensus_aura::Slot;
 use test_utils::TestEnclave;
 
 #[cfg(test)]

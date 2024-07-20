@@ -32,17 +32,21 @@ sp-std = { workspace = true }
 # benchmarking
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
+pallet-aura = { workspace = true, optional = true }
 pallet-timestamp = { workspace = true, optional = true }
+sp-consensus-aura = { workspace = true, optional = true }
 test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
-sp-externalities = { workspace = true }
 frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
-sp-keyring = { workspace = true }
+pallet-aura = { workspace = true }
 pallet-balances = { workspace = true, features = ["std"] }
-test-utils = { path = "../test-utils" }
 pallet-timestamp = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-externalities = { workspace = true }
+sp-keyring = { workspace = true }
+test-utils = { path = "../test-utils" }
 
 
 [features]
@@ -55,6 +59,7 @@ std = [
     "pallet-teerex/std",
     "parity-scale-codec/std",
     "scale-info/std",
+    "sp-consensus-aura?/std",
     "sp-core/std",
     "sp-io/std",
     "sp-runtime/std",
@@ -62,6 +67,7 @@ std = [
     "substrate-fixed/std",
     "teeracle-primitives/std",
     "teerex-primitives/std",
+    "pallet-aura?/std",
     "pallet-balances/std",
     "pallet-timestamp?/std",
     "sp-externalities/std",
@@ -71,11 +77,13 @@ runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
     "hex-literal",
     "pallet-timestamp/runtime-benchmarks",
+    "pallet-aura",
     "test-utils",
     "pallet-teerex/runtime-benchmarks",
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "pallet-balances/runtime-benchmarks",
+    "sp-consensus-aura",
     "sp-runtime/runtime-benchmarks",
 ]
 
@@ -83,6 +91,7 @@ try-runtime = [
     "frame-support/try-runtime",
     "pallet-teerex/try-runtime",
     "frame-system/try-runtime",
+    "pallet-aura?/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-timestamp?/try-runtime",
     "sp-runtime/try-runtime",

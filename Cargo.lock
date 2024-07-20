@@ -2277,6 +2277,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-aura"
+version = "34.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "638e3cbb539540e45503f5ae756b6bbb4e6085269d025afa273e684782f514ac"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-application-crypto",
+ "sp-consensus-aura",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-authority-discovery"
 version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2654,11 +2672,13 @@ dependencies = [
  "frame-system",
  "hex-literal",
  "log",
+ "pallet-aura",
  "pallet-balances",
  "pallet-teerex",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
+ "sp-consensus-aura",
  "sp-core",
  "sp-externalities",
  "sp-io",
@@ -2705,6 +2725,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "log",
+ "pallet-aura",
  "pallet-balances",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -2713,6 +2734,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sgx-verify",
+ "sp-consensus-aura",
  "sp-core",
  "sp-externalities",
  "sp-io",
