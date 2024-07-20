@@ -27,6 +27,8 @@ fn bond_works() {
 		let now: Moment = 42;
 		set_timestamp(now);
 		let alice = AccountKeyring::Alice.to_account_id();
+		let alice_free: BalanceOf<Test> = 15_000_000_000_000;
+		<Test as pallet::Config>::Currency::make_free_balance_be(&alice, alice_free);
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 
@@ -43,6 +45,7 @@ fn bond_works() {
 		let account_info = System::account(&alice);
 		assert_eq!(account_info.consumers, 1);
 		assert_eq!(account_info.data.frozen, amount);
+		assert_eq!(account_info.data.free, alice_free - amount);
 	})
 }
 
