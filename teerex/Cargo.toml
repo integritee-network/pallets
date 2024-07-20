@@ -39,15 +39,16 @@ test-utils = { default-features = false, path = "../test-utils", optional = true
 
 [dev-dependencies]
 env_logger = { workspace = true }
-
-sp-externalities = { workspace = true, features = ["std"] }
 frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
+pallet-aura = { workspace = true }
 pallet-balances = { workspace = true, features = ["std"] }
-sp-keyring = { workspace = true }
-test-utils = { path = "../test-utils" }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }
+sp-consensus-aura = { workspace = true }
+sp-externalities = { workspace = true, features = ["std"] }
+sp-keyring = { workspace = true }
+test-utils = { path = "../test-utils" }
 
 [features]
 default = ["std"]

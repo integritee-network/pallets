@@ -38,13 +38,15 @@ sp-consensus-aura = { workspace = true, optional = true }
 test-utils = { default-features = false, path = "../test-utils", optional = true }
 
 [dev-dependencies]
-sp-externalities = { workspace = true }
 frame-benchmarking = { workspace = true, features = ["std"] }
 hex-literal = { workspace = true }
-sp-keyring = { workspace = true }
+pallet-aura = { workspace = true }
 pallet-balances = { workspace = true, features = ["std"] }
-test-utils = { path = "../test-utils" }
 pallet-timestamp = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-externalities = { workspace = true }
+sp-keyring = { workspace = true }
+test-utils = { path = "../test-utils" }
 
 
 [features]
