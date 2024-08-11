@@ -127,7 +127,7 @@ pub mod pallet {
 		/// An account's bond has been increased by an amount
 		Bonded { account: T::AccountId, amount: BalanceOf<T> },
 		/// An account's bond has been decreased by an amount
-		Unbonded { account: T::AccountId, amount: BalanceOf<T> },
+		Unbonded { account: T::AccountId, amount: BalanceOf<T>, burned_tokentime: BalanceOf<T> },
 		/// An account's accumulated tokentime has been updated
 		TokenTimeUpdated { account: T::AccountId, bond: TeerDayBondOf<T> },
 		/// An account has successfully withdrawn a previously unbonded amount after unlock period has passed
@@ -238,6 +238,7 @@ pub mod pallet {
 			let new_bonded_amount = bond.value.saturating_sub(value);
 			let unbonded_amount = bond.value.saturating_sub(new_bonded_amount);
 
+			let pre_tokentime = bond.accumulated_tokentime;
 			// burn tokentime pro rata
 			let new_tokentime = bond
 				.accumulated_tokentime
@@ -261,6 +262,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::Unbonded {
 				account: signer.clone(),
 				amount: unbonded_amount,
+				burned_tokentime: pre_tokentime.saturating_sub(new_tokentime),
 			});
 			Ok(())
 		}
@@ -312,7 +314,7 @@ impl<T: Config> Pallet<T> {
 		let (due, amount) = Self::pending_unlock(account).ok_or(Error::<T>::NotUnlocking)?;
 		let now = pallet_timestamp::Pallet::<T>::get();
 		if now < due {
-			return Err(Error::<T>::PendingUnlock.into())
+			return Err(Error::<T>::PendingUnlock.into());
 		}
 		let locked = T::Currency::balance_locked(TEERDAYS_ID, account);
 		let amount = amount.min(locked);
