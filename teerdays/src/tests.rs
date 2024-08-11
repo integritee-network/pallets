@@ -27,6 +27,8 @@ fn bond_works() {
 		let now: Moment = 42;
 		set_timestamp(now);
 		let alice = AccountKeyring::Alice.to_account_id();
+		let alice_free: BalanceOf<Test> = 15_000_000_000_000;
+		<Test as pallet::Config>::Currency::make_free_balance_be(&alice, alice_free);
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 
@@ -158,7 +160,7 @@ fn bond_extra_saturates_at_free_margin() {
 }
 
 #[test]
-fn withrawing_unbonded_after_unlock_period_works() {
+fn withdrawing_unbonded_after_unlock_period_works() {
 	new_test_ext().execute_with(|| {
 		run_to_block(1);
 		let now: Moment = 42;
@@ -178,12 +180,13 @@ fn withrawing_unbonded_after_unlock_period_works() {
 
 		let tokentime_accumulated = amount.saturating_mul(UnlockPeriod::get() as Balance);
 
-		let unbond_amount = amount / 3;
+		let unbond_amount = amount / 5;
 		assert_ok!(TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), unbond_amount));
 
 		let expected_event = RuntimeEvent::TeerDays(TeerDaysEvent::Unbonded {
 			account: alice.clone(),
 			amount: unbond_amount,
+			burned_tokentime: tokentime_accumulated / 5,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
@@ -253,8 +256,11 @@ fn unbonding_saturates_at_bonded() {
 		let unbond_amount = amount * 2;
 		assert_ok!(TeerDays::unbond(RuntimeOrigin::signed(alice.clone()), unbond_amount));
 
-		let expected_event =
-			RuntimeEvent::TeerDays(TeerDaysEvent::Unbonded { account: alice.clone(), amount });
+		let expected_event = RuntimeEvent::TeerDays(TeerDaysEvent::Unbonded {
+			account: alice.clone(),
+			amount,
+			burned_tokentime: 0, //no time has elapsed
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert!(TeerDays::teerday_bonds(&alice).is_none());
 		assert_eq!(TeerDays::pending_unlock(&alice).unwrap().1, amount);

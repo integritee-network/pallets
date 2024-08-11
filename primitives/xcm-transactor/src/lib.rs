@@ -42,7 +42,7 @@ pub trait BuildRelayCall {
 	/// - execution to be purchased via BuyExecution XCM Instruction
 	/// - Weight required to execute this call.
 	/// - Amount of execution to buy on the relay chain. This parameter is exposed because it varies
-	/// depending on the relay chain.
+	///   depending on the relay chain.
 	///
 	/// Returns:
 	/// - Corresponding XCM Message for Transacting on this RelayCall
