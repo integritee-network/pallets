@@ -201,6 +201,7 @@ pub mod pallet {
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
+			ensure!(Self::pending_unlock(&signer).is_none(), Error::<T>::PendingUnlock);
 			ensure!(value >= T::Currency::minimum_balance(), Error::<T>::InsufficientBond);
 			let bond = Self::do_update_teerdays(&signer)?;
 			let free_balance = T::Currency::free_balance(&signer);
