@@ -149,6 +149,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			// id, account_id, balance
 			(LOCAL_ASSET_ID, 1, 100),
 		],
+		next_asset_id: Some(1),
 	};
 	config.assimilate_storage(&mut storage).unwrap();
 	storage.into()
