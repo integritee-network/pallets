@@ -504,7 +504,6 @@ impl<T: Config> Pallet<T> {
 
 /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 /// otherwise free to place on chain.
-
 #[allow(clippy::derive_partial_eq_without_eq)]
 // derive_partial_eq_without_eq false positive in struct using traits
 // For details: https://github.com/rust-lang/rust-clippy/issues/9413
