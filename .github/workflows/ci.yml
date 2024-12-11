@@ -76,7 +76,7 @@ jobs:
         run: cargo +stable about generate about.hbs > license.html
 
       - name: Archive license file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: license
           path: license.html
