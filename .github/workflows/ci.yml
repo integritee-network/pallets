@@ -39,7 +39,7 @@ jobs:
                  cargo test --all --features dot,
                  cargo test --all --features ksm,
                  cargo +nightly fmt --all -- --check,
-                 cargo clippy -- -D warnings
+                 cargo clippy --all-features --all-targets -- -D warnings
         ]
     steps:
       - uses: actions/checkout@v3

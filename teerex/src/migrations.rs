@@ -55,7 +55,7 @@ pub mod v1 {
 		fn pre_upgrade() -> Result<Vec<u8>, sp_runtime::DispatchError> {
 			let onchain_version = Pallet::<T>::on_chain_storage_version();
 
-			let enclave_count = v0::EnclaveCount::<T>::get() as u64;
+			let enclave_count = v0::EnclaveCount::<T>::get();
 			log::info!(
 				target: TARGET,
 				"teerexV1: {} v0 enclaves are present before eventual upgrade",
@@ -116,8 +116,8 @@ pub mod v1 {
 			}
 
 			assert_eq!(Pallet::<T>::on_chain_storage_version(), 1, "must upgrade");
-			let new_enclave_count = v0::EnclaveCount::<T>::get() as u64;
-			let new_allow_debug_mode = crate::SgxAllowDebugMode::<T>::get() as bool;
+			let new_enclave_count = v0::EnclaveCount::<T>::get();
+			let new_allow_debug_mode = crate::SgxAllowDebugMode::<T>::get();
 
 			assert_eq!(new_enclave_count, 0, "must purge all enclaves");
 			assert_eq!(new_allow_debug_mode, allow_debug_mode, "must keep debug mode setting");
@@ -231,10 +231,10 @@ mod test {
 
 			// Check that all values got migrated.
 			assert_eq!(v0::EnclaveCount::<TestRuntime>::get(), 0);
-			assert_eq!(crate::SgxAllowDebugMode::<TestRuntime>::get(), true);
+			assert!(crate::SgxAllowDebugMode::<TestRuntime>::get());
 			assert_eq!(v0::EnclaveRegistry::<TestRuntime>::iter_keys().count(), 0);
 			assert_eq!(v0::EnclaveIndex::<TestRuntime>::iter_keys().count(), 0);
-			assert_eq!(v0::AllowSGXDebugMode::<TestRuntime>::get(), false);
+			assert!(!v0::AllowSGXDebugMode::<TestRuntime>::get());
 		});
 	}
 

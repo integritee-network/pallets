@@ -185,7 +185,7 @@ fn verify_tcb_info_signature() {
 /// TODO: Implement CRL handling
 #[test]
 fn parse_pck_crl() {
-	let crl_decoded = hex::decode(&PCK_CRL).unwrap();
+	let crl_decoded = hex::decode(PCK_CRL).unwrap();
 	let crl: x509_cert::crl::CertificateList = der::Decode::from_der(&crl_decoded).unwrap();
 
 	let mut serials = vec![];

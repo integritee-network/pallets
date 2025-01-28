@@ -789,12 +789,12 @@ mod tests {
 	fn basic_setup_works() {
 		new_test_ext().execute_with(|| {
 			assert_eq!(Claims::total(), total_claims());
-			assert_eq!(Claims::claims(&eth(&alice())), Some(100));
-			assert_eq!(Claims::claims(&eth(&dave())), Some(200));
-			assert_eq!(Claims::claims(&eth(&eve())), Some(300));
-			assert_eq!(Claims::claims(&eth(&frank())), Some(400));
-			assert_eq!(Claims::claims(&EthereumAddress::default()), None);
-			assert_eq!(Claims::vesting(&eth(&alice())), Some((50, 10, 1)));
+			assert_eq!(Claims::claims(eth(&alice())), Some(100));
+			assert_eq!(Claims::claims(eth(&dave())), Some(200));
+			assert_eq!(Claims::claims(eth(&eve())), Some(300));
+			assert_eq!(Claims::claims(eth(&frank())), Some(400));
+			assert_eq!(Claims::claims(EthereumAddress::default()), None);
+			assert_eq!(Claims::vesting(eth(&alice())), Some((50, 10, 1)));
 		});
 	}
 
@@ -816,7 +816,7 @@ mod tests {
 				42,
 				sig::<Test>(&alice(), &42u64.encode(), &[][..])
 			));
-			assert_eq!(Balances::free_balance(&42), 100);
+			assert_eq!(Balances::free_balance(42), 100);
 			assert_eq!(Vesting::vesting_balance(&42), Some(50));
 			assert_eq!(Claims::total(), total_claims() - 100);
 		});
@@ -849,7 +849,7 @@ mod tests {
 				42,
 				sig::<Test>(&bob(), &42u64.encode(), &[][..])
 			));
-			assert_eq!(Balances::free_balance(&42), 100);
+			assert_eq!(Balances::free_balance(42), 100);
 			assert_eq!(Vesting::vesting_balance(&42), Some(50));
 			assert_eq!(Claims::total(), total_claims() - 100);
 		});
@@ -871,7 +871,7 @@ mod tests {
 				s,
 				StatementKind::Regular.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&42), 200);
+			assert_eq!(Balances::free_balance(42), 200);
 		});
 	}
 
@@ -888,7 +888,7 @@ mod tests {
 				RuntimeOrigin::signed(42),
 				StatementKind::Saft.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&42), 300);
+			assert_eq!(Balances::free_balance(42), 300);
 		});
 	}
 
@@ -954,7 +954,7 @@ mod tests {
 				s,
 				StatementKind::Regular.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&42), 200);
+			assert_eq!(Balances::free_balance(42), 200);
 			assert_eq!(Claims::total(), total_claims() - 200);
 
 			let s = sig::<Test>(&dave(), &42u64.encode(), StatementKind::Regular.to_text());
@@ -987,7 +987,7 @@ mod tests {
 				RuntimeOrigin::signed(42),
 				StatementKind::Saft.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&42), 300);
+			assert_eq!(Balances::free_balance(42), 300);
 			assert_eq!(Claims::total(), total_claims() - 300);
 		});
 	}
@@ -1002,13 +1002,13 @@ mod tests {
 				42,
 				sig::<Test>(&alice(), &42u64.encode(), &[][..])
 			));
-			assert_eq!(Balances::free_balance(&42), 100);
+			assert_eq!(Balances::free_balance(42), 100);
 			// Eve's claim is 300 through Account 42
 			assert_ok!(Claims::attest(
 				RuntimeOrigin::signed(42),
 				StatementKind::Saft.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&42), 100 + 300);
+			assert_eq!(Balances::free_balance(42), 100 + 300);
 			assert_eq!(Claims::total(), total_claims() - 400);
 		});
 	}
@@ -1079,7 +1079,7 @@ mod tests {
 				69,
 				sig::<Test>(&bob(), &69u64.encode(), &[][..])
 			));
-			assert_eq!(Balances::free_balance(&69), 200);
+			assert_eq!(Balances::free_balance(69), 200);
 			assert_eq!(Vesting::vesting_balance(&69), None);
 			assert_eq!(Claims::total(), total_claims());
 		});
@@ -1119,7 +1119,7 @@ mod tests {
 				69,
 				sig::<Test>(&bob(), &69u64.encode(), &[][..])
 			));
-			assert_eq!(Balances::free_balance(&69), 200);
+			assert_eq!(Balances::free_balance(69), 200);
 			assert_eq!(Vesting::vesting_balance(&69), Some(50));
 
 			// Make sure we can not transfer the vested balance.
@@ -1176,7 +1176,7 @@ mod tests {
 				signature,
 				StatementKind::Regular.to_text().to_vec()
 			));
-			assert_eq!(Balances::free_balance(&69), 200);
+			assert_eq!(Balances::free_balance(69), 200);
 		});
 	}
 

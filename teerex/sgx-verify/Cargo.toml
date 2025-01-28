@@ -8,6 +8,9 @@ repository = "https://github.com/integritee-network/pallets/"
 license = "GPL-3.0"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 base64 = { workspace = true }
 chrono = { workspace = true }
