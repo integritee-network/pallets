@@ -8,6 +8,9 @@ repository = "https://github.com/integritee-network/pallets/"
 license = "MS-RSL"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 log = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["full"] }

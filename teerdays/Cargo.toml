@@ -7,6 +7,9 @@ repository = "https://github.com/integritee-network/pallets/"
 license = "(GPL-3.0-only)"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 log = { workspace = true }
 parity-scale-codec = { workspace = true }

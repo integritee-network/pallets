@@ -5,6 +5,9 @@ authors = ["Parity Technologies <admin@parity.io>"]
 license = "Apache-2.0"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 libsecp256k1 = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true }

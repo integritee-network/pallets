@@ -2192,7 +2192,6 @@ dependencies = [
  "staging-xcm-builder",
  "staging-xcm-executor",
  "xcm-primitives",
- "xcm-simulator",
 ]
 
 [[package]]
@@ -5489,29 +5488,6 @@ dependencies = [
  "sp-api",
  "sp-weights",
  "staging-xcm",
- "staging-xcm-executor",
-]
-
-[[package]]
-name = "xcm-simulator"
-version = "17.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "058e21bfc3e1180bbd83cad3690d0e63f34f43ab309e338afe988160aa776fcf"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "paste",
- "polkadot-core-primitives",
- "polkadot-parachain-primitives",
- "polkadot-primitives",
- "polkadot-runtime-parachains",
- "scale-info",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "staging-xcm",
- "staging-xcm-builder",
  "staging-xcm-executor",
 ]
 
