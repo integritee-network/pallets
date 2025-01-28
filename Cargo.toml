@@ -22,8 +22,8 @@ members = [
 ]
 
 [workspace.lints.clippy]
-manual_inspect = { level = "allow", priority = 2 }              # Needs substrate fix in `#[pallet]`
-multiple_bound_locations = { level = "allow", priority = 2 }    # Needs substrate fix in `#[benchmark]`
+manual_inspect = { level = "allow", priority = 2 }           # Needs substrate fix in `#[pallet]`
+multiple_bound_locations = { level = "allow", priority = 2 } # Needs substrate fix in `#[benchmark]`
 
 [workspace.dependencies]
 base64 = { version = "0.13.1", default-features = false, features = ["alloc"] }
