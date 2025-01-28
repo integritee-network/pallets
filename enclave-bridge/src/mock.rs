@@ -150,7 +150,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
-	let _teerex_config = pallet_teerex::GenesisConfig::<Test> {
+	pallet_teerex::GenesisConfig::<Test> {
 		allow_sgx_debug_mode: true,
 		allow_skipping_attestation: true,
 		_config: Default::default(),

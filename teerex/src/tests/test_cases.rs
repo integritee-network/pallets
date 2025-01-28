@@ -21,9 +21,8 @@ use crate::{
 	AllowSkippingAttestation, Error, Event as TeerexEvent, ProxiedEnclaves, SgxAllowDebugMode,
 	SgxEnclave, SovereignEnclaves,
 };
-use frame_support::{assert_err, assert_ok, traits::StorageInstance, StorageValue};
+use frame_support::{assert_err, assert_ok, StorageValue};
 use hex_literal::hex;
-use pallet_aura::CurrentSlot;
 use sgx_verify::{
 	collateral::EnclaveIdentity,
 	test_data::dcap::{
@@ -68,8 +67,8 @@ fn set_timestamp(moment: u64) {
 fn set_security_flags_works() {
 	new_test_ext().execute_with(|| {
 		assert_ok!(Teerex::set_security_flags(RuntimeOrigin::root(), true, false));
-		assert_eq!(<AllowSkippingAttestation<Test>>::get(), true);
-		assert_eq!(<SgxAllowDebugMode<Test>>::get(), false);
+		assert!(<AllowSkippingAttestation<Test>>::get());
+		assert!(!<SgxAllowDebugMode<Test>>::get());
 		let expected_event = RuntimeEvent::Teerex(TeerexEvent::UpdatedSecurityFlags {
 			allow_skipping_attestation: true,
 			sgx_allow_debug_mode: false,
@@ -129,7 +128,7 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 		let instance_address = EnclaveInstanceAddress {
 			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
 			registrar: alice.clone(),
-			signer: AnySigner::try_from(TEST1_DCAP_QUOTE_SIGNER).unwrap(),
+			signer: AnySigner::from(TEST1_DCAP_QUOTE_SIGNER),
 		};
 
 		assert_ok!(Teerex::register_sgx_enclave(
@@ -183,14 +182,8 @@ fn skip_attestation_add_sovereign_enclave_works_if_allowed() {
 			SgxAttestationMethod::Skip { proxied: false }
 		));
 		assert!(<SovereignEnclaves<Test>>::contains_key(&alice));
-		if let MultiEnclave::Sgx(sgx_enclave) = Teerex::sovereign_enclaves(&alice).unwrap() {
-			assert_eq!(
-				sgx_enclave.attestation_method,
-				SgxAttestationMethod::Skip { proxied: false }
-			);
-		} else {
-			panic!("wrong enclave type")
-		}
+		let MultiEnclave::Sgx(sgx_enclave) = Teerex::sovereign_enclaves(&alice).unwrap();
+		assert_eq!(sgx_enclave.attestation_method, SgxAttestationMethod::Skip { proxied: false });
 
 		<AllowSkippingAttestation<Test>>::set(false);
 		assert_err!(
@@ -225,15 +218,9 @@ fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 		));
 		assert_eq!(list_proxied_enclaves()[0].0, instance_address);
 		assert!(<ProxiedEnclaves<Test>>::contains_key(&instance_address));
-		if let MultiEnclave::Sgx(sgx_enclave) = Teerex::proxied_enclaves(&instance_address).unwrap()
-		{
-			assert_eq!(
-				sgx_enclave.attestation_method,
-				SgxAttestationMethod::Skip { proxied: true }
-			);
-		} else {
-			panic!("wrong enclave type")
-		}
+
+		let MultiEnclave::Sgx(sgx_enclave) = Teerex::proxied_enclaves(&instance_address).unwrap();
+		assert_eq!(sgx_enclave.attestation_method, SgxAttestationMethod::Skip { proxied: true });
 
 		<AllowSkippingAttestation<Test>>::set(false);
 		assert_err!(
@@ -292,7 +279,7 @@ fn unregister_active_proxied_enclave_fails() {
 		let instance_address = EnclaveInstanceAddress {
 			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
 			registrar: alice.clone(),
-			signer: AnySigner::try_from(TEST1_DCAP_QUOTE_SIGNER).unwrap(),
+			signer: AnySigner::from(TEST1_DCAP_QUOTE_SIGNER),
 		};
 
 		assert_ok!(Teerex::register_sgx_enclave(

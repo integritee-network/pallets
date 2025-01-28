@@ -189,8 +189,3 @@ pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	ext.execute_with(|| System::set_block_number(1));
 	ext
 }
-
-/// Helper method for the OnTimestampSet to be called
-pub fn set_timestamp(t: u64) {
-	let _ = pallet_timestamp::Pallet::<Test>::set(RuntimeOrigin::none(), t);
-}

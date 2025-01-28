@@ -175,13 +175,11 @@ fn get_data(x: u32) -> Vec<u8> {
 
 /// Returns [number] unique topics.
 fn topics<T: frame_system::Config>(number: u32) -> Vec<T::Hash> {
-	let vec = vec![
-		T::Hashing::hash(&[0u8; 32]),
+	let vec = [T::Hashing::hash(&[0u8; 32]),
 		T::Hashing::hash(&[1u8; 32]),
 		T::Hashing::hash(&[2u8; 32]),
 		T::Hashing::hash(&[3u8; 32]),
-		T::Hashing::hash(&[4u8; 32]),
-	];
+		T::Hashing::hash(&[4u8; 32])];
 
 	vec[..number.try_into().unwrap()].to_vec()
 }
