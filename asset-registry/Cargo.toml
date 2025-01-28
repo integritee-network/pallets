@@ -38,7 +38,9 @@ staging-parachain-info = { workspace = true }
 staging-xcm = { workspace = true }
 staging-xcm-builder = { workspace = true }
 staging-xcm-executor = { workspace = true }
-xcm-simulator = { workspace = true }
+
+[lints]
+workspace = true
 
 [features]
 default = ["std"]

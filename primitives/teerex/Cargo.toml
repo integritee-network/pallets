@@ -7,6 +7,9 @@ repository = "https://github.com/integritee-network/pallets/"
 license = "Apache-2.0"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 common-primitives = { path = "../common", default-features = false }
 derive_more = { workspace = true }

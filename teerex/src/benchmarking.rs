@@ -20,7 +20,6 @@
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
-use core::ops::Add;
 
 use crate::{
 	test_helpers::{get_test_tcb_info, register_test_quoting_enclave, register_test_tcb_info},
@@ -137,8 +136,8 @@ benchmarks! {
 	set_security_flags {
 	}: _(RawOrigin::Root, false, true)
 	verify {
-		assert_eq!(crate::AllowSkippingAttestation::<T>::get(), false);
-		assert_eq!(crate::SgxAllowDebugMode::<T>::get(), true);
+		assert!(!crate::AllowSkippingAttestation::<T>::get());
+		assert!(crate::SgxAllowDebugMode::<T>::get());
 	}
 }
 

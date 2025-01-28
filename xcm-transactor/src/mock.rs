@@ -18,16 +18,12 @@
 use crate as pallet_xcm_transactor;
 use core::default::Default;
 use frame_support::{derive_impl, parameter_types};
-use frame_system as system;
 use frame_system::EnsureRoot;
 use sp_core::H256;
-use sp_keyring::AccountKeyring;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
 };
-
-use sp_runtime::BuildStorage;
 use staging_xcm::latest::prelude::*;
 use xcm_transactor_primitives::*;
 
@@ -140,19 +136,4 @@ impl pallet_xcm_transactor::Config for Test {
 	type ShellRuntimeParaId = ShellRuntimeParaId;
 	type IntegriteeKsmParaId = IntegriteeKsmParaId;
 	type WeightInfo = ();
-}
-
-// This function basically just builds a genesis storage key/value store according to
-// our desired mockup.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
-	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
-	}
-	.assimilate_storage(&mut t)
-	.unwrap();
-
-	let mut ext: sp_io::TestExternalities = t.into();
-	ext.execute_with(|| System::set_block_number(1));
-	ext
 }

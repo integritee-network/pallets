@@ -56,7 +56,7 @@ fn publish_hash_works() {
 
 		let fingerprint = Teerex::sovereign_enclaves(&enclave_signer).unwrap().fingerprint();
 		let mut topics = extra_topics;
-		topics.push(fingerprint.into());
+		topics.push(fingerprint);
 
 		// Check that topics are reflected in the event record.
 		assert_eq!(
@@ -65,7 +65,7 @@ fn publish_hash_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: EnclaveBridgeEvent::PublishedHash {
-						enclave_fingerprint: fingerprint.into(),
+						enclave_fingerprint: fingerprint,
 						hash,
 						data
 					}
@@ -75,12 +75,12 @@ fn publish_hash_works() {
 				EventRecord {
 					phase: Phase::Initialization,
 					event: EnclaveBridgeEvent::PublishedHash {
-						enclave_fingerprint: fingerprint.into(),
+						enclave_fingerprint: fingerprint,
 						hash,
 						data: vec![]
 					}
 					.into(),
-					topics: vec![fingerprint.into()],
+					topics: vec![fingerprint],
 				},
 			]
 		);
