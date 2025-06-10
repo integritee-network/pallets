@@ -18,7 +18,7 @@
 //!Primitives for all pallets
 extern crate derive_more;
 use derive_more::From;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use sp_core::{bounded::BoundedVec, ConstU32, H256};
 use sp_runtime::MultiSigner;
@@ -55,7 +55,17 @@ impl AsByteOrNoop for PalletString {
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, From, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Clone,
+	PartialEq,
+	Eq,
+	From,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub enum AnySigner {
 	Opaque(OpaqueSigner),
 	Known(MultiSigner),

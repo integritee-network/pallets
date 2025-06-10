@@ -41,41 +41,41 @@ serde_json = { version = "1.0.111", default-features = false }
 # crypto [no_std]
 der = { version = "0.6.0", default-features = false }
 libsecp256k1 = { version = "0.7.0", default-features = false }
-ring = { version = "0.16.20", default-features = false, features = ["alloc"] }
+ring = { version = "0.17.7", default-features = false, features = ["alloc"] }
 webpki = { version = "=0.102.0-alpha.3", default-features = false, features = ["alloc", "ring"], git = "https://github.com/rustls/webpki", rev = "da923ed", package = "rustls-webpki" }
 x509-cert = { version = "0.1.0", default-features = false, features = ["alloc"] }
 
 # polkadot-sdk and ecosystem crates [no_std]
-cumulus-pallet-dmp-queue = { version = "0.17.0", default-features = false }
-cumulus-pallet-xcmp-queue = { version = "0.17.0", default-features = false }
-cumulus-primitives-core = { version = "0.16.0", default-features = false }
-frame-benchmarking = { version = "38.0.0", default-features = false }
-frame-support = { version = "38.2.0", default-features = false }
-frame-system = { version = "38.0.0", default-features = false }
-pallet-assets = { version = "40.0.0", default-features = false }
-pallet-aura = { version = "37.0.0", default-features = false }
-pallet-balances = { version = "39.0.0", default-features = false }
-pallet-timestamp = { version = "37.0.0", default-features = false }
-pallet-vesting = { version = "38.0.0", default-features = false }
-pallet-xcm = { version = "17.0.1", default-features = false }
-parachains-common = { version = "18.0.0", default-features = false }
+cumulus-pallet-dmp-queue = { version = "0.20.0", default-features = false }
+cumulus-pallet-xcmp-queue = { version = "0.20.0", default-features = false }
+cumulus-primitives-core = { version = "0.18.1", default-features = false }
+frame-benchmarking = { version = "40.2.0", default-features = false }
+frame-support = { version = "40.1.0", default-features = false }
+frame-system = { version = "40.1.0", default-features = false }
+pallet-assets = { version = "42.0.0", default-features = false }
+pallet-aura = { version = "39.0.0", default-features = false }
+pallet-balances = { version = "41.1.0", default-features = false }
+pallet-timestamp = { version = "39.0.0", default-features = false }
+pallet-vesting = { version = "40.1.0", default-features = false }
+pallet-xcm = { version = "19.1.2", default-features = false }
+parachains-common = { version = "21.0.0", default-features = false }
 parity-scale-codec = { version = "3.6.5", default-features = false, features = ["derive"] }
-polkadot-core-primitives = { version = "15.0.0", default-features = false }
-polkadot-parachain-primitives = { version = "14.0.0", default-features = false }
+polkadot-core-primitives = { version = "17.1.0", default-features = false }
+polkadot-parachain-primitives = { version = "16.1.0", default-features = false }
 scale-info = { version = "2.10.0", default-features = false, features = ["derive", "serde"] }
-sp-core = { version = "34.0.0", default-features = false }
-sp-io = { version = "38.0.0", default-features = false }
-sp-runtime = { version = "39.0.5", default-features = false }
+sp-core = { version = "36.1.0", default-features = false }
+sp-io = { version = "40.0.1", default-features = false }
+sp-runtime = { version = "41.1.0", default-features = false }
 sp-std = { version = "14.0.0", default-features = false }
-staging-parachain-info = { version = "0.17.0", default-features = false }
-staging-xcm = { version = "14.2.0", default-features = false }
-staging-xcm-builder = { version = "17.0.3", default-features = false }
-staging-xcm-executor = { version = "17.0.0", default-features = false }
-substrate-fixed = { version = "0.5.9", default-features = false }
+staging-parachain-info = { version = "0.20.0", default-features = false }
+staging-xcm = { version = "16.2.0", default-features = false }
+staging-xcm-builder = { version = "20.1.1", default-features = false }
+staging-xcm-executor = { version = "19.1.2", default-features = false }
+substrate-fixed = { version = "0.6.0", default-features = false }
 
 # dev-deps [std]
-sp-keyring = { version = "39.0.0", default-features = false }
-sp-externalities = { version = "0.29.0", default-features = false }
-sp-consensus-aura = { version = "0.40.0", default-features = false }
-polkadot-runtime-parachains = { version = "17.0.1" }
-xcm-simulator = { version = "17.0.0" }
+sp-keyring = { version = "41.0.0", default-features = false }
+sp-externalities = { version = "0.30.0", default-features = false }
+sp-consensus-aura = { version = "0.42.0", default-features = false }
+polkadot-runtime-parachains = { version = "19.1.0" }
+xcm-simulator = { version = "20.1.0" }

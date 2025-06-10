@@ -25,7 +25,7 @@ use frame_support::{
 	weights::Weight,
 };
 pub use pallet::*;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 use sp_runtime::{
@@ -507,7 +507,7 @@ impl<T: Config> Pallet<T> {
 #[allow(clippy::derive_partial_eq_without_eq)]
 // derive_partial_eq_without_eq false positive in struct using traits
 // For details: https://github.com/rust-lang/rust-clippy/issues/9413
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
 where

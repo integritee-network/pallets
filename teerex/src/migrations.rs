@@ -6,7 +6,16 @@ mod v0 {
 	use super::*;
 
 	#[derive(
-		Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Default,
+		Copy,
+		Clone,
+		PartialEq,
+		Eq,
+		sp_core::RuntimeDebug,
+		TypeInfo,
 	)]
 	pub struct EnclaveV0<PubKey, Url> {
 		pub pubkey: PubKey,
@@ -37,7 +46,16 @@ pub mod v1 {
 	const TARGET: &str = "teerex::migration::v1";
 
 	#[derive(
-		Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Default,
+		Copy,
+		Clone,
+		PartialEq,
+		Eq,
+		sp_core::RuntimeDebug,
+		TypeInfo,
 	)]
 	pub struct SgxTcbInfoOnChainV1 {
 		pub issue_date: u64,

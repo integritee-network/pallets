@@ -41,7 +41,7 @@ use chrono::DateTime;
 use core::time::Duration;
 use der::asn1::ObjectIdentifier;
 use frame_support::{ensure, traits::Len};
-use parity_scale_codec::{Decode, Encode, Input};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, Input};
 use ring::signature::{self};
 use scale_info::TypeInfo;
 use serde_json::Value;
@@ -64,7 +64,17 @@ pub mod test_data;
 mod tests;
 mod utils;
 
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo, frame_support::PalletError, PartialEq)]
+#[derive(
+	Debug,
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Copy,
+	Clone,
+	TypeInfo,
+	frame_support::PalletError,
+	PartialEq,
+)]
 pub enum Error {
 	CaVerificationFailed,
 	CertificateChainIsInvalid,
@@ -107,7 +117,7 @@ pub enum Error {
 	TimestampIsMissing,
 }
 
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, DecodeWithMemTracking, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SGXAttributes {
 	flags: u64,
@@ -115,7 +125,7 @@ pub struct SGXAttributes {
 }
 
 /// This is produced by an SGX platform, when it wants to be attested.
-#[derive(Debug, Decode, Clone, TypeInfo)]
+#[derive(Debug, Decode, DecodeWithMemTracking, Clone, TypeInfo)]
 #[repr(C)]
 pub struct DcapQuote {
 	header: DcapQuoteHeader,
@@ -125,7 +135,7 @@ pub struct DcapQuote {
 }
 
 /// All the documentation about this can be found in the `PCK_Certificate_CRL_Spec-1.1` page 62.
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, DecodeWithMemTracking, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct DcapQuoteHeader {
 	/// Version of the Quote data structure.
@@ -154,7 +164,7 @@ pub struct DcapQuoteHeader {
 const ATTESTATION_KEY_SIZE: usize = 64;
 const REPORT_SIGNATURE_SIZE: usize = 64;
 
-#[derive(Debug, Decode, Clone, TypeInfo)]
+#[derive(Debug, Decode, DecodeWithMemTracking, Clone, TypeInfo)]
 #[repr(C)]
 pub struct EcdsaQuoteSignature {
 	isv_enclave_report_signature: [u8; REPORT_SIGNATURE_SIZE],
@@ -165,7 +175,7 @@ pub struct EcdsaQuoteSignature {
 	qe_certification_data: QeCertificationData,
 }
 
-#[derive(Debug, Clone, TypeInfo)]
+#[derive(Debug, Clone, DecodeWithMemTracking, TypeInfo)]
 #[repr(C)]
 pub struct QeAuthenticationData {
 	size: u16,
@@ -185,7 +195,7 @@ impl Decode for QeAuthenticationData {
 	}
 }
 
-#[derive(Debug, Clone, TypeInfo)]
+#[derive(Debug, Clone, DecodeWithMemTracking, TypeInfo)]
 #[repr(C)]
 pub struct QeCertificationData {
 	certification_data_type: u16,
@@ -231,7 +241,7 @@ const SGX_FLAGS_DEBUG: u64 = 0x0000000000000002;
 /// not related to the overall validity of an enclave. We only check security related fields. The
 /// only exception to this is the quoting enclave, where we validate specific fields against known
 /// values.
-#[derive(Debug, Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Debug, Encode, Decode, DecodeWithMemTracking, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SgxReportBody {
 	/// Security version of the CPU.
@@ -353,7 +363,7 @@ impl SgxReportBody {
 	}
 }
 // see Intel SGX SDK https://github.com/intel/linux-sgx/blob/master/common/inc/sgx_quote.h
-#[derive(Encode, Decode, Copy, Clone, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Copy, Clone, TypeInfo)]
 #[repr(C)]
 pub struct SgxQuote {
 	version: u16,       /* 0   */
@@ -368,7 +378,18 @@ pub struct SgxQuote {
 	                    //signature: [u8; 64]    /* 436 */  //must be hard-coded for SCALE codec
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct SgxVerifiedReport {
 	pub mr_enclave: MrEnclave,
 	pub mr_signer: MrSigner,

@@ -17,7 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use sp_core::H256;
 
@@ -25,7 +25,9 @@ use sp_core::H256;
 use serde::{Deserialize, Serialize};
 
 pub type SidechainBlockNumber = u64;
-#[derive(PartialEq, Eq, Clone, Encode, Decode, Debug, Copy, Default, TypeInfo)]
+#[derive(
+	PartialEq, Eq, Clone, Encode, Decode, DecodeWithMemTracking, Debug, Copy, Default, TypeInfo,
+)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct SidechainBlockConfirmation {
 	pub block_number: SidechainBlockNumber,

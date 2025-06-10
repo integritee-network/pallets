@@ -28,7 +28,7 @@ use sp_runtime::DispatchResult;
 use sp_std::marker::PhantomData;
 use staging_xcm::{
 	latest::{Asset, AssetId, Fungibility::Fungible, Junctions::Here, Location},
-	v4::XcmContext,
+	v5::XcmContext,
 };
 use staging_xcm_executor::{
 	traits::{DropAssets, Error as MatchError, MatchesFungibles},
