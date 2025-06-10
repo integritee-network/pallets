@@ -17,6 +17,7 @@ chrono = { workspace = true }
 der = { workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
+getrandom = { workspace = true }
 log = { workspace = true }
 parity-scale-codec = { workspace = true }
 ring = { workspace = true }
