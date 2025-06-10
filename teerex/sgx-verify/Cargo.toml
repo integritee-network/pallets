@@ -42,26 +42,26 @@ hex-literal = { workspace = true }
 [features]
 default = ["std"]
 std = [
-	"base64/std",
-	"chrono/std",
-	"der/std",
+    "base64/std",
+    "chrono/std",
+    "der/std",
     # substrate
-	"frame-support/std",
-	"hex/std",
-	"log/std",
-	"parity-scale-codec/std",
-	"ring/std",
-	"scale-info/std",
-	"serde/std",
-	"serde_json/std",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-std/std",
+    "frame-support/std",
+    "hex/std",
+    "log/std",
+    "parity-scale-codec/std",
+    "ring/std",
+    "scale-info/std",
+    "serde/std",
+    "serde_json/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-std/std",
     # local
-	"teerex-primitives/std",
-	"webpki/std",
-	"x509-cert/std",
-	"getrandom/std"
+    "teerex-primitives/std",
+    "webpki/std",
+    "x509-cert/std",
+    "getrandom/std",
 ]
 # Export ias/dcap data when we want to use them
 # in tests/benchmarks in the pallets.

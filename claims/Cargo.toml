@@ -25,7 +25,7 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 
 # local
-claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false, features = ["serde_derive"] }
+claims-primitives = { package = "claims-primitives", path = "../primitives/claims", default-features = false }
 
 [dev-dependencies]
 hex-literal = { workspace = true }
