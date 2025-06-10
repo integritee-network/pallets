@@ -568,6 +568,7 @@ pub fn verify_certificate_chain<'a>(
 			time,
 			webpki::KeyUsage::client_auth(),
 			None,
+			None,
 		)
 		.map_err(|e| {
 			log::warn!(target: TEEREX, "certificate chain is invalid: {:?}", e);
@@ -835,8 +836,9 @@ pub fn verify_server_cert(
 		timestamp_valid_until,
 		webpki::KeyUsage::server_auth(),
 		None,
+		None,
 	) {
-		Ok(()) => {
+		Ok(_) => {
 			log::trace!(target: TEEREX, "CA is valid");
 			Ok(())
 		},
