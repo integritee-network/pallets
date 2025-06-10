@@ -19,14 +19,14 @@ use super::*;
 use crate::{Error, Event as EnclaveBridgeEvent, ShardConfigRegistry};
 use enclave_bridge_primitives::{ShardConfig, ShardIdentifier, UpgradableShardConfig};
 use frame_support::{assert_err, assert_ok};
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 use teerex_primitives::EnclaveFingerprint;
 
 #[test]
 fn initial_update_shard_config_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		assert!(EnclaveBridge::update_shard_config(
@@ -48,7 +48,7 @@ fn initial_update_shard_config_works() {
 fn initial_update_shard_config_as_non_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		assert_err!(
 			EnclaveBridge::update_shard_config(
 				RuntimeOrigin::signed(enclave_signer.clone()),
@@ -66,7 +66,7 @@ fn initial_update_shard_config_as_non_enclave_fails() {
 fn initial_update_shard_config_on_foreign_shard_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
@@ -93,7 +93,7 @@ fn initial_update_shard_config_on_foreign_shard_works() {
 fn update_shard_config_to_new_fingerprint_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from(enclave.fingerprint());
@@ -145,7 +145,7 @@ fn update_shard_config_to_new_fingerprint_works() {
 fn update_existing_shard_config_as_non_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
@@ -160,7 +160,7 @@ fn update_existing_shard_config_as_non_enclave_fails() {
 		// try to update as non-enclave
 		assert_err!(
 			EnclaveBridge::update_shard_config(
-				RuntimeOrigin::signed(AccountKeyring::Alice.to_account_id()),
+				RuntimeOrigin::signed(Keyring::Alice.to_account_id()),
 				ShardIdentifier::from(enclave.fingerprint()),
 				ShardConfig::new(enclave.fingerprint()),
 				0,
@@ -174,10 +174,10 @@ fn update_existing_shard_config_as_non_enclave_fails() {
 fn update_existing_shard_config_as_wrong_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
-		let wrong_enclave_signer = AccountKeyring::Ferdie.to_account_id();
+		let wrong_enclave_signer = Keyring::Ferdie.to_account_id();
 		let wrong_enclave = register_sovereign_test_enclave(
 			&wrong_enclave_signer,
 			EnclaveFingerprint::from([1u8; 32]),
@@ -207,7 +207,7 @@ fn get_maybe_updated_shard_config_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
 		run_to_block(1);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let initial_fingerprint = enclave.fingerprint();

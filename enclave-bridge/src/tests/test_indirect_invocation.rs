@@ -20,14 +20,14 @@ use crate::{Error, Event as EnclaveBridgeEvent, ExecutedUnshieldCalls, Request, 
 use enclave_bridge_primitives::{EnclaveFingerprint, ShardIdentifier};
 use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 
 #[test]
 fn invoke_works() {
 	new_test_ext().execute_with(|| {
 		let req = Request { shard: ShardIdentifier::default(), cyphertext: vec![0u8, 1, 2, 3, 4] };
 		// don't care who signs
-		let signer = AccountKeyring::Alice.to_account_id();
+		let signer = Keyring::Alice.to_account_id();
 
 		assert!(EnclaveBridge::invoke(RuntimeOrigin::signed(signer), req.clone()).is_ok());
 		let expected_event = RuntimeEvent::EnclaveBridge(
@@ -42,9 +42,9 @@ fn invoke_works() {
 fn unshield_is_only_executed_once_for_the_same_call_hash() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let shielder = AccountKeyring::Alice.to_account_id();
-		let beneficiary = AccountKeyring::Bob.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
+		let shielder = Keyring::Alice.to_account_id();
+		let beneficiary = Keyring::Bob.to_account_id();
 
 		let call_hash: H256 = H256::from([1u8; 32]);
 
@@ -96,9 +96,9 @@ fn unshield_is_only_executed_once_for_the_same_call_hash() {
 fn verify_unshield_funds_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let shielder = AccountKeyring::Alice.to_account_id();
-		let beneficiary = AccountKeyring::Bob.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
+		let shielder = Keyring::Alice.to_account_id();
+		let beneficiary = Keyring::Bob.to_account_id();
 
 		let call_hash: H256 = H256::from([1u8; 32]);
 
@@ -148,8 +148,8 @@ fn verify_unshield_funds_works() {
 fn unshield_funds_from_not_registered_enclave_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let beneficiary = AccountKeyring::Bob.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
+		let beneficiary = Keyring::Bob.to_account_id();
 		let call_hash: H256 = H256::from([1u8; 32]);
 		let shard = ShardIdentifier::default();
 		assert_err!(
@@ -169,9 +169,9 @@ fn unshield_funds_from_not_registered_enclave_errs() {
 fn unshield_funds_from_enclave_on_wrong_shard_errs() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
-		let shielder = AccountKeyring::Alice.to_account_id();
-		let beneficiary = AccountKeyring::Bob.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
+		let shielder = Keyring::Alice.to_account_id();
+		let beneficiary = Keyring::Bob.to_account_id();
 		let incognito_account_encrypted = vec![1, 2, 3];
 
 		let call_hash: H256 = H256::from([1u8; 32]);
@@ -222,7 +222,7 @@ fn confirm_processed_parentchain_block_works() {
 		let block_hash = H256::default();
 		let merkle_root = H256::default();
 		let block_number = 3;
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let _enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
@@ -248,7 +248,7 @@ fn confirm_processed_parentchain_block_works() {
 #[test]
 fn confirm_processed_parentchain_block_from_unregistered_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let shard = ShardIdentifier::from(EnclaveFingerprint::default());
 
 		assert_err!(
@@ -267,7 +267,7 @@ fn confirm_processed_parentchain_block_from_unregistered_enclave_fails() {
 #[test]
 fn confirm_processed_parentchain_block_from_wrong_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let _enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from([42u8; 32]);
@@ -290,7 +290,7 @@ fn confirm_processed_parentchain_block_from_updated_enclave_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
 		run_to_block(1);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from(enclave.fingerprint());

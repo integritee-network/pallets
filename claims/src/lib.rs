@@ -634,11 +634,12 @@ mod secp_utils {
 mod tests {
 	use super::*;
 	use hex_literal::hex;
-	use secp_utils::*;
-
 	use parity_scale_codec::Encode;
+	use secp_utils::*;
 	use sp_core::H256;
-	use sp_runtime::{generic, DispatchError, TokenError};
+	use sp_runtime::{
+		generic, transaction_validity::TransactionSource::External, DispatchError, TokenError,
+	};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
@@ -651,7 +652,7 @@ mod tests {
 
 	use sp_runtime::{
 		testing::Header,
-		traits::{BlakeTwo256, Identity, IdentityLookup},
+		traits::{BlakeTwo256, DispatchTransaction, Identity, IdentityLookup},
 		transaction_validity::TransactionLongevity,
 		BuildStorage,
 	};
@@ -717,6 +718,7 @@ mod tests {
 		type RuntimeHoldReason = ();
 		type RuntimeFreezeReason = ();
 		type MaxFreezes = ();
+		type DoneSlashHandler = ();
 	}
 
 	parameter_types! {
@@ -1030,8 +1032,8 @@ mod tests {
 			});
 			let di = c.get_dispatch_info();
 			assert_eq!(di.pays_fee, Pays::No);
-			let r = p.validate(&42, &c, &di, 20);
-			assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+			let r = p.validate_only(Some(42).into(), &c, &di, 20, External, 0);
+			assert_eq!(r.unwrap().0, ValidTransaction::default());
 		});
 	}
 
@@ -1043,13 +1045,13 @@ mod tests {
 				statement: StatementKind::Regular.to_text().to_vec(),
 			});
 			let di = c.get_dispatch_info();
-			let r = p.validate(&42, &c, &di, 20);
+			let r = p.validate_only(Some(42).into(), &c, &di, 20, External, 0);
 			assert!(r.is_err());
 			let c = RuntimeCall::Claims(ClaimsCall::attest {
 				statement: StatementKind::Saft.to_text().to_vec(),
 			});
 			let di = c.get_dispatch_info();
-			let r = p.validate(&69, &c, &di, 20);
+			let r = p.validate_only(Some(69).into(), &c, &di, 20, External, 0);
 			assert!(r.is_err());
 		});
 	}

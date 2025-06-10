@@ -22,7 +22,7 @@ use pallet_teerex::Pallet as Teerex;
 use parity_scale_codec::Encode;
 use sidechain_primitives::{SidechainBlockConfirmation, SidechainBlockNumber};
 use sp_core::H256;
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 use teerex_primitives::{
 	EnclaveFingerprint, MrSigner, MultiEnclave, SgxAttestationMethod, SgxEnclave,
 };
@@ -186,7 +186,7 @@ fn confirm_imported_sidechain_block_works_for_correct_shard_with_updated_fingerp
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		run_to_block(1);
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 		let shard = ShardIdentifier::from(enclave.fingerprint());
@@ -286,7 +286,7 @@ fn two_sidechains_with_different_fingerprint_works() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
 		run_to_block(1);
-		let enclave_signer1 = AccountKeyring::Eve.to_account_id();
+		let enclave_signer1 = Keyring::Eve.to_account_id();
 		let enclave1 =
 			register_sovereign_test_enclave(&enclave_signer1, EnclaveFingerprint::default());
 		let shard1 = ShardIdentifier::from(enclave1.fingerprint());
@@ -309,7 +309,7 @@ fn two_sidechains_with_different_fingerprint_works() {
 
 		run_to_block(2);
 		Timestamp::set_timestamp(TEST7_TIMESTAMP);
-		let enclave_signer2 = AccountKeyring::Ferdie.to_account_id();
+		let enclave_signer2 = Keyring::Ferdie.to_account_id();
 		let enclave2 =
 			register_sovereign_test_enclave(&enclave_signer2, EnclaveFingerprint::from([1u8; 32]));
 		let shard2 = ShardIdentifier::from(enclave2.fingerprint());

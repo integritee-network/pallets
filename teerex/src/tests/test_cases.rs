@@ -31,7 +31,7 @@ use sgx_verify::{
 	verify_dcap_quote,
 };
 use sp_consensus_aura::Slot;
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 
 use teerex_primitives::{
 	AnySigner, EnclaveInstanceAddress, MultiEnclave, SgxAttestationMethod, SgxBuildMode,
@@ -80,7 +80,7 @@ fn set_security_flags_works() {
 #[test]
 fn set_security_flags_as_non_root_fails() {
 	new_test_ext().execute_with(|| {
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		assert!(Teerex::set_security_flags(RuntimeOrigin::signed(alice), true, false).is_err());
 	})
 }
@@ -90,7 +90,7 @@ fn add_and_remove_dcap_enclave_works() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice.clone());
 
@@ -121,7 +121,7 @@ fn add_and_remove_dcap_proxied_enclave_works() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice.clone());
 
@@ -174,7 +174,7 @@ fn skip_attestation_add_sovereign_enclave_works_if_allowed() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		<AllowSkippingAttestation<Test>>::set(true);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(alice.clone()),
 			TEST1_DCAP_QUOTE.to_vec(),
@@ -203,11 +203,11 @@ fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 		<AllowSkippingAttestation<Test>>::set(true);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let instance_address = EnclaveInstanceAddress {
 			fingerprint: TEST1_DCAP_QUOTE_MRENCLAVE.into(),
 			registrar: alice.clone(),
-			signer: AnySigner::from(AccountKeyring::Alice.public().0),
+			signer: AnySigner::from(Keyring::Alice.public().0),
 		};
 
 		assert_ok!(Teerex::register_sgx_enclave(
@@ -239,7 +239,7 @@ fn skip_attestation_add_proxied_enclave_works_if_allowed() {
 fn unregister_active_sovereign_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice.clone());
 
@@ -272,7 +272,7 @@ fn unregister_active_proxied_enclave_fails() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		register_test_quoting_enclave::<Test>(alice.clone());
 		register_test_tcb_info::<Test>(alice.clone());
 
@@ -308,7 +308,7 @@ fn unregister_active_proxied_enclave_fails() {
 #[test]
 fn register_quoting_enclave_works() {
 	new_test_ext().execute_with(|| {
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let qe = Teerex::quoting_enclave();
 		assert_eq!(qe.mrsigner, [0u8; 32]);
 		assert_eq!(qe.isvprodid, 0);
@@ -328,7 +328,7 @@ fn register_tcb_info_works() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST_VALID_COLLATERAL_TIMESTAMP);
 
-		register_test_tcb_info::<Test>(AccountKeyring::Alice.to_account_id());
+		register_test_tcb_info::<Test>(Keyring::Alice.to_account_id());
 		let fmspc = hex!("00906EA10000");
 		let tcb_info = Teerex::tcb_info(fmspc).unwrap();
 		// This is the date that the is registered in register_tcb_info and represents the date 2023-04-16T12:45:32Z
@@ -362,7 +362,7 @@ fn add_enclave_works() {
 fn add_and_remove_enclave_works() {
 	new_test_ext().execute_with(|| {
 		set_timestamp(TEST4_TIMESTAMP);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let signer = get_signer(TEST4_SIGNER_PUB);
 		assert_ok!(Teerex::register_sgx_enclave(
 			RuntimeOrigin::signed(signer.clone()),
