@@ -7,6 +7,7 @@ accepted = [
     "BSD-3-Clause",
     "MPL-2.0",
     "ISC",
+    "Zlib",
     "OpenSSL",
     "Unicode-DFS-2016",
     # The xcm-transactor needs this because of the polkadot dependencies.
