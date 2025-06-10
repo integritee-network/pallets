@@ -42,7 +42,7 @@ serde_json = { version = "1.0.111", default-features = false }
 # crypto [no_std]
 der = { version = "0.6.0", default-features = false }
 libsecp256k1 = { version = "0.7.0", default-features = false }
-ring = { version = "=0.17.7", default-features = false, features = ["alloc"] }
+ring = { version = "=0.17.8", default-features = false, features = ["alloc"] }
 webpki = { version = "=0.102.8", default-features = false, features = ["alloc", "ring"], git = "https://github.com/rustls/webpki", rev = "5fedee2", package = "rustls-webpki" }
 x509-cert = { version = "0.1.0", default-features = false, features = ["alloc"] }
 
@@ -80,3 +80,6 @@ sp-externalities = { version = "0.30.0", default-features = false }
 sp-consensus-aura = { version = "0.42.0", default-features = false }
 polkadot-runtime-parachains = { version = "19.1.0" }
 xcm-simulator = { version = "20.1.0" }
+
+[patch.crates-io]
+ring = { git = "https://github.com/integritee-network/ring-xous", branch = "bump-0.17.8" }
