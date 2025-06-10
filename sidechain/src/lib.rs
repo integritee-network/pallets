@@ -112,7 +112,7 @@ pub mod pallet {
 					"Ignore block confirmation from registered enclave with index > 1: {:?}",
 					sender
 				);
-				return Ok(().into())
+				return Ok(().into());
 			}
 
 			if let Some(known_ancestor) = Self::latest_sidechain_block_confirmation(shard) {

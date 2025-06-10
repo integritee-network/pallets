@@ -416,7 +416,7 @@ impl TcbVersionStatus {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
 			log::debug!(target: TEEREX, "verify_examinee: v={:?},r={:?}", v, r);
 			if *v > *r {
-				return false
+				return false;
 			}
 		}
 		log::debug!(
@@ -464,7 +464,7 @@ impl SgxTcbInfoOnChain {
 		for tb in &self.tcb_levels {
 			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:?}", &tb,);
 			if tb.verify_examinee(examinee) {
-				return Some(tb.tcb_status.into())
+				return Some(tb.tcb_status.into());
 			}
 		}
 		None

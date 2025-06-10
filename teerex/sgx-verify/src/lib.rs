@@ -216,7 +216,7 @@ impl Decode for QeCertificationData {
 		if size > 65_000 {
 			return Result::Err(parity_scale_codec::Error::from(
 				"Certification data too long. Max 65000 bytes are allowed",
-			))
+			));
 		}
 
 		// Safety: The try_into() can only fail due to overflow on a 16-bit system, but we anyway
@@ -328,7 +328,7 @@ impl SgxReportBody {
 			if (self.misc_select[i] & o.miscselect_mask[i]) !=
 				(o.miscselect[i] & o.miscselect_mask[i])
 			{
-				return false
+				return false;
 			}
 		}
 		true
@@ -345,18 +345,18 @@ impl SgxReportBody {
 
 	pub fn verify(&self, o: &SgxQuotingEnclave) -> bool {
 		if self.isv_prod_id != o.isvprodid || self.mr_signer != o.mrsigner {
-			return false
+			return false;
 		}
 		if !self.verify_misc_select_field(o) {
-			return false
+			return false;
 		}
 		if !self.verify_attributes_field(o) {
-			return false
+			return false;
 		}
 		for tcb in &o.tcb {
 			// If the enclave isvsvn is bigger than one of the
 			if self.isv_svn >= tcb.isvsvn {
-				return true
+				return true;
 			}
 		}
 		false
@@ -482,7 +482,7 @@ pub struct CertDer<'a>(&'a [u8]);
 /// This is meant for 256 bit ECC signatures or public keys
 pub fn encode_as_der(data: &[u8]) -> Result<Vec<u8>, Error> {
 	if data.len() != 64 {
-		return Result::Err(Error::KeyLengthIsInvalid)
+		return Result::Err(Error::KeyLengthIsInvalid);
 	}
 	let mut sequence = der::asn1::SequenceOf::<der::asn1::UIntRef, 2>::new();
 	sequence

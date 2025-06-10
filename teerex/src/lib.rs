@@ -367,19 +367,20 @@ pub mod pallet {
 						hex::encode(fmspc)
 					);
 					let sgx_status = match <SgxTcbInfo<T>>::get(fmspc) {
-						Some(reference) =>
+						Some(reference) => {
 							if let Some(status) = reference.verify_examinee(&tcb_info) {
 								log::trace!("TCB info verification passed");
 								status
 							} else {
-								return Err(Error::<T>::TcbInfoIsOutdated.into())
-							},
+								return Err(Error::<T>::TcbInfoIsOutdated.into());
+							}
+						},
 						None => {
 							log::warn!(
 								"No TCB info could be found onchain for the examinee's fmspc: {}",
 								hex::encode(fmspc)
 							);
-							return Err(Error::<T>::MissingTcbInfoForFmspc.into())
+							return Err(Error::<T>::MissingTcbInfoForFmspc.into());
 						},
 					};
 
@@ -401,7 +402,7 @@ pub mod pallet {
 				SgxAttestationMethod::Skip { proxied } => {
 					if !Self::allow_skipping_attestation() {
 						log::debug!(target: TEEREX, "skipping attestation not allowed",);
-						return Err(Error::<T>::SkippingAttestationIsNotAllowed.into())
+						return Err(Error::<T>::SkippingAttestationIsNotAllowed.into());
 					}
 					log::debug!(target: TEEREX, "skipping attestation verification",);
 					SgxEnclave::new(
@@ -420,7 +421,7 @@ pub mod pallet {
 
 			if !<SgxAllowDebugMode<T>>::get() && enclave.build_mode == SgxBuildMode::Debug {
 				log::info!(target: TEEREX, "debug mode is not allowed to attest!");
-				return Err(Error::<T>::SgxModeIsNotAllowed.into())
+				return Err(Error::<T>::SgxModeIsNotAllowed.into());
 			}
 
 			let enclave = match worker_url {
@@ -462,7 +463,7 @@ pub mod pallet {
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<SovereignEnclaves<T>>::remove(&enclave_signer);
 			} else {
-				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into())
+				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into());
 			}
 			log::debug!(target: TEEREX, "removed sovereign enclave {:?}", enclave_signer);
 			Self::deposit_event(Event::RemovedSovereignEnclave(enclave_signer));
@@ -486,7 +487,7 @@ pub mod pallet {
 			if enclave.attestation_timestamp() < oldest_acceptable_attestation_time {
 				<ProxiedEnclaves<T>>::remove(&address);
 			} else {
-				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into())
+				return Err(Error::<T>::UnregisterActiveEnclaveIsNotAllowed.into());
 			}
 			log::info!(target: TEEREX, "removed proxied enclave {:?}", address);
 			Self::deposit_event(Event::RemovedProxiedEnclave(address));
