@@ -15,7 +15,6 @@ workspace = true
 base64 = { workspace = true }
 chrono = { workspace = true }
 der = { workspace = true }
-getrandom = { workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
@@ -61,7 +60,6 @@ std = [
     "teerex-primitives/std",
     "webpki/std",
     "x509-cert/std",
-    "getrandom/std",
 ]
 # Export ias/dcap data when we want to use them
 # in tests/benchmarks in the pallets.
