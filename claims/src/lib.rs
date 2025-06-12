@@ -378,7 +378,7 @@ pub mod pallet {
 
 			if let Some(preclaim) = maybe_preclaim {
 				Preclaims::<T>::mutate(&preclaim, |maybe_o| {
-					if maybe_o.as_ref().map_or(false, |o| o == &old) {
+					if maybe_o.as_ref() == Some(&old) {
 						*maybe_o = Some(new);
 					}
 				})
