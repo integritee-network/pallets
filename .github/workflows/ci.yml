@@ -17,15 +17,12 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-jobs:
-  cancel_previous_runs:
-    name: Cancel Previous Runs
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
+# Ensures only one build is run per branch, unless pushing to develop
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/develop' && github.run_number || github.ref }}
+  cancel-in-progress: true
 
+jobs:
   check:
     name: Rust check ${{ matrix.check }}
     runs-on: ${{ matrix.os }}
