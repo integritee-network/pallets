@@ -18,19 +18,39 @@
 //!Primitives for enclave-bridge
 #![cfg_attr(not(feature = "std"), no_std)]
 pub use common_primitives::{EnclaveFingerprint, ShardIdentifier};
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use sp_std::prelude::*;
 
 pub const ENCLAVE_BRIDGE: &str = "enclave_bridge";
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct Request {
 	pub shard: ShardIdentifier,
 	pub cyphertext: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct ShardSignerStatus<AccountId, BlockNumber> {
 	pub signer: AccountId,
 	pub fingerprint: EnclaveFingerprint,
@@ -38,7 +58,9 @@ pub struct ShardSignerStatus<AccountId, BlockNumber> {
 }
 pub const MAX_SHARD_STATUS_SIGNER_COUNT: u32 = 10;
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+)]
 pub struct ShardConfig<AccountId> {
 	/// enclave fingerprint which may perform state transitions on this shard
 	pub enclave_fingerprint: EnclaveFingerprint,
@@ -61,7 +83,9 @@ impl<AccountId> ShardConfig<AccountId> {
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+)]
 pub struct UpgradableShardConfig<AccountId, BlockNumber> {
 	/// the currently active config
 	pub active_config: ShardConfig<AccountId>,

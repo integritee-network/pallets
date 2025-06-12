@@ -16,7 +16,7 @@
 // limitations under the License.
 
 use frame_support::{assert_noop, assert_ok};
-use staging_xcm::latest::prelude::*;
+use staging_xcm::{latest::prelude::*, opaque::lts::NetworkId::Rococo};
 
 use crate::{mock::*, AssetIdLocation, AssetLocationId, Error};
 
@@ -105,7 +105,7 @@ mod register_reserve_assest {
 			interior: [
 				Parachain(1000),
 				PalletInstance(2),
-				AccountId32 { network: Some(Rococo), id: [0; 32] },
+				AccountId32 { network: Some(Rococo.into()), id: [0; 32] },
 			]
 			.into(),
 		};

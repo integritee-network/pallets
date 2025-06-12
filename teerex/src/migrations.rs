@@ -6,7 +6,16 @@ mod v0 {
 	use super::*;
 
 	#[derive(
-		Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Default,
+		Copy,
+		Clone,
+		PartialEq,
+		Eq,
+		sp_core::RuntimeDebug,
+		TypeInfo,
 	)]
 	pub struct EnclaveV0<PubKey, Url> {
 		pub pubkey: PubKey,
@@ -37,7 +46,16 @@ pub mod v1 {
 	const TARGET: &str = "teerex::migration::v1";
 
 	#[derive(
-		Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Default,
+		Copy,
+		Clone,
+		PartialEq,
+		Eq,
+		sp_core::RuntimeDebug,
+		TypeInfo,
 	)]
 	pub struct SgxTcbInfoOnChainV1 {
 		pub issue_date: u64,
@@ -87,7 +105,7 @@ pub mod v1 {
 			if onchain_version >= current_version {
 				log::warn!(target: TARGET,"teerexV1: skipping on_runtime_upgrade: executed on same or newer storage version."
 				);
-				return T::DbWeight::get().reads(1)
+				return T::DbWeight::get().reads(1);
 			}
 
 			let allow_debug_mode = v0::AllowSGXDebugMode::<T>::get();
@@ -112,7 +130,7 @@ pub mod v1 {
 			let post_onchain_version = Pallet::<T>::on_chain_storage_version();
 			if pre_onchain_version >= post_onchain_version {
 				log::info!(target: TARGET,"teerexV1: migration was skipped because onchain version was greater or equal to the target version of this migration step");
-				return Ok(())
+				return Ok(());
 			}
 
 			assert_eq!(Pallet::<T>::on_chain_storage_version(), 1, "must upgrade");
@@ -167,7 +185,7 @@ pub mod v2 {
 					target: TARGET,
 					"teerexV2: skipping on_runtime_upgrade: executed on wrong storage version."
 				);
-				return T::DbWeight::get().reads(1)
+				return T::DbWeight::get().reads(1);
 			}
 
 			purged_keys += v1::SgxTcbInfo::<T>::clear(u32::MAX, None).unique as u64;

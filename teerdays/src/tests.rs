@@ -3,7 +3,7 @@ use frame_support::{
 	assert_noop, assert_ok,
 	traits::{Currency, OnFinalize, OnInitialize},
 };
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
@@ -26,7 +26,7 @@ fn bond_works() {
 	new_test_ext().execute_with(|| {
 		let now: Moment = 42;
 		set_timestamp(now);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let alice_free: BalanceOf<Test> = 15_000_000_000_000;
 		<Test as pallet::Config>::Currency::make_free_balance_be(&alice, alice_free);
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
@@ -53,7 +53,7 @@ fn bond_saturates_at_free() {
 	new_test_ext().execute_with(|| {
 		let now: Moment = 42;
 		set_timestamp(now);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let alice_free: BalanceOf<Test> = 5_000_000_000_000;
 		<Test as pallet::Config>::Currency::make_free_balance_be(&alice, alice_free);
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
@@ -84,7 +84,7 @@ fn bond_extra_works() {
 		let now: Moment = 42;
 		set_timestamp(now);
 
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 
@@ -119,7 +119,7 @@ fn bond_extra_saturates_at_free_margin() {
 		let now: Moment = 42;
 		set_timestamp(now);
 
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let alice_free: BalanceOf<Test> = 11_000_000_000_000;
 		<Test as pallet::Config>::Currency::make_free_balance_be(&alice, alice_free);
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
@@ -165,7 +165,7 @@ fn withdrawing_unbonded_after_unlock_period_works() {
 		run_to_block(1);
 		let now: Moment = 42;
 		set_timestamp(now);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 
 		let account_info = System::account(&alice);
 		assert_eq!(account_info.consumers, 0);
@@ -244,7 +244,7 @@ fn unbonding_saturates_at_bonded() {
 		run_to_block(1);
 		let now: Moment = 42;
 		set_timestamp(now);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 
 		let account_info = System::account(&alice);
 		assert_eq!(account_info.consumers, 0);
@@ -273,7 +273,7 @@ fn update_other_works() {
 		run_to_block(1);
 		let now: Moment = 42;
 		set_timestamp(now);
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		let amount: BalanceOf<Test> = 10_000_000_000_000;
 		assert_ok!(TeerDays::bond(RuntimeOrigin::signed(alice.clone()), amount));
 

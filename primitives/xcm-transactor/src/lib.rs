@@ -18,7 +18,7 @@
 
 pub use cumulus_primitives_core::ParaId;
 use frame_support::pallet_prelude::{Get, PhantomData};
-use parity_scale_codec::{Decode, Encode, FullCodec};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, FullCodec};
 use sp_runtime::RuntimeDebug;
 use sp_std::vec;
 use staging_xcm::{latest::Weight as XcmWeight, prelude::*};
@@ -53,7 +53,7 @@ pub trait BuildRelayCall {
 	) -> Xcm<()>;
 }
 
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, DecodeWithMemTracking, RuntimeDebug)]
 pub enum RegistrarCall {
 	/// Corresponds to the swap extrinsic index within the Registrar Pallet
 	#[codec(index = 3)]
@@ -63,7 +63,7 @@ pub enum RegistrarCall {
 #[cfg(feature = "ksm")]
 pub mod ksm {
 	use crate::*;
-	#[derive(Encode, Decode, RuntimeDebug)]
+	#[derive(Encode, Decode, DecodeWithMemTracking, RuntimeDebug)]
 	pub enum RelayRuntimeCall {
 		/// Corresponds to the pallet index within the Kusama Runtime
 		#[codec(index = 70)]
@@ -74,7 +74,7 @@ pub mod ksm {
 #[cfg(feature = "dot")]
 pub mod dot {
 	use crate::*;
-	#[derive(Encode, Decode, RuntimeDebug)]
+	#[derive(Encode, Decode, DecodeWithMemTracking, RuntimeDebug)]
 	pub enum RelayRuntimeCall {
 		/// Corresponds to the pallet index within the Polkadot Runtime
 		#[codec(index = 70)]
@@ -107,8 +107,8 @@ impl<Id: Get<ParaId>> BuildRelayCall for RelayCallBuilder<Id> {
 			BuyExecution { fees: asset, weight_limit: Unlimited },
 			Transact {
 				origin_kind: OriginKind::Native,
-				require_weight_at_most: weight,
 				call: call.encode().into(),
+				fallback_max_weight: Some(weight),
 			},
 			RefundSurplus,
 			DepositAsset {

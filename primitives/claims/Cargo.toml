@@ -14,7 +14,7 @@ workspace = true
 parity-scale-codec = { workspace = true }
 rustc-hex = { workspace = true }
 scale-info = { workspace = true }
-serde = { workspace = true, optional = true }
+serde = { workspace = true }
 
 # substrate dependencies
 sp-io = { workspace = true }
@@ -23,7 +23,6 @@ sp-std = { workspace = true }
 
 [features]
 default = ["std"]
-serde_derive = ["serde"]
 std = [
     "parity-scale-codec/std",
     "rustc-hex/std",

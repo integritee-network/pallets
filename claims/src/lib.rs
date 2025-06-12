@@ -25,13 +25,18 @@ use frame_support::{
 	weights::Weight,
 };
 pub use pallet::*;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use sp_io::{crypto::secp256k1_ecdsa_recover, hashing::keccak_256};
 use sp_runtime::{
-	traits::{CheckedSub, DispatchInfoOf, SignedExtension, Zero},
+	impl_tx_ext_default,
+	traits::{
+		AsSystemOriginSigner, AsTransactionAuthorizedOrigin, CheckedSub, DispatchInfoOf,
+		Dispatchable, TransactionExtension, Zero,
+	},
 	transaction_validity::{
-		InvalidTransaction, TransactionValidity, TransactionValidityError, ValidTransaction,
+		InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError,
+		ValidTransaction,
 	},
 };
 use sp_std::{fmt::Debug, prelude::*, vec, vec::Vec};
@@ -47,6 +52,7 @@ pub trait WeightInfo {
 	fn claim_attest() -> Weight;
 	fn attest() -> Weight;
 	fn move_claim() -> Weight;
+	fn prevalidate_attests() -> Weight;
 }
 
 pub struct TestWeightInfo;
@@ -65,6 +71,9 @@ impl WeightInfo for TestWeightInfo {
 	}
 	fn move_claim() -> Weight {
 		Weight::from_parts(0, 0u64)
+	}
+	fn prevalidate_attests() -> Weight {
+		Weight::zero()
 	}
 }
 
@@ -313,7 +322,7 @@ pub mod pallet {
 
 		/// Attest to a statement, needed to finalize the claims process.
 		///
-		/// WARNING: Insecure unless your chain includes `PrevalidateAttests` as a `SignedExtension`.
+		/// WARNING: Insecure unless your chain includes `PrevalidateAttests` as a `TransactionExtension`.
 		///
 		/// Unsigned Validation:
 		/// A call to attest is deemed valid if the sender has a `Preclaim` registered
@@ -369,7 +378,7 @@ pub mod pallet {
 
 			if let Some(preclaim) = maybe_preclaim {
 				Preclaims::<T>::mutate(&preclaim, |maybe_o| {
-					if maybe_o.as_ref().map_or(false, |o| o == &old) {
+					if maybe_o.as_ref() == Some(&old) {
 						*maybe_o = Some(new);
 					}
 				})
@@ -476,7 +485,7 @@ impl<T: Config> Pallet<T> {
 
 		let vesting = Vesting::<T>::get(signer);
 		if vesting.is_some() && T::VestingSchedule::vesting_balance(&dest).is_some() {
-			return Err(Error::<T>::VestedBalanceExists.into())
+			return Err(Error::<T>::VestedBalanceExists.into());
 		}
 
 		// We first need to deposit the balance to ensure that the account exists.
@@ -504,10 +513,9 @@ impl<T: Config> Pallet<T> {
 
 /// Validate `attest` calls prior to execution. Needed to avoid a DoS attack since they are
 /// otherwise free to place on chain.
-#[allow(clippy::derive_partial_eq_without_eq)]
 // derive_partial_eq_without_eq false positive in struct using traits
 // For details: https://github.com/rust-lang/rust-clippy/issues/9413
-#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
+#[derive(Encode, Decode, DecodeWithMemTracking, Clone, Eq, PartialEq, TypeInfo)]
 #[scale_info(skip_type_params(T))]
 pub struct PrevalidateAttests<T: Config + Send + Sync>(sp_std::marker::PhantomData<T>)
 where
@@ -532,7 +540,7 @@ impl<T: Config + Send + Sync> PrevalidateAttests<T>
 where
 	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
 {
-	/// Create new `SignedExtension` to check runtime version.
+	/// Create new `TransactionExtension` to check runtime version.
 	pub fn new() -> Self {
 		Self(sp_std::marker::PhantomData)
 	}
@@ -546,53 +554,53 @@ where
 	}
 }
 
-impl<T: Config + Send + Sync> SignedExtension for PrevalidateAttests<T>
+impl<T: Config + Send + Sync> TransactionExtension<T::RuntimeCall> for PrevalidateAttests<T>
 where
 	<T as frame_system::Config>::RuntimeCall: IsSubType<Call<T>>,
+	<<T as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin:
+		AsSystemOriginSigner<T::AccountId> + AsTransactionAuthorizedOrigin + Clone,
+	PrevalidateAttests<T>: Encode + Decode,
 {
-	type AccountId = T::AccountId;
-	type Call = <T as frame_system::Config>::RuntimeCall;
-	type AdditionalSigned = ();
-	type Pre = ();
 	const IDENTIFIER: &'static str = "PrevalidateAttests";
+	type Implicit = ();
+	type Pre = ();
+	type Val = ();
 
-	fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-		Ok(())
+	fn weight(&self, call: &T::RuntimeCall) -> Weight {
+		if let Some(Call::attest { .. }) = call.is_sub_type() {
+			T::WeightInfo::prevalidate_attests()
+		} else {
+			Weight::zero()
+		}
 	}
 
-	fn pre_dispatch(
-		self,
-		who: &Self::AccountId,
-		call: &Self::Call,
-		info: &DispatchInfoOf<Self::Call>,
-		len: usize,
-	) -> Result<Self::Pre, TransactionValidityError> {
-		self.validate(who, call, info, len).map(|_| ())
-	}
-
-	// <weight>
-	// The weight of this logic is included in the `attest` dispatchable.
-	// </weight>
 	fn validate(
 		&self,
-		who: &Self::AccountId,
-		call: &Self::Call,
-		_info: &DispatchInfoOf<Self::Call>,
+		origin: <T::RuntimeCall as Dispatchable>::RuntimeOrigin,
+		call: &T::RuntimeCall,
+		_info: &DispatchInfoOf<T::RuntimeCall>,
 		_len: usize,
-	) -> TransactionValidity {
+		_self_implicit: Self::Implicit,
+		_inherited_implication: &impl Encode,
+		_source: TransactionSource,
+	) -> Result<
+		(ValidTransaction, Self::Val, <T::RuntimeCall as Dispatchable>::RuntimeOrigin),
+		TransactionValidityError,
+	> {
 		if let Some(Call::attest { statement: attested_statement }) = call.is_sub_type() {
-			let signer = Preclaims::<T>::get(who).ok_or_else(|| {
-				InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into())
-			})?;
+			let who = origin.as_system_origin_signer().ok_or(InvalidTransaction::BadSigner)?;
+			let signer = Preclaims::<T>::get(who)
+				.ok_or(InvalidTransaction::Custom(ValidityError::SignerHasNoClaim.into()))?;
 			if let Some(s) = Signing::<T>::get(signer) {
 				let e = InvalidTransaction::Custom(ValidityError::InvalidStatement.into());
 				ensure!(&attested_statement[..] == s.to_text(), e);
 			}
 		}
-		Ok(ValidTransaction::default())
+		Ok((ValidTransaction::default(), (), origin))
 	}
-}
 
+	impl_tx_ext_default!(T::RuntimeCall; prepare);
+}
 #[cfg(any(test, feature = "runtime-benchmarks"))]
 mod secp_utils {
 	use super::*;
@@ -626,11 +634,12 @@ mod secp_utils {
 mod tests {
 	use super::*;
 	use hex_literal::hex;
-	use secp_utils::*;
-
 	use parity_scale_codec::Encode;
+	use secp_utils::*;
 	use sp_core::H256;
-	use sp_runtime::{generic, DispatchError, TokenError};
+	use sp_runtime::{
+		generic, transaction_validity::TransactionSource::External, DispatchError, TokenError,
+	};
 	// The testing primitives are very useful for avoiding having to work with signatures
 	// or public keys. `u64` is used as the `AccountId` and no `Signature`s are required.
 	use super::Call as ClaimsCall;
@@ -643,7 +652,7 @@ mod tests {
 
 	use sp_runtime::{
 		testing::Header,
-		traits::{BlakeTwo256, Identity, IdentityLookup},
+		traits::{BlakeTwo256, DispatchTransaction, Identity, IdentityLookup},
 		transaction_validity::TransactionLongevity,
 		BuildStorage,
 	};
@@ -709,6 +718,7 @@ mod tests {
 		type RuntimeHoldReason = ();
 		type RuntimeFreezeReason = ();
 		type MaxFreezes = ();
+		type DoneSlashHandler = ();
 	}
 
 	parameter_types! {
@@ -1022,8 +1032,8 @@ mod tests {
 			});
 			let di = c.get_dispatch_info();
 			assert_eq!(di.pays_fee, Pays::No);
-			let r = p.validate(&42, &c, &di, 20);
-			assert_eq!(r, TransactionValidity::Ok(ValidTransaction::default()));
+			let r = p.validate_only(Some(42).into(), &c, &di, 20, External, 0);
+			assert_eq!(r.unwrap().0, ValidTransaction::default());
 		});
 	}
 
@@ -1035,13 +1045,13 @@ mod tests {
 				statement: StatementKind::Regular.to_text().to_vec(),
 			});
 			let di = c.get_dispatch_info();
-			let r = p.validate(&42, &c, &di, 20);
+			let r = p.validate_only(Some(42).into(), &c, &di, 20, External, 0);
 			assert!(r.is_err());
 			let c = RuntimeCall::Claims(ClaimsCall::attest {
 				statement: StatementKind::Saft.to_text().to_vec(),
 			});
 			let di = c.get_dispatch_info();
-			let r = p.validate(&69, &c, &di, 20);
+			let r = p.validate_only(Some(69).into(), &c, &di, 20, External, 0);
 			assert!(r.is_err());
 		});
 	}

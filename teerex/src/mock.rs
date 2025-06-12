@@ -22,7 +22,7 @@ use frame_system as system;
 use pallet_teerex::Config;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::H256;
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify},
@@ -119,6 +119,7 @@ impl pallet_balances::Config for Test {
 	type FreezeIdentifier = ();
 	type MaxFreezes = ();
 	type RuntimeHoldReason = ();
+	type DoneSlashHandler = ();
 }
 
 parameter_types! {
@@ -151,7 +152,8 @@ impl Config for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
+		balances: vec![(Keyring::Alice.to_account_id(), 1 << 60)],
+		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();
@@ -172,7 +174,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 pub fn new_test_production_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
-		balances: vec![(AccountKeyring::Alice.to_account_id(), 1 << 60)],
+		balances: vec![(Keyring::Alice.to_account_id(), 1 << 60)],
+		..Default::default()
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

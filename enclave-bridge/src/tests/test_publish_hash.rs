@@ -19,14 +19,14 @@ use super::*;
 use crate::{Error, Event as EnclaveBridgeEvent, DATA_LENGTH_LIMIT};
 use frame_support::{assert_err, assert_ok};
 use sp_core::H256;
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 
 #[test]
 fn publish_hash_works() {
 	use frame_system::{EventRecord, Phase};
 
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let _enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
@@ -90,7 +90,7 @@ fn publish_hash_works() {
 #[test]
 fn publish_hash_with_unregistered_enclave_fails() {
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 
 		assert_err!(
 			EnclaveBridge::publish_hash(
@@ -107,7 +107,7 @@ fn publish_hash_with_unregistered_enclave_fails() {
 #[test]
 fn publish_hash_with_too_many_topics_fails() {
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let _enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 
@@ -136,7 +136,7 @@ fn publish_hash_with_too_many_topics_fails() {
 #[test]
 fn publish_hash_with_too_much_data_fails() {
 	new_test_ext().execute_with(|| {
-		let enclave_signer = AccountKeyring::Eve.to_account_id();
+		let enclave_signer = Keyring::Eve.to_account_id();
 		let _enclave =
 			register_sovereign_test_enclave(&enclave_signer, EnclaveFingerprint::default());
 

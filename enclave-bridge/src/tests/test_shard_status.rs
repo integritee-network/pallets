@@ -19,15 +19,15 @@ use super::*;
 use crate::{Error, Event as EnclaveBridgeEvent};
 use enclave_bridge_primitives::ShardIdentifier;
 use frame_support::{assert_noop, assert_ok};
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 use teerex_primitives::EnclaveFingerprint;
 
 #[test]
 fn purge_enclave_from_shard_status_works_if_present() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer_1 = AccountKeyring::Eve.to_account_id();
-		let enclave_signer_2 = AccountKeyring::Ferdie.to_account_id();
+		let enclave_signer_1 = Keyring::Eve.to_account_id();
+		let enclave_signer_2 = Keyring::Ferdie.to_account_id();
 		let enclave_fingerprint = EnclaveFingerprint::default();
 		let shard = ShardIdentifier::default();
 		assert_ok!(EnclaveBridge::touch_shard(
@@ -82,7 +82,7 @@ fn purge_enclave_from_shard_status_works_if_present() {
 fn purge_enclave_from_shard_status_for_inexistent_shard_is_err() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer_1 = AccountKeyring::Eve.to_account_id();
+		let enclave_signer_1 = Keyring::Eve.to_account_id();
 		let shard = ShardIdentifier::default();
 
 		assert_noop!(
@@ -100,7 +100,7 @@ fn purge_enclave_from_shard_status_for_inexistent_shard_is_err() {
 fn purge_enclave_from_shard_status_fails_if_not_root() {
 	new_test_ext().execute_with(|| {
 		Timestamp::set_timestamp(NOW);
-		let enclave_signer_1 = AccountKeyring::Eve.to_account_id();
+		let enclave_signer_1 = Keyring::Eve.to_account_id();
 		let enclave_fingerprint = EnclaveFingerprint::default();
 		let shard = ShardIdentifier::default();
 		assert_ok!(EnclaveBridge::touch_shard(

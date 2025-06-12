@@ -19,7 +19,7 @@ use crate::{mock::*, Config, Error};
 use cumulus_primitives_core::ParaId;
 use frame_support::{assert_noop, assert_ok};
 use parity_scale_codec::{Decode, Encode};
-use sp_keyring::AccountKeyring;
+use sp_keyring::Sr25519Keyring as Keyring;
 use xcm_transactor_primitives::*;
 
 #[subxt::subxt(runtime_metadata_url = "wss://kusama-rpc.polkadot.io:443")]
@@ -33,7 +33,7 @@ use kusama::runtime_types::{
 #[test]
 fn swap_ump_fails_not_privileged() {
 	new_test_ext().execute_with(|| {
-		let alice = AccountKeyring::Alice.to_account_id();
+		let alice = Keyring::Alice.to_account_id();
 		assert_noop!(
 			XcmTransactor::send_swap_ump(
 				RuntimeOrigin::signed(alice),

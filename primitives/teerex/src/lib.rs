@@ -20,7 +20,7 @@
 extern crate derive_more;
 pub use common_primitives::{AnySigner, EnclaveFingerprint, OpaqueSigner};
 use derive_more::From;
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::MultiSigner;
@@ -28,14 +28,35 @@ use sp_std::prelude::*;
 
 pub const TEEREX: &str = "teerex";
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, Default, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	Default,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub enum SgxBuildMode {
 	Debug,
 	#[default]
 	Production,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub enum SgxAttestationMethod {
 	Skip { proxied: bool },
 	Ias,
@@ -49,7 +70,7 @@ impl Default for SgxAttestationMethod {
 }
 
 const SGX_REPORT_DATA_SIZE: usize = 64;
-#[derive(Debug, Encode, Decode, Copy, Clone, PartialEq, Eq, TypeInfo)]
+#[derive(Debug, Encode, Decode, DecodeWithMemTracking, Copy, Clone, PartialEq, Eq, TypeInfo)]
 #[repr(C)]
 pub struct SgxReportData {
 	pub d: [u8; SGX_REPORT_DATA_SIZE],
@@ -83,7 +104,18 @@ impl SgxReportData {
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub enum SgxStatus {
 	#[default]
 	Invalid,
@@ -110,6 +142,7 @@ impl From<TcbStatus> for SgxStatus {
 #[derive(
 	Encode,
 	Decode,
+	DecodeWithMemTracking,
 	Default,
 	Copy,
 	Clone,
@@ -131,7 +164,18 @@ pub enum TcbStatus {
 	Revoked,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, From, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Copy,
+	Clone,
+	PartialEq,
+	From,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub enum MultiEnclave<Url> {
 	Sgx(SgxEnclave<Url>),
 }
@@ -187,7 +231,18 @@ where
 	}
 }
 
-#[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Copy,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct SgxEnclave<Url> {
 	pub report_data: SgxReportData,
 	pub mr_enclave: MrEnclave,
@@ -254,7 +309,9 @@ impl<Url> SgxEnclave<Url> {
 }
 
 /// The list of valid TCBs for an enclave.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode, Decode, DecodeWithMemTracking, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo,
+)]
 pub struct QeTcb {
 	pub isvsvn: u16,
 }
@@ -267,7 +324,17 @@ impl QeTcb {
 
 /// This represents all the collateral data that we need to store on chain in order to verify
 /// the quoting enclave validity of another enclave that wants to register itself on chain
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct SgxQuotingEnclave {
 	// Todo: make timestamp: Moment
 	pub issue_date: u64, // unix epoch in milliseconds
@@ -320,7 +387,17 @@ impl SgxQuotingEnclave {
 	}
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct TcbVersionStatus {
 	pub cpusvn: Cpusvn,
 	pub pcesvn: Pcesvn,
@@ -339,7 +416,7 @@ impl TcbVersionStatus {
 		for (v, r) in self.cpusvn.iter().zip(examinee.cpusvn.iter()) {
 			log::debug!(target: TEEREX, "verify_examinee: v={:?},r={:?}", v, r);
 			if *v > *r {
-				return false
+				return false;
 			}
 		}
 		log::debug!(
@@ -354,7 +431,17 @@ impl TcbVersionStatus {
 
 /// This represents all the collateral data that we need to store on chain in order to verify
 /// the quoting enclave validity of another enclave that wants to register itself on chain
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct SgxTcbInfoOnChain {
 	// Todo: make timestamp: Moment
 	pub issue_date: u64, // unix epoch in milliseconds
@@ -377,7 +464,7 @@ impl SgxTcbInfoOnChain {
 		for tb in &self.tcb_levels {
 			log::debug!(target: TEEREX, "TcbInfoOnChain::verify_examinee: tb={:?}", &tb,);
 			if tb.verify_examinee(examinee) {
-				return Some(tb.tcb_status.into())
+				return Some(tb.tcb_status.into());
 			}
 		}
 		None
@@ -390,7 +477,17 @@ pub type Fmspc = [u8; 6];
 pub type Cpusvn = [u8; 16];
 pub type Pcesvn = u16;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, sp_core::RuntimeDebug, TypeInfo)]
+#[derive(
+	Encode,
+	Decode,
+	DecodeWithMemTracking,
+	Default,
+	Clone,
+	PartialEq,
+	Eq,
+	sp_core::RuntimeDebug,
+	TypeInfo,
+)]
 pub struct EnclaveInstanceAddress<AccountId> {
 	pub fingerprint: EnclaveFingerprint,
 	pub registrar: AccountId,
