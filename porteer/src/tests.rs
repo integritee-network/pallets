@@ -74,3 +74,48 @@ fn port_tokens_errs_when_missing_funds() {
 		);
 	})
 }
+
+#[test]
+fn minting_ported_tokens_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
+		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
+
+		assert_ok!(Porteer::mint_ported_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			bob.clone(),
+			mint_amount
+		));
+
+		assert_eq!(Balances::free_balance(&bob), mint_amount);
+	})
+}
+
+#[test]
+fn minting_ported_tokens_errs_with_wrong_origin() {
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_noop!(
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(bob.clone()), bob, 1),
+			BadOrigin
+		);
+	})
+}
+
+#[test]
+fn minting_ported_tokens_errs_when_receiving_disabled() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		let config = PorteerConfig { send_enabled: true, receive_enabled: false };
+		assert_ok!(Porteer::set_porteer_config(RuntimeOrigin::signed(alice.clone()), config));
+
+		assert_noop!(
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(alice.clone()), alice, 1),
+			Error::<Test>::PorteerOperationDisabled
+		);
+	})
+}

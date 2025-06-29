@@ -19,7 +19,7 @@
 use crate::{PortTokens, PorteerConfig};
 use frame_support::{derive_impl, ord_parameter_types, parameter_types};
 use frame_system as system;
-use frame_system::{EnsureNever, EnsureSignedBy};
+use frame_system::EnsureSignedBy;
 use sp_core::hex2array;
 use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
@@ -75,7 +75,8 @@ impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin = EnsureSignedBy<Alice, AccountId>;
-	type TokenSenderLocationOrigin = EnsureNever<AccountId>;
+	// In the parachain setup this will be the Porteer pallet on the origin chain.
+	type TokenSenderLocationOrigin = EnsureSignedBy<Alice, AccountId>;
 	type PortTokensToDestination = MockPortTokens;
 	type Fungible = Balances;
 }
