@@ -29,34 +29,29 @@ use sp_std::prelude::*;
 
 benchmarks! {
 	set_porteer_config {
-		// Todo: how to get the proper origin from the mock??
-		let signer: T::AccountId = account("alice", 1, 1);
-		let config = PorteerConfig { send_enabled: true, receive_enabled: true };
-
-	}: _(RawOrigin::Signed(signer.clone()), config)
+		let config = PorteerConfig { send_enabled: true, receive_enabled: false };
+	}: _(RawOrigin::Root, config)
 	verify {
-		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+		assert_eq!(PorteerConfigValue::<T>::get(), config);
 	}
 	port_tokens {
-		let signer: T::AccountId = account("alice", 1, 1);
-		let signer_free: BalanceOf<T> = 4_000_000_000u32.into();
-		<T::Fungible as fungible::Mutate<_>>::set_balance(&signer, signer_free);
+		let alice: T::AccountId = account("alice", 1, 1);
+		let port_amount: BalanceOf<T> = 4_000_000_000u32.into();
+		<T::Fungible as fungible::Mutate<_>>::set_balance(&alice, port_amount);
 
-	}: _(RawOrigin::Signed(signer.clone()), signer_free)
+	}: _(RawOrigin::Signed(alice.clone()), port_amount)
 	verify {
-		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+		assert_eq!(<T::Fungible as fungible::Inspect<_>>::balance(&alice), 0u32.into());
 	}
 
 	mint_ported_tokens {
-		// Todo: how to get the proper origin from the mock??
-		let signer: T::AccountId = account("alice", 1, 1);
 		let bob: T::AccountId = account("bob", 1, 1);
-		let mint_into_bob: BalanceOf<T> = 4_000_000_000u32.into();
+		let mint_amount: BalanceOf<T> = 4_000_000_000u32.into();
 		<T::Fungible as fungible::Mutate<_>>::set_balance(&bob, 0u32.into());
 
-	}: _(RawOrigin::Signed(signer.clone()), bob, mint_into_bob)
+	}: _(RawOrigin::Root, bob.clone(), mint_amount)
 	verify {
-		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+		assert_eq!(<T::Fungible as fungible::Inspect<_>>::balance(&bob), mint_amount);
 	}
 }
 
