@@ -67,6 +67,8 @@ pub mod pallet {
 	#[derive(
 		Debug,
 		Default,
+		Serialize,
+		Deserialize,
 		Encode,
 		Decode,
 		DecodeWithMemTracking,
@@ -78,7 +80,6 @@ pub mod pallet {
 		Ord,
 		TypeInfo,
 	)]
-	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub struct PorteerConfig {
 		pub send_enabled: bool,
 		pub receive_enabled: bool,
