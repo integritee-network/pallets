@@ -7,7 +7,7 @@ use sp_runtime::{
 };
 
 #[test]
-fn set_bridge_config_works() {
+fn set_porteer_config_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
@@ -21,7 +21,7 @@ fn set_bridge_config_works() {
 }
 
 #[test]
-fn set_bridge_config_errs_when_missing_privileges() {
+fn set_porteer_config_errs_when_missing_privileges() {
 	new_test_ext().execute_with(|| {
 		let bob = Keyring::Bob.to_account_id();
 
