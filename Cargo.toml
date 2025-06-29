@@ -12,6 +12,7 @@ members = [
     "primitives/teerex",
     "primitives/xcm",
     "primitives/xcm-transactor",
+    "porteer",
     "sidechain",
     "teeracle",
     "teerdays",

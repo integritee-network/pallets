@@ -1,0 +1,91 @@
+[package]
+name = "pallet-porteer"
+description = "A pallet to store cryptocurrency market data"
+version = "0.1.0"
+authors = ["Integritee AG <hello@integritee.network>"]
+homepage = "https://integritee.network/"
+repository = "https://github.com/integritee-network/pallets/"
+license = "Apache-2.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+log = { workspace = true }
+parity-scale-codec = { workspace = true }
+scale-info = { workspace = true }
+
+# encointer
+substrate-fixed = { workspace = true }
+
+# substrate
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+
+# benchmarking
+frame-benchmarking = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
+pallet-aura = { workspace = true, optional = true }
+pallet-timestamp = { workspace = true, optional = true }
+sp-consensus-aura = { workspace = true, optional = true }
+test-utils = { default-features = false, path = "../test-utils", optional = true }
+
+[dev-dependencies]
+frame-benchmarking = { workspace = true, features = ["std"] }
+hex-literal = { workspace = true }
+pallet-aura = { workspace = true }
+pallet-balances = { workspace = true, features = ["std"] }
+pallet-timestamp = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-externalities = { workspace = true }
+sp-keyring = { workspace = true }
+test-utils = { path = "../test-utils" }
+
+
+[features]
+default = ["std"]
+std = [
+    "frame-benchmarking?/std",
+    "frame-support/std",
+    "frame-system/std",
+    "log/std",
+    "parity-scale-codec/std",
+    "scale-info/std",
+    "sp-consensus-aura?/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "substrate-fixed/std",
+    "pallet-aura?/std",
+    "pallet-balances/std",
+    "pallet-timestamp?/std",
+    "sp-externalities/std",
+    "sp-keyring/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "hex-literal",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-aura",
+    "test-utils",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+    "sp-consensus-aura",
+    "sp-runtime/runtime-benchmarks",
+]
+
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-aura?/try-runtime",
+    "pallet-balances/try-runtime",
+    "pallet-timestamp?/try-runtime",
+    "sp-runtime/try-runtime",
+]

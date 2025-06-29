@@ -2734,6 +2734,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-porteer"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "hex-literal",
+ "log",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-externalities",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-std",
+ "substrate-fixed",
+ "test-utils",
+]
+
+[[package]]
 name = "pallet-session"
 version = "40.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
