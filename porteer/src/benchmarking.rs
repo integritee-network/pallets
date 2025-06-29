@@ -15,58 +15,49 @@
 
 */
 
-//! TeerDays pallet benchmarking
+//! Porteer pallet benchmarking
 
 #![cfg(any(test, feature = "runtime-benchmarks"))]
 
 use super::*;
 
-use crate::Pallet as TeerDays;
+use crate::Pallet;
 use frame_benchmarking::{account, benchmarks};
+use frame_support::traits::fungible;
 use frame_system::RawOrigin;
 use sp_std::prelude::*;
 
 benchmarks! {
-	where_clause {  where T::AccountId: From<[u8; 32]>, T::Hash: From<[u8; 32]> }
-	bond {
-		pallet_timestamp::Pallet::<T>::set_timestamp(0u32.into());
+	set_porteer_config {
+		// Todo: how to get the proper origin from the mock??
 		let signer: T::AccountId = account("alice", 1, 1);
-		T::Currency::make_free_balance_be(&signer, 4_000_000_000u32.into());
-	}: _(RawOrigin::Signed(signer.clone()), 2_000_000_000u32.into())
+		let config = PorteerConfig { send_enabled: true, receive_enabled: true };
+
+	}: _(RawOrigin::Signed(signer.clone()), config)
 	verify {
-		assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+	}
+	port_tokens {
+		let signer: T::AccountId = account("alice", 1, 1);
+		let signer_free: BalanceOf<T> = 4_000_000_000u32.into();
+		<T::Fungible as fungible::Mutate<_>>::set_balance(&signer, signer_free);
+
+	}: _(RawOrigin::Signed(signer.clone()), signer_free)
+	verify {
+		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
 	}
 
-	unbond {
-		pallet_timestamp::Pallet::<T>::set_timestamp(0u32.into());
+	mint_ported_tokens {
+		// Todo: how to get the proper origin from the mock??
 		let signer: T::AccountId = account("alice", 1, 1);
-		T::Currency::make_free_balance_be(&signer, 4_000_000_000u32.into());
-		TeerDays::<T>::bond(RawOrigin::Signed(signer.clone()).into(), 2_000_000_000u32.into())?;
-	}: _(RawOrigin::Signed(signer.clone()), 1_000_000_000u32.into())
-	verify {
-		assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
-	}
+		let bob: T::AccountId = account("bob", 1, 1);
+		let mint_into_bob: BalanceOf<T> = 4_000_000_000u32.into();
+		<T::Fungible as fungible::Mutate<_>>::set_balance(&bob, 0u32.into());
 
-	update_other {
-		pallet_timestamp::Pallet::<T>::set_timestamp(0u32.into());
-		let signer: T::AccountId = account("alice", 1, 1);
-		T::Currency::make_free_balance_be(&signer, 4_000_000_000u32.into());
-		TeerDays::<T>::bond(RawOrigin::Signed(signer.clone()).into(), 1_000_000_000u32.into())?;
-	}: _(RawOrigin::Signed(signer.clone()), signer.clone())
+	}: _(RawOrigin::Signed(signer.clone()), bob, mint_into_bob)
 	verify {
-		assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
+		// assert!(TeerDays::<T>::teerday_bonds(&signer).is_some());
 	}
-	withdraw_unbonded {
-		pallet_timestamp::Pallet::<T>::set_timestamp(42u32.into());
-		let signer: T::AccountId = account("alice", 1, 1);
-		T::Currency::make_free_balance_be(&signer, 4_000_000_000u32.into());
-		T::Currency::set_lock(TEERDAYS_ID, &signer, 1_000_000_000u32.into(), WithdrawReasons::all());
-		PendingUnlock::<T>::insert::<_, (T::Moment, BalanceOf<T>)>(&signer, (42u32.into(), 1_000_000_000u32.into()));
-	}: _(RawOrigin::Signed(signer.clone()))
-	verify {
-		assert!(TeerDays::<T>::pending_unlock(&signer).is_none());
-	}
-
 }
 
 #[cfg(test)]
