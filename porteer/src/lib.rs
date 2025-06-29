@@ -161,7 +161,7 @@ pub mod pallet {
 
 		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`
 		#[pallet::call_index(1)]
-		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
 		pub fn port_tokens(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 
@@ -189,7 +189,7 @@ pub mod pallet {
 		///
 		/// Can only be called from the `TokenSenderOriginLocation`.
 		#[pallet::call_index(2)]
-		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		#[pallet::weight(< T as Config >::WeightInfo::mint_ported_tokens())]
 		pub fn mint_ported_tokens(
 			origin: OriginFor<T>,
 			beneficiary: AccountIdOf<T>,
