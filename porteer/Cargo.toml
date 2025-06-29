@@ -15,6 +15,7 @@ workspace = true
 log = { workspace = true }
 parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
+serde = { workspace = true, optional = true }
 
 # encointer
 substrate-fixed = { workspace = true }
@@ -56,6 +57,7 @@ std = [
     "log/std",
     "parity-scale-codec/std",
     "scale-info/std",
+    "serde",
     "sp-consensus-aura?/std",
     "sp-core/std",
     "sp-io/std",

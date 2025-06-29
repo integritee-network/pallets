@@ -16,16 +16,15 @@
 */
 
 // Creating mock runtime here
-use crate as pallet_teerdays;
+use crate::{PortTokens, PorteerConfig};
 use frame_support::{derive_impl, ord_parameter_types, parameter_types};
 use frame_system as system;
 use frame_system::{EnsureNever, EnsureSignedBy};
-use pallet_teerdays::Config;
 use sp_core::hex2array;
 use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
-	BuildStorage,
+	BuildStorage, DispatchError,
 };
 
 pub type Signature = sp_runtime::MultiSignature;
@@ -72,22 +71,39 @@ ord_parameter_types! {
 	pub const Alice: AccountId = AccountId::new(hex2array!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"));
 }
 
-impl Config for Test {
+impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin = EnsureSignedBy<Alice, AccountId>;
 	type TokenSenderOriginLocation = EnsureNever<AccountId>;
-	type SendTokensToDestination = ();
+	type PortTokensToDestination = MockPortTokens;
 	type Fungible = Balances;
 }
 
-// This function basically just builds a genesis storage key/value store according to
-// our desired mockup. RA from enclave compiled in debug mode is allowed
+pub struct MockPortTokens;
+
+impl PortTokens for MockPortTokens {
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Error = DispatchError;
+
+	fn port_tokens(_who: &Self::AccountId, _amount: Self::Balance) -> Result<(), Self::Error> {
+		Ok(())
+	}
+}
+
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = system::GenesisConfig::<Test>::default().build_storage().unwrap();
 	pallet_balances::GenesisConfig::<Test> {
 		balances: vec![(Keyring::Alice.to_account_id(), 1 << 60)],
 		..Default::default()
+	}
+	.assimilate_storage(&mut t)
+	.unwrap();
+
+	crate::GenesisConfig::<Test> {
+		porteer_config: PorteerConfig { send_enabled: true, receive_enabled: true },
+		_config: Default::default(),
 	}
 	.assimilate_storage(&mut t)
 	.unwrap();

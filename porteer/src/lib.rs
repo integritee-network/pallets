@@ -39,10 +39,20 @@ pub mod weights;
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
 
+pub const LOG_TARGET: &'static str = "integritee::porteer";
+
 #[frame_support::pallet]
 pub mod pallet {
+	use super::{PortTokens, LOG_TARGET};
 	use crate::weights::WeightInfo;
-	use frame_support::{pallet_prelude::*, traits::fungible};
+	use frame_support::{
+		pallet_prelude::*,
+		traits::{
+			fungible,
+			tokens::{Fortitude, Precision, Preservation},
+		},
+		Deserialize, Serialize,
+	};
 	use frame_system::pallet_prelude::*;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -68,6 +78,7 @@ pub mod pallet {
 		Ord,
 		TypeInfo,
 	)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 	pub struct PorteerConfig {
 		pub send_enabled: bool,
 		pub receive_enabled: bool,
@@ -88,7 +99,10 @@ pub mod pallet {
 
 		/// Abstraction to send tokens to the destination.
 		/// This will be tricky part that handles all the XCM stuff.
-		type SendTokensToDestination;
+		type PortTokensToDestination: PortTokens<
+			AccountId = AccountIdOf<Self>,
+			Balance = BalanceOf<Self>,
+		>;
 
 		/// The bonding balance.
 		type Fungible: fungible::Inspect<AccountIdOf<Self>> + fungible::Mutate<AccountIdOf<Self>>;
@@ -99,16 +113,35 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// An account's bond has been increased by an amount
 		PorteerConfigSet { value: PorteerConfig },
+		/// Ported some tokens to the destination chain.
+		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		/// The attempted operation was disabled.
 		PorteerOperationDisabled,
+		/// And error during initiation of porting the tokens occurred (balances unchanged).
+		PortTokensInitError,
 	}
 
 	#[pallet::storage]
 	pub(super) type PorteerConfigValue<T: Config> = StorageValue<_, PorteerConfig, ValueQuery>;
+
+	#[pallet::genesis_config]
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T> {
+		pub porteer_config: PorteerConfig,
+		#[serde(skip)]
+		pub _config: sp_std::marker::PhantomData<T>,
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+		fn build(&self) {
+			PorteerConfigValue::<T>::put(self.porteer_config);
+		}
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -123,7 +156,40 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::PorteerConfigSet { value: config });
 			Ok(())
 		}
+
+		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`
+		#[pallet::call_index(1)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		pub fn port_tokens(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+			let signer = ensure_signed(origin)?;
+
+			<T::Fungible as fungible::Mutate<_>>::burn_from(
+				&signer,
+				amount,
+				Preservation::Expendable,
+				Precision::Exact,
+				Fortitude::Polite,
+			)?;
+
+			T::PortTokensToDestination::port_tokens(&signer, amount).map_err(|e| {
+				log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
+				Error::<T>::PortTokensInitError
+			})?;
+
+			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount });
+			Ok(())
+		}
 	}
+}
+
+pub trait PortTokens {
+	type AccountId;
+
+	type Balance;
+
+	type Error: core::fmt::Debug;
+
+	fn port_tokens(who: &Self::AccountId, amount: Self::Balance) -> Result<(), Self::Error>;
 }
 
 impl<T: Config> Pallet<T> {}
