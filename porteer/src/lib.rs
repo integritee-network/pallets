@@ -39,7 +39,7 @@ pub mod weights;
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
 
-pub const LOG_TARGET: &'static str = "integritee::porteer";
+pub const LOG_TARGET: &str = "integritee::porteer";
 
 #[frame_support::pallet]
 pub mod pallet {
