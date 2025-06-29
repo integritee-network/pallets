@@ -75,7 +75,7 @@ impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin = EnsureSignedBy<Alice, AccountId>;
-	type TokenSenderOriginLocation = EnsureNever<AccountId>;
+	type TokenSenderLocationOrigin = EnsureNever<AccountId>;
 	type PortTokensToDestination = MockPortTokens;
 	type Fungible = Balances;
 }

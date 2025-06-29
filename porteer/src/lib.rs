@@ -95,7 +95,7 @@ pub mod pallet {
 
 		/// Will be (Integritee Kusama, PalletIndex(PorteerIndex)) on Integritee Polkadot
 		/// and possibly `NeverEnsureOrigin` on Integritee Kusama.
-		type TokenSenderOriginLocation: EnsureOrigin<Self::RuntimeOrigin>;
+		type TokenSenderLocationOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Abstraction to send tokens to the destination.
 		/// This will be tricky part that handles all the XCM stuff.
@@ -115,6 +115,8 @@ pub mod pallet {
 		PorteerConfigSet { value: PorteerConfig },
 		/// Ported some tokens to the destination chain.
 		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
+		/// Minted some tokens ported from another chain!
+		MintedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 	}
 
 	#[pallet::error]
@@ -163,6 +165,8 @@ pub mod pallet {
 		pub fn port_tokens(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 
+			Self::ensure_sending_tokens_enabled()?;
+
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,
 				amount,
@@ -179,6 +183,28 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount });
 			Ok(())
 		}
+
+		/// Mints the native tokens on this chain, which are supposed to have been
+		/// burned on the other chain.
+		///
+		/// Can only be called from the `TokenSenderOriginLocation`.
+		#[pallet::call_index(2)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		pub fn mint_ported_tokens(
+			origin: OriginFor<T>,
+			beneficiary: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			// Todo: Check what is the best practice here
+			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
+
+			Self::ensure_receiving_tokens_enabled()?;
+
+			<T::Fungible as fungible::Mutate<_>>::mint_into(&beneficiary, amount)?;
+
+			Self::deposit_event(Event::<T>::MintedPortedTokens { who: beneficiary, amount });
+			Ok(())
+		}
 	}
 }
 
@@ -192,4 +218,20 @@ pub trait PortTokens {
 	fn port_tokens(who: &Self::AccountId, amount: Self::Balance) -> Result<(), Self::Error>;
 }
 
-impl<T: Config> Pallet<T> {}
+impl<T: Config> Pallet<T> {
+	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {
+		if PorteerConfigValue::<T>::get().send_enabled {
+			Ok(())
+		} else {
+			Err(Error::<T>::PorteerOperationDisabled)
+		}
+	}
+
+	fn ensure_receiving_tokens_enabled() -> Result<(), Error<T>> {
+		if PorteerConfigValue::<T>::get().receive_enabled {
+			Ok(())
+		} else {
+			Err(Error::<T>::PorteerOperationDisabled)
+		}
+	}
+}
