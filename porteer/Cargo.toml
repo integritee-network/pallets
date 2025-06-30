@@ -1,6 +1,6 @@
 [package]
 name = "pallet-porteer"
-description = "A pallet to store cryptocurrency market data"
+description = "A pallet to facilitate teleporting tokens between a pair of parachains."
 version = "0.1.0"
 authors = ["Integritee AG <hello@integritee.network>"]
 homepage = "https://integritee.network/"
