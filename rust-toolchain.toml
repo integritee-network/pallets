@@ -1,4 +1,4 @@
 [toolchain]
-channel = "1.84.1"
+channel = "1.88.0"
 targets = ["wasm32v1-none"]
 profile = "default" # include rustfmt, clippy
