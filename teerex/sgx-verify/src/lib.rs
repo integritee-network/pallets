@@ -570,9 +570,9 @@ pub fn verify_certificate_chain<'a>(
 			None,
 		)
 		.map_err(|e| {
-			log::warn!(target: TEEREX, "certificate chain is invalid: {:?}", e);
+			log::warn!(target: TEEREX, "certificate chain is invalid: {e:?}");
 			#[cfg(test)]
-			println!("certificate chain is invalid: {:?}", e);
+			println!("certificate chain is invalid: {e:?}");
 			Error::CertificateChainIsInvalid
 		})?;
 
@@ -611,7 +611,7 @@ pub fn verify_dcap_quote(
 		Decode::decode(&mut dcap_quote_clone).map_err(|_| Error::DcapQuoteDecodingError)?;
 
 	#[cfg(test)]
-	println!("{:?}", quote);
+	println!("{quote:?}");
 
 	ensure!(quote.header.version == 3, Error::DcapQuoteVersionMismatch);
 	ensure!(quote.header.attestation_key_type == 2, Error::DcapKeyTypeMismatch);
