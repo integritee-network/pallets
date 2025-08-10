@@ -11,12 +11,19 @@ fn set_porteer_config_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
-		let config = PorteerConfig { send_enabled: true, receive_enabled: true };
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: true, receive_enabled: true }
+		);
+
+		let config = PorteerConfig { send_enabled: false, receive_enabled: true };
 		assert_ok!(Porteer::set_porteer_config(RuntimeOrigin::signed(alice.clone()), config));
 
 		let expected_event =
 			RuntimeEvent::Porteer(PorteerEvent::PorteerConfigSet { value: config });
 		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_eq!(PorteerConfigValue::<Test>::get(), config);
 	})
 }
 
