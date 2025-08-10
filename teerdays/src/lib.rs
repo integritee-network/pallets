@@ -21,7 +21,7 @@
 //!
 //! ### Terminology
 //! - **Bonding**: Locking up TEER tokens for a certain period of time into the future.
-//!   Bonded TEER tokens are not liquid and appear in "frozen" balance but can still be used for voting in network governance
+//!     Bonded TEER tokens are not liquid and appear in "frozen" balance but can still be used for voting in network governance
 //! - **Unbonding**: Starting the unlock process of bonded TEER tokens
 //! - **TEERdays**: Accumulated time of bonded TEER tokens
 //! - **TokenTime**: The technical unit of TEERdays storage: TokenTime = Balance (TEER with its 12 digits) * Moment (Milliseconds)

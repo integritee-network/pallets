@@ -43,7 +43,7 @@ impl<'a> TryFrom<CertDer<'a>> for EphemeralKey<'a> {
 		let pub_k = cert_der.get(offset + 2..offset + len).ok_or("Index out of bounds")?; // skip "00 04"
 
 		#[cfg(test)]
-		println!("verifyRA ephemeral public key: {pub_k:x?}");
+		println!("verifyRA ephemeral public key: {:x?}", pub_k);
 		Ok(EphemeralKey(pub_k))
 	}
 }
