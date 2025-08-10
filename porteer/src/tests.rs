@@ -1,5 +1,5 @@
 use crate::{mock::*, pallet, BalanceOf, Event as PorteerEvent, *};
-use frame_support::{assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_noop, assert_ok, pallet_prelude::Hooks, traits::Currency};
 use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
 	DispatchError::{BadOrigin, Token},
@@ -58,6 +58,64 @@ fn set_watchdog_errs_when_missing_privileges() {
 		let charlie = Keyring::Charlie.to_account_id();
 
 		assert_noop!(Porteer::set_watchdog(RuntimeOrigin::signed(bob.clone()), charlie), BadOrigin);
+	})
+}
+
+#[test]
+fn watchdog_heartbeat_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), bob.clone()));
+
+		assert_eq!(LastHeartBeat::<Test>::get(), 0);
+		let current_block = System::block_number();
+
+		assert_ok!(Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())));
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+
+		// Test if the timeout is activated
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+
+		// The bridge will not be disabled as long as we are not passed the timeout
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
+		assert!(!System::events().iter().any(|a| a.event == expected_event));
+
+		// Now the bridge should be disabled
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+	})
+}
+
+#[test]
+fn watchdog_heartbeat_errs_when_no_watchdog_is_set() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), alice.clone()));
+
+		assert_noop!(
+			Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())),
+			Error::<Test>::InvalidWatchdogAccount
+		);
+	})
+}
+
+#[test]
+fn watchdog_heartbeat_errs_when_with_wrong_account() {
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_noop!(
+			Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())),
+			Error::<Test>::InvalidWatchdogAccount
+		);
 	})
 }
 
