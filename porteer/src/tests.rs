@@ -34,6 +34,34 @@ fn set_porteer_config_errs_when_missing_privileges() {
 }
 
 #[test]
+fn set_watchdog_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_eq!(WatchdogAccount::<Test>::get(), None);
+
+		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), bob.clone()));
+
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::WatchdogSet { account: bob.clone() });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_eq!(WatchdogAccount::<Test>::get(), Some(bob));
+	})
+}
+
+#[test]
+fn set_watchdog_errs_when_missing_privileges() {
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
+		let charlie = Keyring::Charlie.to_account_id();
+
+		assert_noop!(Porteer::set_watchdog(RuntimeOrigin::signed(bob.clone()), charlie), BadOrigin);
+	})
+}
+
+#[test]
 fn port_tokens_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();

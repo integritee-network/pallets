@@ -20,7 +20,7 @@ use crate::{PortTokens, PorteerConfig};
 use frame_support::{derive_impl, ord_parameter_types, parameter_types, traits::EitherOfDiverse};
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use sp_core::{crypto::AccountId32, hex2array};
+use sp_core::{crypto::AccountId32, hex2array, ConstU64};
 use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
@@ -76,6 +76,7 @@ impl crate::Config for Test {
 	type WeightInfo = ();
 	type PorteerAdmin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
+	type HeartBeatTimeout = ConstU64<1>;
 	// In the parachain setup this will be the Porteer pallet on the origin chain.
 	type TokenSenderLocationOrigin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
