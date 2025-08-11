@@ -126,5 +126,5 @@ jobs:
         with:
           # Todo: get cache key from rust-toolchain-toml
           key: wasm
-      - run: ./scripts/run_for_all_no_std_crates.sh check --no-default-features --target=wasm32v1-none
+      - run: ./scripts/run_for_all_no_std_crates.sh check --locked --no-default-features --target=wasm32v1-none
 
