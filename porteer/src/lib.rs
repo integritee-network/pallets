@@ -36,10 +36,11 @@ mod tests;
 
 pub mod weights;
 
-pub use crate::weights::WeightInfo;
 use frame_support::pallet_prelude::Get;
-pub use pallet::*;
 use sp_runtime::Weight;
+
+pub use crate::weights::WeightInfo;
+pub use pallet::*;
 
 pub const LOG_TARGET: &str = "integritee::porteer";
 
@@ -104,7 +105,6 @@ pub mod pallet {
 		Ord,
 		TypeInfo,
 	)]
-
 	/// XCM fees to be paid at the respective hops. Which is either:
 	/// 1. AHK -> AHP -> IP
 	/// or
