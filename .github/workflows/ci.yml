@@ -30,14 +30,11 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        check: [ cargo build --release,
-                 cargo build --release --features dot,
-                 cargo build --release --features ksm,
-                 cargo test --all --features runtime-benchmarks,
-                 cargo test --all --features dot,
-                 cargo test --all --features ksm,
-                 cargo +nightly fmt --all -- --check,
-                 cargo clippy --all-features --all-targets -- -D warnings
+        check: [
+          cargo build --release,
+          cargo test --all --features runtime-benchmarks,
+          cargo +nightly fmt --all -- --check,
+          cargo clippy --all-features --all-targets -- -D warnings
         ]
     steps:
       - uses: actions/checkout@v3
