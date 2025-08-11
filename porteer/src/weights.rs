@@ -20,6 +20,11 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for pallet_teerdays.
 pub trait WeightInfo {
 	fn set_porteer_config() -> Weight;
+	fn set_watchdog() -> Weight;
+
+	fn watchdog_heartbeat() -> Weight;
+	fn set_xcm_fee_params() -> Weight;
+
 	fn port_tokens() -> Weight;
 	fn mint_ported_tokens() -> Weight;
 }
@@ -28,6 +33,39 @@ pub trait WeightInfo {
 pub struct IntegriteeWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 	fn set_porteer_config() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `240`
+		//  Estimated: `4764`
+		// Minimum execution time: 82_957_000 picoseconds.
+		Weight::from_parts(86_401_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+
+	fn set_watchdog() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `240`
+		//  Estimated: `4764`
+		// Minimum execution time: 82_957_000 picoseconds.
+		Weight::from_parts(86_401_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+
+	fn watchdog_heartbeat() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `240`
+		//  Estimated: `4764`
+		// Minimum execution time: 82_957_000 picoseconds.
+		Weight::from_parts(86_401_000, 0)
+			.saturating_add(Weight::from_parts(0, 4764))
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(3))
+	}
+
+	fn set_xcm_fee_params() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `240`
 		//  Estimated: `4764`
@@ -64,6 +102,15 @@ impl<T: frame_system::Config> WeightInfo for IntegriteeWeight<T> {
 // For tests
 impl WeightInfo for () {
 	fn set_porteer_config() -> Weight {
+		Weight::from_parts(2_591_400_000, 0u64)
+	}
+	fn set_watchdog() -> Weight {
+		Weight::from_parts(2_591_400_000, 0u64)
+	}
+	fn watchdog_heartbeat() -> Weight {
+		Weight::from_parts(2_591_400_000, 0u64)
+	}
+	fn set_xcm_fee_params() -> Weight {
 		Weight::from_parts(2_591_400_000, 0u64)
 	}
 	fn port_tokens() -> Weight {

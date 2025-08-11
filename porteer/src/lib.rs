@@ -217,7 +217,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		#[pallet::weight(< T as Config >::WeightInfo::set_watchdog())]
 		pub fn set_watchdog(origin: OriginFor<T>, account: AccountIdOf<T>) -> DispatchResult {
 			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
 
@@ -228,7 +228,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(<T as Config>::WeightInfo::set_porteer_config())]
+		#[pallet::weight(<T as Config>::WeightInfo::watchdog_heartbeat())]
 		pub fn watchdog_heartbeat(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let signer = ensure_signed(origin)?;
 
@@ -242,7 +242,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		#[pallet::weight(< T as Config >::WeightInfo::set_xcm_fee_params())]
 		pub fn set_xcm_fee_params(
 			origin: OriginFor<T>,
 			fees: XcmFeeParams<BalanceOf<T>>,
