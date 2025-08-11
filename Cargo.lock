@@ -3022,30 +3022,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-xcm-transactor"
-version = "0.1.0"
-dependencies = [
- "cumulus-primitives-core",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "hex-literal",
- "log",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-externalities",
- "sp-io",
- "sp-keyring",
- "sp-runtime",
- "sp-std",
- "staging-xcm",
- "test-utils",
- "xcm-transactor-primitives",
-]
-
-[[package]]
 name = "parachains-common"
 version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5715,19 +5691,6 @@ dependencies = [
  "sp-weights",
  "staging-xcm",
  "staging-xcm-executor",
-]
-
-[[package]]
-name = "xcm-transactor-primitives"
-version = "0.1.0"
-dependencies = [
- "common-primitives",
- "cumulus-primitives-core",
- "frame-support",
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
- "staging-xcm",
 ]
 
 [[package]]
