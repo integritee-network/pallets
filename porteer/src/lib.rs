@@ -260,7 +260,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
 
-			XcmFeeConfig::<T>::put(&fees);
+			XcmFeeConfig::<T>::put(fees);
 
 			Self::deposit_event(Event::<T>::XcmFeeConfigSet { fees });
 			Ok(())
