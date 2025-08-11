@@ -21,10 +21,8 @@ use sp_std::marker::PhantomData;
 pub trait WeightInfo {
 	fn set_porteer_config() -> Weight;
 	fn set_watchdog() -> Weight;
-
 	fn watchdog_heartbeat() -> Weight;
 	fn set_xcm_fee_params() -> Weight;
-
 	fn port_tokens() -> Weight;
 	fn mint_ported_tokens() -> Weight;
 }

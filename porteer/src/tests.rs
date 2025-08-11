@@ -103,7 +103,7 @@ fn watchdog_heartbeat_errs_when_no_watchdog_is_set() {
 }
 
 #[test]
-fn watchdog_heartbeat_errs_when_with_wrong_account() {
+fn watchdog_heartbeat_errs_with_missing_privileges() {
 	new_test_ext().execute_with(|| {
 		let bob = Keyring::Bob.to_account_id();
 
