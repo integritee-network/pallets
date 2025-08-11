@@ -37,7 +37,9 @@ mod tests;
 pub mod weights;
 
 pub use crate::weights::WeightInfo;
+use frame_support::pallet_prelude::Get;
 pub use pallet::*;
+use sp_runtime::Weight;
 
 pub const LOG_TARGET: &str = "integritee::porteer";
 
@@ -304,13 +306,15 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			// todo: return correct weight
+			let total_weight: Weight = Weight::zero();
 			if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get())
 			{
-				Self::disable_bridge()
+				// read `LastHeartBeat
+				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
+				total_weight.saturating_add(Self::disable_bridge());
 			}
 
-			Weight::zero()
+			total_weight
 		}
 	}
 }
@@ -326,9 +330,10 @@ pub trait PortTokens {
 }
 
 impl<T: Config> Pallet<T> {
-	fn disable_bridge() {
+	fn disable_bridge() -> Weight {
 		PorteerConfigValue::<T>::put(PorteerConfig { send_enabled: false, receive_enabled: false });
 		Self::deposit_event(Event::<T>::BridgeDisabled);
+		<T as frame_system::Config>::DbWeight::get().writes(2)
 	}
 
 	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {

@@ -143,6 +143,27 @@ fn bridge_is_disabled_after_timeout_threshold() {
 }
 
 #[test]
+fn set_xcm_fee_params_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		assert_eq!(XcmFeeConfig::<Test>::get(), XcmFeeParams::default());
+
+		let new_fee_params = XcmFeeParams { hop1: 1, hop2: 2, hop3: 3 };
+		assert_ok!(Porteer::set_xcm_fee_params(
+			RuntimeOrigin::signed(alice.clone()),
+			new_fee_params
+		));
+
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::XcmFeeConfigSet { fees: new_fee_params });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_eq!(XcmFeeConfig::<Test>::get(), new_fee_params);
+	})
+}
+
+#[test]
 fn port_tokens_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
