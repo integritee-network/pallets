@@ -149,7 +149,7 @@ pub mod pallet {
 		PorteerConfigSet { value: PorteerConfig },
 		/// A new watchdog account has been set.
 		WatchdogSet { account: AccountIdOf<T> },
-		/// The watchdog has signalled that the bridge is ok.
+		/// The watchdog has signalled that dry-running the bridge worked.
 		WatchdogHeartBeatReceived,
 		/// The bridge has been disabled due to a heartbeat timeout
 		BridgeDisabled,
@@ -205,7 +205,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Sets the new PorteerConfig.
-		/// 
+		///
 		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(0)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
@@ -219,7 +219,7 @@ pub mod pallet {
 		}
 
 		/// Sets the new watchdog account.
-		/// 
+		///
 		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(1)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_watchdog())]
@@ -232,8 +232,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Signals that the bridge is still operable.
-		/// 
+		/// Signals that the bridge is still operable aka that a dryrun works.
+		///
 		/// Can only be called by the `WatchdogAccount`.
 		#[pallet::call_index(2)]
 		#[pallet::weight(<T as Config>::WeightInfo::watchdog_heartbeat())]
@@ -250,7 +250,7 @@ pub mod pallet {
 		}
 
 		/// Sets the `XcmFeeConfig` to keep the bridge working.
-		/// 
+		///
 		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(3)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_xcm_fee_params())]
