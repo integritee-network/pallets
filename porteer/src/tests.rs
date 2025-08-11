@@ -84,18 +84,6 @@ fn watchdog_heartbeat_works() {
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
-
-		// Test if the timeout is activated
-
-		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-
-		// The bridge will not be disabled as long as we are not passed the timeout
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
-		assert!(!System::events().iter().any(|a| a.event == expected_event));
-
-		// Now the bridge should be disabled
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
-		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
 
@@ -123,6 +111,34 @@ fn watchdog_heartbeat_errs_when_with_wrong_account() {
 			Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())),
 			Error::<Test>::InvalidWatchdogAccount
 		);
+	})
+}
+
+#[test]
+fn bridge_stays_enabled_at_heartbeat_timeout_threshold() {
+	new_test_ext().execute_with(|| {
+		let current_block = System::block_number();
+		LastHeartBeat::<Test>::set(current_block);
+		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
+
+		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
+	})
+}
+
+#[test]
+fn bridge_is_disabled_after_timeout_threshold() {
+	new_test_ext().execute_with(|| {
+		let current_block = System::block_number();
+		LastHeartBeat::<Test>::set(current_block);
+		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 	})
 }
 
