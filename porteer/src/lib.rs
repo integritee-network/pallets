@@ -205,6 +205,8 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Sets the new PorteerConfig.
+		/// 
+		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(0)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
 		pub fn set_porteer_config(origin: OriginFor<T>, config: PorteerConfig) -> DispatchResult {
@@ -216,6 +218,9 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Sets the new watchdog account.
+		/// 
+		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(1)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_watchdog())]
 		pub fn set_watchdog(origin: OriginFor<T>, account: AccountIdOf<T>) -> DispatchResult {
@@ -227,6 +232,9 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Signals that the bridge is still operable.
+		/// 
+		/// Can only be called by the `WatchdogAccount`.
 		#[pallet::call_index(2)]
 		#[pallet::weight(<T as Config>::WeightInfo::watchdog_heartbeat())]
 		pub fn watchdog_heartbeat(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
@@ -241,6 +249,9 @@ pub mod pallet {
 			Ok(Pays::No.into())
 		}
 
+		/// Sets the `XcmFeeConfig` to keep the bridge working.
+		/// 
+		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(3)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_xcm_fee_params())]
 		pub fn set_xcm_fee_params(
@@ -309,7 +320,7 @@ pub mod pallet {
 			let total_weight: Weight = Weight::zero();
 			if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get())
 			{
-				// read `LastHeartBeat
+				// read `LastHeartBeat`
 				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
 				total_weight.saturating_add(Self::disable_bridge());
 			}
