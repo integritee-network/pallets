@@ -19,7 +19,19 @@ PASSED_CRATES=()
 
 while IFS= read -r CARGO_TOML; do
     DIR=$(dirname "$CARGO_TOML")
-    CRATE_NAME=$(basename "$DIR")
+    CRATE_NAME=$(awk '
+      /^\[package\]/{flag=1; next}
+      /^\[/{flag=0}
+      flag && /^name =/ {
+        gsub(/"/,"",$3);
+        print $3;
+        exit
+      }
+    ' "$CARGO_TOML")
+
+    if [ -z "$CRATE_NAME" ]; then
+      CRATE_NAME=$(basename "$DIR")
+    fi
 
     echo "::group::[crate:$CRATE_NAME] Building $CRATE_NAME"
     echo -e "${YELLOW}==> Checking in directory:${NC} $DIR"
