@@ -71,16 +71,16 @@ if [ "${#FAILED_CRATES[@]}" -gt 0 ]; then
     sorted_failed=($(printf "%s\n" "${FAILED_CRATES[@]}" | sort))
     echo -e "${RED}FAILED:${NC} ${sorted_failed[*]}"
     echo ""
-    echo "Click to jump to crate logs:"
+    echo "Failed crate logs are grouped in the Actions log with headers like:"
     for crate in "${sorted_failed[@]}"; do
-        echo "::error title=Crate Failed::$crate — see [logs above](#step:~:text=[crate:$crate])"
+        echo "  [crate:${crate}]"
     done
+    echo ""
+    echo "Search the log output for these to jump directly to them."
 fi
-
 echo "======================================================"
-
 if [ "$status" -ne 0 ]; then
-    >&2 echo -e "${RED}One or more crates failed.${NC}"
+    echo -e "${RED}One or more crates failed.${NC}"
     exit 1
 else
     echo -e "${GREEN}All crates passed.${NC}"
