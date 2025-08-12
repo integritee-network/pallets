@@ -11,17 +11,23 @@ export RUSTFLAGS="${RUSTFLAGS:-} --cfg substrate_runtime"
 
 # First arg is the cargo command (e.g., check, build)
 COMMAND="$1"
-shift || true  # Remove it so $@ is now only the additional args
+shift || true
 
 status=0
+FAILED_CRATES=()
+PASSED_CRATES=()
 
 while IFS= read -r CARGO_TOML; do
     DIR=$(dirname "$CARGO_TOML")
+    CRATE_NAME=$(basename "$DIR")
+
+    echo "::group::[crate:$CRATE_NAME] Building $CRATE_NAME"
     echo -e "${YELLOW}==> Checking in directory:${NC} $DIR"
 
     # Skip if no `std` feature
     if ! grep -q "\[features\]" "$CARGO_TOML" || ! grep -q "std = \[" "$CARGO_TOML"; then
         echo -e "${YELLOW}    Skipping:${NC} no 'std' feature found."
+        echo "::endgroup::"
         continue
     fi
 
@@ -32,21 +38,43 @@ while IFS= read -r CARGO_TOML; do
             --features runtime-benchmarks \
             --manifest-path "$CARGO_TOML"; then
             >&2 echo -e "${RED}    FAILED:${NC} $DIR"
+            FAILED_CRATES+=("$CRATE_NAME")
             status=1
         else
             echo -e "${GREEN}    OK:${NC} $DIR"
+            PASSED_CRATES+=("$CRATE_NAME")
         fi
     else
         echo -e "${YELLOW}    No runtime-benchmarks feature. Running without it...${NC}"
         if ! cargo "$COMMAND" "$@" \
             --manifest-path "$CARGO_TOML"; then
             >&2 echo -e "${RED}    FAILED:${NC} $DIR"
+            FAILED_CRATES+=("$CRATE_NAME")
             status=1
         else
             echo -e "${GREEN}    OK:${NC} $DIR"
+            PASSED_CRATES+=("$CRATE_NAME")
         fi
     fi
+    echo "::endgroup::"
 done < <(find . -name "Cargo.toml")
+
+# Summary table
+echo ""
+echo "====================== Summary ======================"
+if [ "${#PASSED_CRATES[@]}" -gt 0 ]; then
+    echo -e "${GREEN}PASSED:${NC} ${PASSED_CRATES[*]}"
+fi
+
+if [ "${#FAILED_CRATES[@]}" -gt 0 ]; then
+    echo -e "${RED}FAILED:${NC} ${FAILED_CRATES[*]}"
+    echo ""
+    echo "Click to jump to crate logs:"
+    for crate in "${FAILED_CRATES[@]}"; do
+        echo "::error title=Crate Failed::$crate — see [logs above](#step:~:text=[crate:$crate])"
+    done
+fi
+echo "======================================================"
 
 if [ "$status" -ne 0 ]; then
     >&2 echo -e "${RED}One or more crates failed.${NC}"
