@@ -121,6 +121,7 @@ jobs:
       - run: sudo apt-get install -y protobuf-compiler
       - uses: Swatinem/rust-cache@v2
         with:
-          key: check-debug-cache
+          # Need the `-` at the end so that Swatinem attaches the other identifiers
+          key: wasm-cache-
       - run: ./scripts/run_for_all_no_std_crates.sh check --no-default-features --target=wasm32v1-none
 
