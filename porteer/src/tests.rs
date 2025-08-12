@@ -170,7 +170,7 @@ fn port_tokens_works() {
 		let alice_free: BalanceOf<Test> = 15_000_000_000_000u128;
 		<Test as pallet::Config>::Fungible::make_free_balance_be(&alice, alice_free);
 
-		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free));
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free, None));
 
 		assert_eq!(Balances::free_balance(alice), 0);
 	})
@@ -185,7 +185,7 @@ fn port_tokens_errs_when_sending_disabled() {
 		assert_ok!(Porteer::set_porteer_config(RuntimeOrigin::signed(alice.clone()), config));
 
 		assert_noop!(
-			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1),
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1, None),
 			Error::<Test>::PorteerOperationDisabled
 		);
 	})
@@ -199,7 +199,7 @@ fn port_tokens_errs_when_missing_funds() {
 		<Test as pallet::Config>::Fungible::make_free_balance_be(&alice, alice_free);
 
 		assert_noop!(
-			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free + 1),
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free + 1, None),
 			Token(FundsUnavailable)
 		);
 	})

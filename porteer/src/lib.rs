@@ -46,7 +46,7 @@ pub const LOG_TARGET: &str = "integritee::porteer";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::{PortTokens, LOG_TARGET};
+	use super::{ForwardPortedTokens, PortTokens, LOG_TARGET};
 	use crate::weights::WeightInfo;
 	use frame_support::{
 		pallet_prelude::*,
@@ -136,7 +136,18 @@ pub mod pallet {
 		type PortTokensToDestination: PortTokens<
 			AccountId = AccountIdOf<Self>,
 			Balance = BalanceOf<Self>,
+			Location = Self::Location,
 		>;
+
+		/// Abstraction to forward ported tokens to another location like Asset Hub or Hydration.
+		type ForwardPortedTokensToDestinations: ForwardPortedTokens<
+			AccountId = AccountIdOf<Self>,
+			Balance = BalanceOf<Self>,
+			Location = Self::Location,
+		>;
+
+		/// The location representation used by this pallet.
+		type Location: Parameter;
 
 		/// The bonding balance.
 		type Fungible: fungible::Inspect<AccountIdOf<Self>> + fungible::Mutate<AccountIdOf<Self>>;
@@ -147,6 +158,10 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// An account's bond has been increased by an amount.
 		PorteerConfigSet { value: PorteerConfig },
+		/// Added a new location to the whitelist for forwarding.
+		AddedLocationToWhitelist { location: T::Location },
+		/// Removed a location from the whitelist for forwarding.
+		RemovedLocationFromWhitelist { location: T::Location },
 		/// A new watchdog account has been set.
 		WatchdogSet { account: AccountIdOf<T> },
 		/// The watchdog has signalled that dry-running the bridge worked.
@@ -165,14 +180,24 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// The attempted operation was disabled.
 		PorteerOperationDisabled,
+		/// The location to be added to the whitelist exists already.
+		LocationAlreadyInWhitelist,
+		/// The location to be removed from the whitelist does not exist.
+		LocationNotInWhitelist,
 		/// Invalid Watchdog Account
 		InvalidWatchdogAccount,
 		/// And error during initiation of porting the tokens occurred (balances unchanged).
 		PortTokensInitError,
+		/// And error during initiation of porting the tokens occurred (balances unchanged).
+		ForwardTokensError,
 	}
 
 	#[pallet::storage]
 	pub(super) type PorteerConfigValue<T: Config> = StorageValue<_, PorteerConfig, ValueQuery>;
+
+	/// Todo: Do we want to have a value or is `()` ok?
+	#[pallet::storage]
+	pub type ForwardLocationWhitelist<T: Config> = StorageMap<_, Blake2_128Concat, T::Location, ()>;
 
 	/// The Watchdog will send frequent heartbeats signaling that the bridge is still operable.
 	#[pallet::storage]
@@ -218,10 +243,46 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::call_index(1)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		pub fn add_location_to_whitelist(
+			origin: OriginFor<T>,
+			location: T::Location,
+		) -> DispatchResult {
+			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
+
+			if ForwardLocationWhitelist::<T>::contains_key(&location) {
+				return Err(Error::<T>::LocationAlreadyInWhitelist.into());
+			}
+
+			ForwardLocationWhitelist::<T>::insert(&location, ());
+
+			Self::deposit_event(Event::<T>::AddedLocationToWhitelist { location });
+			Ok(())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
+		pub fn remove_location_from_whitelist(
+			origin: OriginFor<T>,
+			location: T::Location,
+		) -> DispatchResult {
+			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
+
+			if !ForwardLocationWhitelist::<T>::contains_key(&location) {
+				return Err(Error::<T>::LocationNotInWhitelist.into());
+			}
+
+			ForwardLocationWhitelist::<T>::remove(&location);
+
+			Self::deposit_event(Event::<T>::RemovedLocationFromWhitelist { location });
+			Ok(())
+		}
+
 		/// Sets the new watchdog account.
 		///
 		/// Can only be called by the `PorteerAdmin`.
-		#[pallet::call_index(1)]
+		#[pallet::call_index(3)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_watchdog())]
 		pub fn set_watchdog(origin: OriginFor<T>, account: AccountIdOf<T>) -> DispatchResult {
 			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
@@ -235,7 +296,7 @@ pub mod pallet {
 		/// Signals that the bridge is still operable aka that a dryrun works.
 		///
 		/// Can only be called by the `WatchdogAccount`.
-		#[pallet::call_index(2)]
+		#[pallet::call_index(4)]
 		#[pallet::weight(<T as Config>::WeightInfo::watchdog_heartbeat())]
 		pub fn watchdog_heartbeat(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			let signer = ensure_signed(origin)?;
@@ -252,7 +313,7 @@ pub mod pallet {
 		/// Sets the `XcmFeeConfig` to keep the bridge working.
 		///
 		/// Can only be called by the `PorteerAdmin`.
-		#[pallet::call_index(3)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_xcm_fee_params())]
 		pub fn set_xcm_fee_params(
 			origin: OriginFor<T>,
@@ -266,10 +327,17 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`
-		#[pallet::call_index(4)]
+		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`.
+		///
+		/// Optionally, the tokens can be forwarded to another location withing the target consensus system.
+		/// This could be the Asset Hub or Hydration.
+		#[pallet::call_index(6)]
 		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
-		pub fn port_tokens(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
+		pub fn port_tokens(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			forward_tokens_to_location: Option<T::Location>,
+		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 
 			Self::ensure_sending_tokens_enabled()?;
@@ -282,10 +350,11 @@ pub mod pallet {
 				Fortitude::Polite,
 			)?;
 
-			T::PortTokensToDestination::port_tokens(&signer, amount).map_err(|e| {
-				log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
-				Error::<T>::PortTokensInitError
-			})?;
+			T::PortTokensToDestination::port_tokens(&signer, amount, forward_tokens_to_location)
+				.map_err(|e| {
+					log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
+					Error::<T>::PortTokensInitError
+				})?;
 
 			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount });
 			Ok(())
@@ -295,12 +364,13 @@ pub mod pallet {
 		/// burned on the other chain.
 		///
 		/// Can only be called from the `TokenSenderOriginLocation`.
-		#[pallet::call_index(5)]
+		#[pallet::call_index(7)]
 		#[pallet::weight(< T as Config >::WeightInfo::mint_ported_tokens())]
 		pub fn mint_ported_tokens(
 			origin: OriginFor<T>,
 			beneficiary: AccountIdOf<T>,
 			amount: BalanceOf<T>,
+			forward_tokens_to_location: Option<T::Location>,
 		) -> DispatchResult {
 			// Todo: Check what is the best practice here
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
@@ -309,7 +379,25 @@ pub mod pallet {
 
 			<T::Fungible as fungible::Mutate<_>>::mint_into(&beneficiary, amount)?;
 
-			Self::deposit_event(Event::<T>::MintedPortedTokens { who: beneficiary, amount });
+			Self::deposit_event(Event::<T>::MintedPortedTokens {
+				who: beneficiary.clone(),
+				amount,
+			});
+
+			// Todo: this is actually tricky, we cannot return an error here, otherwise
+			// the minted tokens will be rolled back.
+			// We have to check the XCM-executor implementation here.
+			if let Some(l) = forward_tokens_to_location {
+				T::ForwardPortedTokensToDestinations::forward_ported_tokens(
+					&beneficiary,
+					amount,
+					l,
+				)
+				.map_err(|e| {
+					log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
+					Error::<T>::ForwardTokensError
+				})?;
+			}
 			Ok(())
 		}
 	}
@@ -335,9 +423,31 @@ pub trait PortTokens {
 
 	type Balance;
 
+	type Location;
+
 	type Error: core::fmt::Debug;
 
-	fn port_tokens(who: &Self::AccountId, amount: Self::Balance) -> Result<(), Self::Error>;
+	fn port_tokens(
+		who: &Self::AccountId,
+		amount: Self::Balance,
+		forward_tokens_to: Option<Self::Location>,
+	) -> Result<(), Self::Error>;
+}
+
+pub trait ForwardPortedTokens {
+	type AccountId;
+
+	type Balance;
+
+	type Location;
+
+	type Error: core::fmt::Debug;
+
+	fn forward_ported_tokens(
+		who: &Self::AccountId,
+		amount: Self::Balance,
+		forward_tokens_to: Self::Location,
+	) -> Result<(), Self::Error>;
 }
 
 impl<T: Config> Pallet<T> {

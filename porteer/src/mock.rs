@@ -75,6 +75,11 @@ parameter_types! {
 	pub const HeartBeatTimeout: u64 = 2;
 }
 
+pub type TestLocation = u32;
+
+pub const SUPPORTED_LOCATION: TestLocation = 1;
+pub const UNSUPPORTED_LOCATION: TestLocation = 2;
+
 impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
@@ -85,6 +90,7 @@ impl crate::Config for Test {
 	type TokenSenderLocationOrigin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
 	type PortTokensToDestination = MockPortTokens;
+	type Location = TestLocation;
 	type Fungible = Balances;
 }
 
@@ -93,9 +99,14 @@ pub struct MockPortTokens;
 impl PortTokens for MockPortTokens {
 	type AccountId = AccountId;
 	type Balance = Balance;
+	type Location = TestLocation;
 	type Error = DispatchError;
 
-	fn port_tokens(_who: &Self::AccountId, _amount: Self::Balance) -> Result<(), Self::Error> {
+	fn port_tokens(
+		_who: &Self::AccountId,
+		_amount: Self::Balance,
+		_forward_tokens_to: Option<Self::Location>,
+	) -> Result<(), Self::Error> {
 		Ok(())
 	}
 }
