@@ -63,17 +63,20 @@ done < <(find . -name "Cargo.toml")
 echo ""
 echo "====================== Summary ======================"
 if [ "${#PASSED_CRATES[@]}" -gt 0 ]; then
-    echo -e "${GREEN}PASSED:${NC} ${PASSED_CRATES[*]}"
+    sorted_passed=($(printf "%s\n" "${PASSED_CRATES[@]}" | sort))
+    echo -e "${GREEN}PASSED:${NC} ${sorted_passed[*]}"
 fi
 
 if [ "${#FAILED_CRATES[@]}" -gt 0 ]; then
-    echo -e "${RED}FAILED:${NC} ${FAILED_CRATES[*]}"
+    sorted_failed=($(printf "%s\n" "${FAILED_CRATES[@]}" | sort))
+    echo -e "${RED}FAILED:${NC} ${sorted_failed[*]}"
     echo ""
     echo "Click to jump to crate logs:"
-    for crate in "${FAILED_CRATES[@]}"; do
+    for crate in "${sorted_failed[@]}"; do
         echo "::error title=Crate Failed::$crate — see [logs above](#step:~:text=[crate:$crate])"
     done
 fi
+
 echo "======================================================"
 
 if [ "$status" -ne 0 ]; then
