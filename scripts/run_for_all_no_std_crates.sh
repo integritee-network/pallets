@@ -31,7 +31,7 @@ while IFS= read -r CARGO_TOML; do
         if ! cargo "$COMMAND" "$@" \
             --features runtime-benchmarks \
             --manifest-path "$CARGO_TOML"; then
-            echo -e "${RED}    FAILED:${NC} $DIR"
+            >&2 echo -e "${RED}    FAILED:${NC} $DIR"
             status=1
         else
             echo -e "${GREEN}    OK:${NC} $DIR"
@@ -40,7 +40,7 @@ while IFS= read -r CARGO_TOML; do
         echo -e "${YELLOW}    No runtime-benchmarks feature. Running without it...${NC}"
         if ! cargo "$COMMAND" "$@" \
             --manifest-path "$CARGO_TOML"; then
-            echo -e "${RED}    FAILED:${NC} $DIR"
+            >&2 echo -e "${RED}    FAILED:${NC} $DIR"
             status=1
         else
             echo -e "${GREEN}    OK:${NC} $DIR"
@@ -49,7 +49,7 @@ while IFS= read -r CARGO_TOML; do
 done < <(find . -name "Cargo.toml")
 
 if [ "$status" -ne 0 ]; then
-    echo -e "${RED}One or more crates failed.${NC}"
+    >&2 echo -e "${RED}One or more crates failed.${NC}"
     exit 1
 else
     echo -e "${GREEN}All crates passed.${NC}"
