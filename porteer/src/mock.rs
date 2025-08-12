@@ -71,11 +71,16 @@ ord_parameter_types! {
 	pub const Alice: AccountId = AccountId::new(hex2array!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"));
 }
 
+parameter_types! {
+	pub const HeartBeatTimeout: u64 = 2;
+}
+
 impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
+	type HeartBeatTimeout = HeartBeatTimeout;
 	// In the parachain setup this will be the Porteer pallet on the origin chain.
 	type TokenSenderLocationOrigin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
