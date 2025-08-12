@@ -9,6 +9,10 @@ NC='\033[0m' # reset
 
 export RUSTFLAGS="${RUSTFLAGS:-} --cfg substrate_runtime"
 
+# First arg is the cargo command (e.g., check, build)
+COMMAND="$1"
+shift || true  # Remove it so $@ is now only the additional args
+
 status=0
 
 while IFS= read -r CARGO_TOML; do
