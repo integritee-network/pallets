@@ -83,8 +83,10 @@ parameter_types! {
 
 pub type TestLocation = u32;
 
-pub const SUPPORTED_LOCATION: TestLocation = 1;
-pub const UNSUPPORTED_LOCATION: TestLocation = 2;
+pub const WHITELISTED_LOCATION: TestLocation = 1;
+
+/// This location is whitelisted, but the forwarding will fail in our `MockPortTokens`.
+pub const WHITELISTED_BUT_UNSUPPORTED_LOCATION: TestLocation = 2;
 
 impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
@@ -132,7 +134,7 @@ impl ForwardPortedTokens for MockPortTokens {
 		forward_tokens_to: Self::Location,
 	) -> Result<(), Self::Error> {
 		use frame_support::traits::fungible::Mutate;
-		if forward_tokens_to == SUPPORTED_LOCATION {
+		if forward_tokens_to == WHITELISTED_LOCATION {
 			Balances::burn_from(
 				who,
 				amount,
@@ -151,7 +153,7 @@ impl ForwardPortedTokens for MockPortTokens {
 #[cfg(feature = "runtime-benchmarks")]
 impl BenchmarkHelper<TestLocation> for () {
 	fn get_whitelisted_location() -> TestLocation {
-		SUPPORTED_LOCATION
+		WHITELISTED_LOCATION
 	}
 }
 

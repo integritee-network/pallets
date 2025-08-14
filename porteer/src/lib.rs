@@ -36,8 +36,8 @@ mod tests;
 
 pub mod weights;
 
-use frame_support::pallet_prelude::Get;
-use sp_runtime::Weight;
+use frame_support::{pallet_prelude::Get, traits::fungible, transactional};
+use sp_runtime::{DispatchError, Saturating, Weight};
 
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
@@ -50,7 +50,6 @@ pub mod pallet {
 	use crate::weights::WeightInfo;
 	use frame_support::{
 		pallet_prelude::*,
-		storage::{with_transaction, TransactionOutcome},
 		traits::{
 			fungible,
 			tokens::{Fortitude, Precision, Preservation},
@@ -187,6 +186,9 @@ pub mod pallet {
 		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
 		/// Failed to forward the tokens to the final destination.
 		FailedToForwardTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
+		/// Tried to forward the tokens to an illegal destination, hence the operation was
+		/// aborted (tokens were successfully minted on this chain though).
+		TriedToForwardTokensToIllegalLocation { location: T::Location },
 	}
 
 	#[pallet::error]
@@ -396,43 +398,26 @@ pub mod pallet {
 				amount,
 			});
 
+			// Forward the tokens if desired
 			if let Some(l) = forward_tokens_to_location {
-				// We nest the forwarding the tokens in a `with_transaction`, which will revert
-				// all storage changes from within the closure.
-				let result = with_transaction(|| -> TransactionOutcome<DispatchResult> {
-					// Keep 2 * ED
-					// Todo: How to properly cater for xcm send fees?
-					let forward_amount = amount
-						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
-						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
-
-					let res = T::ForwardPortedTokensToDestinations::forward_ported_tokens(
-						&beneficiary,
-						forward_amount,
-						l.clone(),
-					)
-					.map_err(|e| {
-						log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
-						Error::<T>::ForwardTokensError
-					});
-
-					match res {
-						Ok(_) => TransactionOutcome::Commit(Ok(())),
-						Err(e) => TransactionOutcome::Rollback(Err(e.into())),
+				if ForwardLocationWhitelist::<T>::contains_key(&l) {
+					let result = Self::forward_tokens(beneficiary.clone(), amount, l.clone());
+					match result {
+						Ok(_) => Self::deposit_event(Event::<T>::ForwardedPortedTokens {
+							who: beneficiary.clone(),
+							amount,
+							location: l,
+						}),
+						Err(_) => Self::deposit_event(Event::<T>::FailedToForwardTokens {
+							who: beneficiary.clone(),
+							amount,
+							location: l,
+						}),
 					}
-				});
-
-				match result {
-					Ok(_) => Self::deposit_event(Event::<T>::ForwardedPortedTokens {
-						who: beneficiary.clone(),
-						amount,
+				} else {
+					Self::deposit_event(Event::<T>::TriedToForwardTokensToIllegalLocation {
 						location: l,
-					}),
-					Err(_) => Self::deposit_event(Event::<T>::FailedToForwardTokens {
-						who: beneficiary.clone(),
-						amount,
-						location: l,
-					}),
+					})
 				}
 			}
 			Ok(())
@@ -488,6 +473,34 @@ pub trait ForwardPortedTokens {
 }
 
 impl<T: Config> Pallet<T> {
+	/// Tries to forward the tokens to the destination location.
+	///
+	/// We use `#[transactional]` here because we want to roll back changes happening in this
+	/// function in case an error occurs while returning an `Ok(())` from the extrinsic dispatching
+	/// this function.
+	#[transactional]
+	fn forward_tokens(
+		beneficiary: AccountIdOf<T>,
+		amount: BalanceOf<T>,
+		location: T::Location,
+	) -> Result<(), DispatchError> {
+		// Keep 2 * ED
+		// Todo: How to properly cater for xcm send fees?
+		let forward_amount = amount
+			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
+			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
+
+		T::ForwardPortedTokensToDestinations::forward_ported_tokens(
+			&beneficiary,
+			forward_amount,
+			location,
+		)
+		.map_err(|e| {
+			log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
+			Error::<T>::ForwardTokensError.into()
+		})
+	}
+
 	fn disable_bridge() -> Weight {
 		PorteerConfigValue::<T>::put(PorteerConfig { send_enabled: false, receive_enabled: false });
 		Self::deposit_event(Event::<T>::BridgeDisabled);

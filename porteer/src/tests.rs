@@ -168,7 +168,7 @@ fn add_location_to_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 		assert_ok!(Porteer::add_location_to_whitelist(
 			RuntimeOrigin::signed(alice.clone()),
 			location
@@ -187,7 +187,7 @@ fn add_location_to_whitelist_errs_with_missing_privileges() {
 	new_test_ext().execute_with(|| {
 		let bob = Keyring::Bob.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 		assert_noop!(
 			Porteer::add_location_to_whitelist(RuntimeOrigin::signed(bob.clone()), location),
 			BadOrigin
@@ -200,7 +200,7 @@ fn add_location_to_whitelist_errs_with_already_existing_location() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 		ForwardLocationWhitelist::<Test>::insert(location, ());
 
 		assert_noop!(
@@ -215,7 +215,7 @@ fn remove_location_from_whitelist_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 		ForwardLocationWhitelist::<Test>::insert(location, ());
 
 		assert_ok!(Porteer::remove_location_from_whitelist(
@@ -236,7 +236,7 @@ fn remove_location_from_whitelist_errs_with_missing_privileges() {
 	new_test_ext().execute_with(|| {
 		let bob = Keyring::Bob.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 		assert_noop!(
 			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(bob.clone()), location),
 			BadOrigin
@@ -249,7 +249,7 @@ fn remove_location_from_whitelist_errs_with_nonexistent_location() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 
-		let location = SUPPORTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 
 		assert_noop!(
 			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(alice.clone()), location),
@@ -367,11 +367,16 @@ fn minting_ported_tokens_with_forwarding_works() {
 		let ed = <Test as pallet::Config>::Fungible::minimum_balance();
 		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
 
+		assert_ok!(Porteer::add_location_to_whitelist(
+			RuntimeOrigin::signed(alice.clone()),
+			WHITELISTED_LOCATION
+		));
+
 		assert_ok!(Porteer::mint_ported_tokens(
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			Some(SUPPORTED_LOCATION)
+			Some(WHITELISTED_LOCATION)
 		));
 
 		// We keep 2 the ED during forwarding
@@ -380,8 +385,8 @@ fn minting_ported_tokens_with_forwarding_works() {
 }
 
 #[test]
-fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance() {
-	// We want to test that the `with_transaction` does indeed roll back the state
+fn minting_ported_tokens_with_forwarding_non_whitelisted_location_preserves_balance() {
+	// We want to test that the `#[transactional]` does indeed roll back the state
 	// in case of a failed forward.
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
@@ -389,17 +394,52 @@ fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance(
 		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
 		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
 
+		// Don't whitelist the location
+
 		assert_ok!(Porteer::mint_ported_tokens(
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			Some(UNSUPPORTED_LOCATION)
+			Some(WHITELISTED_LOCATION)
+		));
+
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::TriedToForwardTokensToIllegalLocation {
+				location: WHITELISTED_LOCATION,
+			});
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		// Bob's balance should be unchanged as nothing has been forwarded.
+		assert_eq!(Balances::free_balance(&bob), mint_amount);
+	})
+}
+
+#[test]
+fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance() {
+	// We want to test that the `#[transactional]` does indeed roll back the state
+	// in case of a failed forward.
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
+		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
+
+		assert_ok!(Porteer::add_location_to_whitelist(
+			RuntimeOrigin::signed(alice.clone()),
+			WHITELISTED_BUT_UNSUPPORTED_LOCATION
+		));
+
+		assert_ok!(Porteer::mint_ported_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			bob.clone(),
+			mint_amount,
+			Some(WHITELISTED_BUT_UNSUPPORTED_LOCATION)
 		));
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::FailedToForwardTokens {
 			who: bob.clone(),
 			amount: mint_amount,
-			location: UNSUPPORTED_LOCATION,
+			location: WHITELISTED_BUT_UNSUPPORTED_LOCATION,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
