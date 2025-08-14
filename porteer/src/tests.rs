@@ -216,7 +216,8 @@ fn minting_ported_tokens_works() {
 		assert_ok!(Porteer::mint_ported_tokens(
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
-			mint_amount
+			mint_amount,
+			None
 		));
 
 		assert_eq!(Balances::free_balance(&bob), mint_amount);
@@ -229,7 +230,7 @@ fn minting_ported_tokens_errs_with_wrong_origin() {
 		let bob = Keyring::Bob.to_account_id();
 
 		assert_noop!(
-			Porteer::mint_ported_tokens(RuntimeOrigin::signed(bob.clone()), bob, 1),
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(bob.clone()), bob, 1, None),
 			BadOrigin
 		);
 	})
@@ -244,7 +245,7 @@ fn minting_ported_tokens_errs_when_receiving_disabled() {
 		assert_ok!(Porteer::set_porteer_config(RuntimeOrigin::signed(alice.clone()), config));
 
 		assert_noop!(
-			Porteer::mint_ported_tokens(RuntimeOrigin::signed(alice.clone()), alice, 1),
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(alice.clone()), alice, 1, None),
 			Error::<Test>::PorteerOperationDisabled
 		);
 	})

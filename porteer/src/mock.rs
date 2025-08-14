@@ -16,8 +16,14 @@
 */
 
 // Creating mock runtime here
-use crate::{PortTokens, PorteerConfig};
-use frame_support::{derive_impl, ord_parameter_types, parameter_types, traits::EitherOfDiverse};
+use crate::{ForwardPortedTokens, PortTokens, PorteerConfig};
+use frame_support::{
+	derive_impl, ord_parameter_types, parameter_types,
+	traits::{
+		tokens::{Fortitude, Precision, Preservation},
+		EitherOfDiverse,
+	},
+};
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::{crypto::AccountId32, hex2array};
@@ -90,6 +96,7 @@ impl crate::Config for Test {
 	type TokenSenderLocationOrigin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
 	type PortTokensToDestination = MockPortTokens;
+	type ForwardPortedTokensToDestinations = MockPortTokens;
 	type Location = TestLocation;
 	type Fungible = Balances;
 }
@@ -108,6 +115,34 @@ impl PortTokens for MockPortTokens {
 		_forward_tokens_to: Option<Self::Location>,
 	) -> Result<(), Self::Error> {
 		Ok(())
+	}
+}
+
+impl ForwardPortedTokens for MockPortTokens {
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Location = TestLocation;
+	type Error = DispatchError;
+
+	fn forward_ported_tokens(
+		who: &Self::AccountId,
+		amount: Self::Balance,
+		forward_tokens_to: Self::Location,
+	) -> Result<(), Self::Error> {
+		use frame_support::traits::fungible::Mutate;
+		if forward_tokens_to == SUPPORTED_LOCATION {
+			Balances::burn_from(
+				who,
+				amount,
+				Preservation::Preserve,
+				Precision::Exact,
+				Fortitude::Polite,
+			)
+			.unwrap();
+			Ok(())
+		} else {
+			Err(DispatchError::Other("Forbidden"))
+		}
 	}
 }
 
