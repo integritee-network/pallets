@@ -250,3 +250,41 @@ fn minting_ported_tokens_errs_when_receiving_disabled() {
 		);
 	})
 }
+
+#[test]
+fn minting_ported_tokens_with_forwarding_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
+		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
+
+		assert_ok!(Porteer::mint_ported_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			bob.clone(),
+			mint_amount,
+			Some(SUPPORTED_LOCATION)
+		));
+
+		assert_eq!(Balances::free_balance(&bob), mint_amount);
+	})
+}
+
+#[test]
+fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
+		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
+
+		assert_ok!(Porteer::mint_ported_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			bob.clone(),
+			mint_amount,
+			Some(UNSUPPORTED_LOCATION)
+		));
+
+		assert_eq!(Balances::free_balance(&bob), mint_amount);
+	})
+}
