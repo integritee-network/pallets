@@ -269,6 +269,7 @@ fn minting_ported_tokens_with_forwarding_works() {
 		let alice = Keyring::Alice.to_account_id();
 		let bob = Keyring::Bob.to_account_id();
 		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, 0);
+		let ed = <Test as pallet::Config>::Fungible::minimum_balance();
 		let mint_amount: BalanceOf<Test> = 15_000_000_000_000u128;
 
 		assert_ok!(Porteer::mint_ported_tokens(
@@ -278,7 +279,8 @@ fn minting_ported_tokens_with_forwarding_works() {
 			Some(SUPPORTED_LOCATION)
 		));
 
-		assert_eq!(Balances::free_balance(&bob), mint_amount);
+		// We keep 2 the ED during forwarding
+		assert_eq!(Balances::free_balance(&bob), 2 * ed);
 	})
 }
 

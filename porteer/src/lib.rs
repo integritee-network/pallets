@@ -392,10 +392,15 @@ pub mod pallet {
 				// We nest the forwarding the tokens in a `with_transaction`, which will revert
 				// all storage changes from within the closure.
 				let result = with_transaction(|| -> TransactionOutcome<DispatchResult> {
-					// Todo: How to handle delivery fees
+					// Keep 2 * ED
+					// Todo: How to properly cater for tx fees?
+					let forward_amount = amount
+						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
+						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
+
 					let res = T::ForwardPortedTokensToDestinations::forward_ported_tokens(
 						&beneficiary,
-						amount,
+						forward_amount,
 						l.clone(),
 					)
 					.map_err(|e| {
