@@ -168,6 +168,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	crate::GenesisConfig::<Test> {
 		porteer_config: PorteerConfig { send_enabled: true, receive_enabled: true },
+		watchdog: None,
+		initial_location_whitelist: None,
 		_config: Default::default(),
 	}
 	.assimilate_storage(&mut t)

@@ -57,7 +57,8 @@ pub mod pallet {
 		Deserialize, Serialize,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::Saturating;
+	use sp_runtime::{traits::MaybeDisplay, Saturating};
+	use std::fmt::Debug;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
@@ -147,7 +148,13 @@ pub mod pallet {
 		>;
 
 		/// The location representation used by this pallet.
-		type Location: Parameter;
+		type Location: Parameter
+			+ Member
+			+ MaybeSerializeDeserialize
+			+ Debug
+			+ MaybeDisplay
+			+ Ord
+			+ MaxEncodedLen;
 
 		/// The bonding balance.
 		type Fungible: fungible::Inspect<AccountIdOf<Self>> + fungible::Mutate<AccountIdOf<Self>>;
@@ -229,8 +236,11 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
-	pub struct GenesisConfig<T> {
+	pub struct GenesisConfig<T: Config> {
 		pub porteer_config: PorteerConfig,
+		pub watchdog: Option<AccountIdOf<T>>,
+		pub initial_location_whitelist: Option<Vec<T::Location>>,
+		// Todo: Should we add the XCMFeeConfig too?
 		#[serde(skip)]
 		pub _config: sp_std::marker::PhantomData<T>,
 	}
@@ -239,6 +249,14 @@ pub mod pallet {
 	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			PorteerConfigValue::<T>::put(self.porteer_config);
+			if let Some(ref watchdog) = self.watchdog {
+				WatchdogAccount::<T>::put(watchdog);
+			}
+			if let Some(ref whitelist) = self.initial_location_whitelist {
+				for location in whitelist {
+					ForwardLocationWhitelist::<T>::insert(location, ());
+				}
+			}
 		}
 	}
 
