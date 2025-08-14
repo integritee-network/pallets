@@ -172,6 +172,12 @@ fn port_tokens_works() {
 
 		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free, None));
 
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::PortedTokens {
+			who: alice.clone(),
+			amount: alice_free,
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
 		assert_eq!(Balances::free_balance(alice), 0);
 	})
 }
@@ -219,6 +225,12 @@ fn minting_ported_tokens_works() {
 			mint_amount,
 			None
 		));
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::MintedPortedTokens {
+			who: bob.clone(),
+			amount: mint_amount,
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		assert_eq!(Balances::free_balance(&bob), mint_amount);
 	})
@@ -272,6 +284,8 @@ fn minting_ported_tokens_with_forwarding_works() {
 
 #[test]
 fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance() {
+	// We want to test that the `with_transaction` does indeed roll back the state
+	// in case of a failed forward.
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 		let bob = Keyring::Bob.to_account_id();
@@ -285,6 +299,14 @@ fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance(
 			Some(UNSUPPORTED_LOCATION)
 		));
 
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::FailedToForwardTokens {
+			who: bob.clone(),
+			amount: mint_amount,
+			location: UNSUPPORTED_LOCATION,
+		});
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		// Bob's balance should be unchanged as nothing has been forwarded.
 		assert_eq!(Balances::free_balance(&bob), mint_amount);
 	})
 }
