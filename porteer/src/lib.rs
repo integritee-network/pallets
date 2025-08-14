@@ -393,7 +393,7 @@ pub mod pallet {
 				// all storage changes from within the closure.
 				let result = with_transaction(|| -> TransactionOutcome<DispatchResult> {
 					// Keep 2 * ED
-					// Todo: How to properly cater for tx fees?
+					// Todo: How to properly cater for xcm send fees?
 					let forward_amount = amount
 						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
 						.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
