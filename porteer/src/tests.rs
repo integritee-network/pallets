@@ -164,6 +164,101 @@ fn set_xcm_fee_params_works() {
 }
 
 #[test]
+fn add_location_to_whitelist_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+		assert_ok!(Porteer::add_location_to_whitelist(
+			RuntimeOrigin::signed(alice.clone()),
+			location
+		));
+
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::AddedLocationToWhitelist { location });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert!(ForwardLocationWhitelist::<Test>::contains_key(location));
+	})
+}
+
+#[test]
+fn add_location_to_whitelist_errs_with_missing_privileges() {
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+		assert_noop!(
+			Porteer::add_location_to_whitelist(RuntimeOrigin::signed(bob.clone()), location),
+			BadOrigin
+		);
+	})
+}
+
+#[test]
+fn add_location_to_whitelist_errs_with_already_existing_location() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+		ForwardLocationWhitelist::<Test>::insert(location, ());
+
+		assert_noop!(
+			Porteer::add_location_to_whitelist(RuntimeOrigin::signed(alice.clone()), location),
+			Error::<Test>::LocationAlreadyInWhitelist
+		);
+	})
+}
+
+#[test]
+fn remove_location_from_whitelist_works() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+		ForwardLocationWhitelist::<Test>::insert(location, ());
+
+		assert_ok!(Porteer::remove_location_from_whitelist(
+			RuntimeOrigin::signed(alice.clone()),
+			location
+		));
+
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::RemovedLocationFromWhitelist { location });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert!(!ForwardLocationWhitelist::<Test>::contains_key(location));
+	})
+}
+
+#[test]
+fn remove_location_from_whitelist_errs_with_missing_privileges() {
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+		assert_noop!(
+			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(bob.clone()), location),
+			BadOrigin
+		);
+	})
+}
+
+#[test]
+fn remove_location_from_whitelist_errs_with_nonexistent_location() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		let location = SUPPORTED_LOCATION;
+
+		assert_noop!(
+			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(alice.clone()), location),
+			Error::<Test>::LocationNotInWhitelist
+		);
+	})
+}
+
+#[test]
 fn port_tokens_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
