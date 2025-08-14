@@ -50,6 +50,7 @@ pub mod pallet {
 	use crate::weights::WeightInfo;
 	use frame_support::{
 		pallet_prelude::*,
+		storage::{with_transaction, TransactionOutcome},
 		traits::{
 			fungible,
 			tokens::{Fortitude, Precision, Preservation},
@@ -174,6 +175,10 @@ pub mod pallet {
 		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 		/// Minted some tokens ported from another chain!
 		MintedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
+		/// Minted some tokens ported from another chain!
+		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
+		/// Failed to forward the tokens to the final destination.
+		FailedToForwardTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
 	}
 
 	#[pallet::error]
@@ -372,7 +377,6 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
 		) -> DispatchResult {
-			// Todo: Check what is the best practice here
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
 
 			Self::ensure_receiving_tokens_enabled()?;
@@ -384,19 +388,38 @@ pub mod pallet {
 				amount,
 			});
 
-			// Todo: this is actually tricky, we cannot return an error here, otherwise
-			// the minted tokens will be rolled back.
-			// We have to check the XCM-executor implementation here.
 			if let Some(l) = forward_tokens_to_location {
-				T::ForwardPortedTokensToDestinations::forward_ported_tokens(
-					&beneficiary,
-					amount,
-					l,
-				)
-				.map_err(|e| {
-					log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
-					Error::<T>::ForwardTokensError
-				})?;
+				// We nest the forwarding the tokens in a `with_transaction`, which will revert
+				// all storage changes from within the closure.
+				let result = with_transaction(|| -> TransactionOutcome<DispatchResult> {
+					let res = T::ForwardPortedTokensToDestinations::forward_ported_tokens(
+						&beneficiary,
+						amount,
+						l.clone(),
+					)
+					.map_err(|e| {
+						log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
+						Error::<T>::ForwardTokensError
+					});
+
+					match res {
+						Ok(_) => TransactionOutcome::Commit(Ok(())),
+						Err(e) => TransactionOutcome::Rollback(Err(e.into())),
+					}
+				});
+
+				match result {
+					Ok(_) => Self::deposit_event(Event::<T>::ForwardedPortedTokens {
+						who: beneficiary.clone(),
+						amount,
+						location: l,
+					}),
+					Err(_) => Self::deposit_event(Event::<T>::FailedToForwardTokens {
+						who: beneficiary.clone(),
+						amount,
+						location: l,
+					}),
+				}
 			}
 			Ok(())
 		}
