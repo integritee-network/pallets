@@ -16,7 +16,7 @@
 */
 
 // Creating mock runtime here
-use crate::{ForwardPortedTokens, PortTokens, PorteerConfig};
+use crate::{pallet::BenchmarkHelper, ForwardPortedTokens, PortTokens, PorteerConfig};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
@@ -99,6 +99,8 @@ impl crate::Config for Test {
 	type ForwardPortedTokensToDestinations = MockPortTokens;
 	type Location = TestLocation;
 	type Fungible = Balances;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 pub struct MockPortTokens;
@@ -143,6 +145,13 @@ impl ForwardPortedTokens for MockPortTokens {
 		} else {
 			Err(DispatchError::Other("Forbidden"))
 		}
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<TestLocation> for () {
+	fn get_whitelisted_location() -> TestLocation {
+		SUPPORTED_LOCATION
 	}
 }
 

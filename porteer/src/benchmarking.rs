@@ -54,6 +54,22 @@ benchmarks! {
 	verify {
 		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);
 	}
+
+	add_location_to_whitelist {
+		let location = T::BenchmarkHelper::get_whitelisted_location();
+	}: _(RawOrigin::Root, location.clone())
+	verify {
+		assert!(ForwardLocationWhitelist::<T>::contains_key(location));
+	}
+
+	remove_location_from_whitelist {
+		let location = T::BenchmarkHelper::get_whitelisted_location();
+		ForwardLocationWhitelist::<T>::insert(location.clone(), ());
+	}: _(RawOrigin::Root, location.clone())
+	verify {
+		assert!(!ForwardLocationWhitelist::<T>::contains_key(location));
+	}
+
 	port_tokens {
 		let alice: T::AccountId = account("alice", 1, 1);
 		let port_amount: BalanceOf<T> = 4_000_000_000u32.into();

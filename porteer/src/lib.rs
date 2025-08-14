@@ -152,6 +152,14 @@ pub mod pallet {
 
 		/// The bonding balance.
 		type Fungible: fungible::Inspect<AccountIdOf<Self>> + fungible::Mutate<AccountIdOf<Self>>;
+
+		#[cfg(feature = "runtime-benchmarks")]
+		type BenchmarkHelper: BenchmarkHelper<Self::Location>;
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	pub trait BenchmarkHelper<Location> {
+		fn get_whitelisted_location() -> Location;
 	}
 
 	#[pallet::event]
