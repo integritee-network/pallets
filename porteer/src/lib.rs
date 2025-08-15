@@ -48,6 +48,7 @@ pub const LOG_TARGET: &str = "integritee::porteer";
 pub mod pallet {
 	use super::{ForwardPortedTokens, PortTokens, LOG_TARGET};
 	use crate::weights::WeightInfo;
+	use core::fmt::Debug;
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{
@@ -58,7 +59,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_runtime::{traits::MaybeDisplay, Saturating};
-	use std::fmt::Debug;
+	use sp_std::vec::Vec;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
