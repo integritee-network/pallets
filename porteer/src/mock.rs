@@ -16,8 +16,14 @@
 */
 
 // Creating mock runtime here
-use crate::{PortTokens, PorteerConfig};
-use frame_support::{derive_impl, ord_parameter_types, parameter_types, traits::EitherOfDiverse};
+use crate::{pallet::BenchmarkHelper, ForwardPortedTokens, PortTokens, PorteerConfig};
+use frame_support::{
+	derive_impl, ord_parameter_types, parameter_types,
+	traits::{
+		tokens::{Fortitude, Precision, Preservation},
+		EitherOfDiverse,
+	},
+};
 use frame_system as system;
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use sp_core::{crypto::AccountId32, hex2array};
@@ -71,16 +77,32 @@ ord_parameter_types! {
 	pub const Alice: AccountId = AccountId::new(hex2array!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"));
 }
 
+parameter_types! {
+	pub const HeartBeatTimeout: u64 = 2;
+}
+
+pub type TestLocation = u32;
+
+pub const WHITELISTED_LOCATION: TestLocation = 1;
+
+/// This location is whitelisted, but the forwarding will fail in our `MockPortTokens`.
+pub const WHITELISTED_BUT_UNSUPPORTED_LOCATION: TestLocation = 2;
+
 impl crate::Config for Test {
 	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
+	type HeartBeatTimeout = HeartBeatTimeout;
 	// In the parachain setup this will be the Porteer pallet on the origin chain.
 	type TokenSenderLocationOrigin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
 	type PortTokensToDestination = MockPortTokens;
+	type ForwardPortedTokensToDestinations = MockPortTokens;
+	type Location = TestLocation;
 	type Fungible = Balances;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = ();
 }
 
 pub struct MockPortTokens;
@@ -88,10 +110,50 @@ pub struct MockPortTokens;
 impl PortTokens for MockPortTokens {
 	type AccountId = AccountId;
 	type Balance = Balance;
+	type Location = TestLocation;
 	type Error = DispatchError;
 
-	fn port_tokens(_who: &Self::AccountId, _amount: Self::Balance) -> Result<(), Self::Error> {
+	fn port_tokens(
+		_who: &Self::AccountId,
+		_amount: Self::Balance,
+		_forward_tokens_to: Option<Self::Location>,
+	) -> Result<(), Self::Error> {
 		Ok(())
+	}
+}
+
+impl ForwardPortedTokens for MockPortTokens {
+	type AccountId = AccountId;
+	type Balance = Balance;
+	type Location = TestLocation;
+	type Error = DispatchError;
+
+	fn forward_ported_tokens(
+		who: &Self::AccountId,
+		amount: Self::Balance,
+		forward_tokens_to: Self::Location,
+	) -> Result<(), Self::Error> {
+		use frame_support::traits::fungible::Mutate;
+		if forward_tokens_to == WHITELISTED_LOCATION {
+			Balances::burn_from(
+				who,
+				amount,
+				Preservation::Preserve,
+				Precision::Exact,
+				Fortitude::Polite,
+			)
+			.unwrap();
+			Ok(())
+		} else {
+			Err(DispatchError::Other("Forbidden"))
+		}
+	}
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<TestLocation> for () {
+	fn get_whitelisted_location() -> TestLocation {
+		WHITELISTED_LOCATION
 	}
 }
 
@@ -106,6 +168,8 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	crate::GenesisConfig::<Test> {
 		porteer_config: PorteerConfig { send_enabled: true, receive_enabled: true },
+		watchdog: None,
+		initial_location_whitelist: None,
 		_config: Default::default(),
 	}
 	.assimilate_storage(&mut t)

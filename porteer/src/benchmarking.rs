@@ -34,12 +34,48 @@ benchmarks! {
 	verify {
 		assert_eq!(PorteerConfigValue::<T>::get(), config);
 	}
+	set_watchdog {
+		let bob: T::AccountId = account("bob", 1, 1);
+	}: _(RawOrigin::Root, bob.clone())
+	verify {
+		assert_eq!(WatchdogAccount::<T>::get(), Some(bob));
+	}
+	watchdog_heartbeat {
+		let bob: T::AccountId = account("bob", 1, 1);
+		WatchdogAccount::<T>::set(Some(bob.clone()));
+	}: _(RawOrigin::Signed(bob.clone()))
+	verify {
+		let current_block_number = frame_system::Pallet::<T>::block_number();
+		assert_eq!(LastHeartBeat::<T>::get(), current_block_number);
+	}
+	set_xcm_fee_params {
+		let fee_params = XcmFeeParams { hop1: 1u32.into(), hop2: 2u32.into(), hop3: 3u32.into() };
+	}: _(RawOrigin::Root, fee_params)
+	verify {
+		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);
+	}
+
+	add_location_to_whitelist {
+		let location = T::BenchmarkHelper::get_whitelisted_location();
+	}: _(RawOrigin::Root, location.clone())
+	verify {
+		assert!(ForwardLocationWhitelist::<T>::contains_key(location));
+	}
+
+	remove_location_from_whitelist {
+		let location = T::BenchmarkHelper::get_whitelisted_location();
+		ForwardLocationWhitelist::<T>::insert(location.clone(), ());
+	}: _(RawOrigin::Root, location.clone())
+	verify {
+		assert!(!ForwardLocationWhitelist::<T>::contains_key(location));
+	}
+
 	port_tokens {
 		let alice: T::AccountId = account("alice", 1, 1);
 		let port_amount: BalanceOf<T> = 4_000_000_000u32.into();
 		<T::Fungible as fungible::Mutate<_>>::set_balance(&alice, port_amount);
 
-	}: _(RawOrigin::Signed(alice.clone()), port_amount)
+	}: _(RawOrigin::Signed(alice.clone()), port_amount, None)
 	verify {
 		assert_eq!(<T::Fungible as fungible::Inspect<_>>::balance(&alice), 0u32.into());
 	}
@@ -49,7 +85,7 @@ benchmarks! {
 		let mint_amount: BalanceOf<T> = 4_000_000_000u32.into();
 		<T::Fungible as fungible::Mutate<_>>::set_balance(&bob, 0u32.into());
 
-	}: _(RawOrigin::Root, bob.clone(), mint_amount)
+	}: _(RawOrigin::Root, bob.clone(), mint_amount, None)
 	verify {
 		assert_eq!(<T::Fungible as fungible::Inspect<_>>::balance(&bob), mint_amount);
 	}
