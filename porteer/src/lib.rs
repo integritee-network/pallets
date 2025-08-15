@@ -153,7 +153,6 @@ pub mod pallet {
 			+ Member
 			+ MaybeSerializeDeserialize
 			+ Debug
-			+ MaybeDisplay
 			+ Ord
 			+ MaxEncodedLen;
 
