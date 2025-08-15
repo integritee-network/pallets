@@ -58,7 +58,7 @@ pub mod pallet {
 		Deserialize, Serialize,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::{traits::MaybeDisplay, Saturating};
+	use sp_runtime::Saturating;
 	use sp_std::vec::Vec;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
