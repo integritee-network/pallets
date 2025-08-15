@@ -149,12 +149,7 @@ pub mod pallet {
 		>;
 
 		/// The location representation used by this pallet.
-		type Location: Parameter
-			+ Member
-			+ MaybeSerializeDeserialize
-			+ Debug
-			+ Ord
-			+ MaxEncodedLen;
+		type Location: Parameter + Member + MaybeSerializeDeserialize + Debug + Ord + MaxEncodedLen;
 
 		/// The bonding balance.
 		type Fungible: fungible::Inspect<AccountIdOf<Self>> + fungible::Mutate<AccountIdOf<Self>>;
