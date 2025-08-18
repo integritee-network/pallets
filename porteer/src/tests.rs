@@ -1,5 +1,5 @@
 use crate::{mock::*, pallet, BalanceOf, Event as PorteerEvent, *};
-use frame_support::{assert_noop, assert_ok, pallet_prelude::Hooks, traits::Currency};
+use frame_support::{assert_noop, assert_ok, traits::Currency};
 use sp_keyring::Sr25519Keyring as Keyring;
 use sp_runtime::{
 	DispatchError::{BadOrigin, Token},
@@ -70,10 +70,6 @@ fn set_watchdog_errs_when_missing_privileges() {
 
 #[test]
 fn watchdog_heartbeat_works() {
-	// This test tests the whole logic:
-	// 1. Updating the heartbeat timeout works
-	// 2. The bridge stays active within the timeout
-	// 3. The sending side of the bridge is disabled after the timeout is reached.
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 		let bob = Keyring::Bob.to_account_id();
@@ -88,43 +84,6 @@ fn watchdog_heartbeat_works() {
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(LastHeartBeat::<Test>::get(), now);
-
-		// Test that bridge stays enabled for the next block
-		Timestamp::set_timestamp(now + 1);
-		// The block number is ignored in our on_initialize.
-		Porteer::on_initialize(0);
-
-		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
-
-		assert_eq!(
-			PorteerConfigValue::<Test>::get(),
-			PorteerConfig { send_enabled: true, receive_enabled: true }
-		);
-
-		// Test that bridge stays enabled until the HeartbeatTimout
-		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
-		Porteer::on_initialize(0);
-
-		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
-
-		assert_eq!(
-			PorteerConfigValue::<Test>::get(),
-			PorteerConfig { send_enabled: true, receive_enabled: true }
-		);
-
-		// Bridge Send is disabled after HeartbeatTimeout has passed
-		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
-		Porteer::on_initialize(0);
-
-		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(System::events().iter().any(|a| a.event == expected_event));
-
-		assert_eq!(
-			PorteerConfigValue::<Test>::get(),
-			PorteerConfig { send_enabled: false, receive_enabled: true }
-		);
 	})
 }
 
@@ -156,69 +115,6 @@ fn watchdog_heartbeat_errs_with_missing_privileges() {
 }
 
 #[test]
-fn bridge_stays_enabled_at_heartbeat_timeout_threshold() {
-	new_test_ext().execute_with(|| {
-		let now = Timestamp::get();
-		LastHeartBeat::<Test>::set(now);
-		assert_eq!(LastHeartBeat::<Test>::get(), now);
-
-		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
-		// The block number is ignored in our on_initialize
-		Porteer::on_initialize(0);
-
-		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
-
-		assert_eq!(
-			PorteerConfigValue::<Test>::get(),
-			PorteerConfig { send_enabled: true, receive_enabled: true }
-		);
-	})
-}
-
-#[test]
-fn bridge_send_is_disabled_after_timeout_threshold() {
-	new_test_ext().execute_with(|| {
-		let now = Timestamp::get();
-		LastHeartBeat::<Test>::set(now);
-		assert_eq!(LastHeartBeat::<Test>::get(), now);
-
-		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
-		// The block number is ignored in our on_initialize
-		Porteer::on_initialize(0);
-
-		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(System::events().iter().any(|a| a.event == expected_event));
-
-		assert_eq!(
-			PorteerConfigValue::<Test>::get(),
-			PorteerConfig { send_enabled: false, receive_enabled: true }
-		);
-	})
-}
-
-#[test]
-fn bridge_send_disabling_is_noop_if_already_disabled() {
-	new_test_ext().execute_with(|| {
-		let now = Timestamp::get();
-
-		PorteerConfigValue::<Test>::set(PorteerConfig {
-			send_enabled: false,
-			receive_enabled: true,
-		});
-		LastHeartBeat::<Test>::set(now);
-		assert_eq!(LastHeartBeat::<Test>::get(), now);
-
-		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
-		// The block number is ignored in our on_initialize
-		Porteer::on_initialize(0);
-
-		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
-		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
-	})
-}
-
-#[test]
 fn set_xcm_fee_params_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
@@ -239,8 +135,9 @@ fn set_xcm_fee_params_works() {
 	})
 }
 
+
 #[test]
-fn port_tokens_works() {
+fn simple_port_tokens_works() {
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 		let alice_free: BalanceOf<Test> = 15_000_000_000_000u128;
@@ -249,6 +146,65 @@ fn port_tokens_works() {
 		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free));
 
 		assert_eq!(Balances::free_balance(alice), 0);
+	})
+}
+
+#[test]
+fn port_tokens_works_at_timeout_threshold() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let alice_free: BalanceOf<Test> = 15_000_000_000_000u128;
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&alice, alice_free);
+
+		LastHeartBeat::<Test>::set(0);
+		Timestamp::set_timestamp(HeartBeatTimeout::get());
+
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free));
+
+		assert_eq!(Balances::free_balance(alice), 0);
+	})
+}
+
+#[test]
+fn port_tokens_system_test_works() {
+	// This test tests the whole logic:
+	// 1. Updating the heartbeat timeout works.
+	// 2. The sending works withing the heartbeat timeout.
+	// 3. The sending errs after the heartbeat timeout has passed.
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+
+		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), bob.clone()));
+
+		assert_eq!(LastHeartBeat::<Test>::get(), 0);
+		let now = Timestamp::get();
+
+		assert_ok!(Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())));
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+		assert_eq!(LastHeartBeat::<Test>::get(), now);
+
+		// Test that the HeartbeatTimeout works
+
+		let porteering_amount: BalanceOf<Test> = 15_000_000_000_000u128;
+		<Test as Config>::Fungible::make_free_balance_be(&alice, 3 * porteering_amount);
+
+		// Test that bridge stays enabled for the next block
+		Timestamp::set_timestamp(now + 1);
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount));
+
+		// Test that bridge stays enabled until the HeartbeatTimout
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount));
+
+		// Bridge Send is disabled after HeartbeatTimeout has passed
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
+		assert_noop!(
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount),
+			Error::<Test>::WatchdogHeartbeatIsTooOld
+		);
 	})
 }
 
@@ -263,6 +219,21 @@ fn port_tokens_errs_when_sending_disabled() {
 		assert_noop!(
 			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1),
 			Error::<Test>::PorteerOperationDisabled
+		);
+	})
+}
+
+#[test]
+fn port_tokens_errs_when_timeout_reached() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+
+		LastHeartBeat::<Test>::set(0);
+		Timestamp::set_timestamp(HeartBeatTimeout::get() + 1);
+
+		assert_noop!(
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1),
+			Error::<Test>::WatchdogHeartbeatIsTooOld
 		);
 	})
 }

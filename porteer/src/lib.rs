@@ -27,7 +27,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use sp_runtime::Saturating;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 #[cfg(test)]
@@ -36,9 +35,6 @@ mod mock;
 mod tests;
 
 pub mod weights;
-
-use frame_support::pallet_prelude::Get;
-use sp_runtime::Weight;
 
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
@@ -58,6 +54,7 @@ pub mod pallet {
 		Deserialize, Serialize,
 	};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::Saturating;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
@@ -169,6 +166,8 @@ pub mod pallet {
 		InvalidWatchdogAccount,
 		/// And error during initiation of porting the tokens occurred (balances unchanged).
 		PortTokensInitError,
+		/// Watchdog heartbeat is too old. We cannot be sure that the bridge is operable.
+		WatchdogHeartbeatIsTooOld,
 	}
 
 	#[pallet::storage]
@@ -274,6 +273,13 @@ pub mod pallet {
 
 			Self::ensure_sending_tokens_enabled()?;
 
+			let now = pallet_timestamp::Pallet::<T>::get();
+			if LastHeartBeat::<T>::get() <
+				now.saturating_sub(<T as Config>::HeartBeatTimeout::get())
+			{
+				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
+			};
+
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,
 				amount,
@@ -313,13 +319,6 @@ pub mod pallet {
 			Ok(())
 		}
 	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
-			Self::disable_send_if_timeout_reached()
-		}
-	}
 }
 
 pub trait PortTokens {
@@ -333,32 +332,6 @@ pub trait PortTokens {
 }
 
 impl<T: Config> Pallet<T> {
-	fn disable_send_if_timeout_reached() -> Weight {
-		let total_weight: Weight = Weight::zero();
-
-		let now = pallet_timestamp::Pallet::<T>::get();
-		total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
-
-		if LastHeartBeat::<T>::get() < now.saturating_sub(<T as Config>::HeartBeatTimeout::get()) {
-			// read `LastHeartBeat`
-			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
-
-			let mut config = PorteerConfigValue::<T>::get();
-			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
-
-			if config.send_enabled {
-				config.send_enabled = false;
-				PorteerConfigValue::<T>::put(config);
-				Self::deposit_event(Event::<T>::BridgeDisabled);
-
-				// write config, deposit event
-				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().writes(2));
-			}
-		}
-
-		total_weight
-	}
-
 	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {
 		if PorteerConfigValue::<T>::get().send_enabled {
 			Ok(())
