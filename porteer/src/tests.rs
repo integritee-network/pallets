@@ -125,11 +125,16 @@ fn bridge_stays_enabled_at_heartbeat_timeout_threshold() {
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
+
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: true, receive_enabled: true }
+		);
 	})
 }
 
 #[test]
-fn bridge_is_disabled_after_timeout_threshold() {
+fn bridge_send_is_disabled_after_timeout_threshold() {
 	new_test_ext().execute_with(|| {
 		let current_block = System::block_number();
 		LastHeartBeat::<Test>::set(current_block);
@@ -139,6 +144,30 @@ fn bridge_is_disabled_after_timeout_threshold() {
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: false, receive_enabled: true }
+		);
+	})
+}
+
+#[test]
+fn bridge_send_disabling_is_noop_if_already_disabled() {
+	new_test_ext().execute_with(|| {
+		let current_block = System::block_number();
+
+		PorteerConfigValue::<Test>::set(PorteerConfig {
+			send_enabled: false,
+			receive_enabled: true,
+		});
+		LastHeartBeat::<Test>::set(current_block);
+		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+
+		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
 	})
 }
 

@@ -27,6 +27,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use sp_runtime::Saturating;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 #[cfg(test)]
@@ -37,6 +38,7 @@ mod tests;
 pub mod weights;
 
 use frame_support::pallet_prelude::Get;
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::Weight;
 
 pub use crate::weights::WeightInfo;
@@ -57,7 +59,6 @@ pub mod pallet {
 		Deserialize, Serialize,
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::Saturating;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
@@ -317,15 +318,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			let total_weight: Weight = Weight::zero();
-			if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get())
-			{
-				// read `LastHeartBeat`
-				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
-				total_weight.saturating_add(Self::disable_bridge());
-			}
-
-			total_weight
+			Self::disable_send_if_timeout_reached(n)
 		}
 	}
 }
@@ -341,10 +334,26 @@ pub trait PortTokens {
 }
 
 impl<T: Config> Pallet<T> {
-	fn disable_bridge() -> Weight {
-		PorteerConfigValue::<T>::put(PorteerConfig { send_enabled: false, receive_enabled: false });
-		Self::deposit_event(Event::<T>::BridgeDisabled);
-		<T as frame_system::Config>::DbWeight::get().writes(2)
+	fn disable_send_if_timeout_reached(n: BlockNumberFor<T>) -> Weight {
+		let total_weight: Weight = Weight::zero();
+		if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get()) {
+			// read `LastHeartBeat`
+			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
+
+			let mut config = PorteerConfigValue::<T>::get();
+			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
+
+			if config.send_enabled {
+				config.send_enabled = false;
+				PorteerConfigValue::<T>::put(config);
+				Self::deposit_event(Event::<T>::BridgeDisabled);
+
+				// write config, deposit event
+				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().writes(2));
+			}
+		}
+
+		total_weight
 	}
 
 	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {
