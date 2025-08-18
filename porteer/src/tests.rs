@@ -81,16 +81,18 @@ fn watchdog_heartbeat_works() {
 		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), bob.clone()));
 
 		assert_eq!(LastHeartBeat::<Test>::get(), 0);
-		let current_block = System::block_number();
+		let now = Timestamp::get();
 
 		assert_ok!(Porteer::watchdog_heartbeat(RuntimeOrigin::signed(bob.clone())));
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
-		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+		assert_eq!(LastHeartBeat::<Test>::get(), now);
 
 		// Test that bridge stays enabled for the next block
-		Porteer::on_initialize(current_block + 1);
+		Timestamp::set_timestamp(now + 1);
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
@@ -101,7 +103,9 @@ fn watchdog_heartbeat_works() {
 		);
 
 		// Test that bridge stays enabled until the HeartbeatTimout
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
@@ -112,7 +116,9 @@ fn watchdog_heartbeat_works() {
 		);
 
 		// Bridge Send is disabled after HeartbeatTimeout has passed
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -154,11 +160,13 @@ fn watchdog_heartbeat_errs_with_missing_privileges() {
 #[test]
 fn bridge_stays_enabled_at_heartbeat_timeout_threshold() {
 	new_test_ext().execute_with(|| {
-		let current_block = System::block_number();
-		LastHeartBeat::<Test>::set(current_block);
-		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+		let now = Timestamp::get();
+		LastHeartBeat::<Test>::set(now);
+		assert_eq!(LastHeartBeat::<Test>::get(), now);
 
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
@@ -173,11 +181,13 @@ fn bridge_stays_enabled_at_heartbeat_timeout_threshold() {
 #[test]
 fn bridge_send_is_disabled_after_timeout_threshold() {
 	new_test_ext().execute_with(|| {
-		let current_block = System::block_number();
-		LastHeartBeat::<Test>::set(current_block);
-		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+		let now = Timestamp::get();
+		LastHeartBeat::<Test>::set(now);
+		assert_eq!(LastHeartBeat::<Test>::get(), now);
 
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
@@ -192,16 +202,18 @@ fn bridge_send_is_disabled_after_timeout_threshold() {
 #[test]
 fn bridge_send_disabling_is_noop_if_already_disabled() {
 	new_test_ext().execute_with(|| {
-		let current_block = System::block_number();
+		let now = Timestamp::get();
 
 		PorteerConfigValue::<Test>::set(PorteerConfig {
 			send_enabled: false,
 			receive_enabled: true,
 		});
-		LastHeartBeat::<Test>::set(current_block);
-		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+		LastHeartBeat::<Test>::set(now);
+		assert_eq!(LastHeartBeat::<Test>::get(), now);
 
-		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
+		// The block number is ignored in our on_initialize
+		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
 		assert!(!System::events().iter().any(|a| a.event == unexpected_event));

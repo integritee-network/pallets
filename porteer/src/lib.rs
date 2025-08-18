@@ -38,7 +38,6 @@ mod tests;
 pub mod weights;
 
 use frame_support::pallet_prelude::Get;
-use frame_system::pallet_prelude::BlockNumberFor;
 use sp_runtime::Weight;
 
 pub use crate::weights::WeightInfo;
@@ -118,7 +117,7 @@ pub mod pallet {
 
 	/// Configuration trait.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 
@@ -126,7 +125,7 @@ pub mod pallet {
 		type PorteerAdmin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// The bridge will be disabled if: LastHeartBeat < CurrentBlockNumber - HeartBeatTimeout
-		type HeartBeatTimeout: Get<BlockNumberFor<Self>>;
+		type HeartBeatTimeout: Get<Self::Moment>;
 
 		/// Will be (Integritee Kusama, PalletIndex(PorteerIndex)) on Integritee Polkadot
 		/// and possibly `NeverEnsureOrigin` on Integritee Kusama.
@@ -181,7 +180,7 @@ pub mod pallet {
 
 	/// The block number at which the last heartbeat was received.
 	#[pallet::storage]
-	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
 
 	/// Entails the amount of fees need at the respective hops.
 	#[pallet::storage]
@@ -244,7 +243,7 @@ pub mod pallet {
 			let watchdog = WatchdogAccount::<T>::get().ok_or(Error::<T>::InvalidWatchdogAccount)?;
 			ensure!(signer == watchdog, Error::<T>::InvalidWatchdogAccount);
 
-			LastHeartBeat::<T>::put(frame_system::Pallet::<T>::block_number());
+			LastHeartBeat::<T>::put(pallet_timestamp::Pallet::<T>::get());
 
 			Self::deposit_event(Event::<T>::WatchdogHeartBeatReceived);
 			Ok(Pays::No.into())
@@ -317,8 +316,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			Self::disable_send_if_timeout_reached(n)
+		fn on_initialize(_: BlockNumberFor<T>) -> Weight {
+			Self::disable_send_if_timeout_reached()
 		}
 	}
 }
@@ -334,11 +333,13 @@ pub trait PortTokens {
 }
 
 impl<T: Config> Pallet<T> {
-	fn disable_send_if_timeout_reached(n: BlockNumberFor<T>) -> Weight {
+	fn disable_send_if_timeout_reached() -> Weight {
 		let total_weight: Weight = Weight::zero();
-		if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get()) {
-			// read `LastHeartBeat`
-			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
+
+		let now = pallet_timestamp::Pallet::<T>::get();
+		if LastHeartBeat::<T>::get() < now.saturating_sub(<T as Config>::HeartBeatTimeout::get()) {
+			// read `LastHeartBeat`, Timestamp
+			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(2));
 
 			let mut config = PorteerConfigValue::<T>::get();
 			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));

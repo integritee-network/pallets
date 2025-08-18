@@ -38,6 +38,7 @@ frame_support::construct_runtime!(
 	pub enum Test
 	{
 		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Porteer: crate::{Pallet, Call, Storage, Event<T>},
 	}
@@ -54,6 +55,9 @@ impl frame_system::Config for Test {
 	type AccountId = AccountId;
 	type AccountData = pallet_balances::AccountData<Balance>;
 }
+
+#[derive_impl(pallet_timestamp::config_preludes::TestDefaultConfig as pallet_timestamp::DefaultConfig)]
+impl pallet_timestamp::Config for Test {}
 
 pub type Balance = u128;
 
