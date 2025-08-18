@@ -138,18 +138,30 @@ impl ForwardPortedTokens for MockPortTokens {
 		forward_tokens_to: Self::Location,
 	) -> Result<(), Self::Error> {
 		use frame_support::traits::fungible::Mutate;
-		if forward_tokens_to == WHITELISTED_LOCATION {
-			Balances::burn_from(
-				who,
-				amount,
-				Preservation::Preserve,
-				Precision::Exact,
-				Fortitude::Polite,
-			)
-			.unwrap();
-			Ok(())
-		} else {
-			Err(DispatchError::Other("Forbidden"))
+		match forward_tokens_to {
+			WHITELISTED_LOCATION => {
+				Balances::burn_from(
+					who,
+					amount,
+					Preservation::Preserve,
+					Precision::Exact,
+					Fortitude::Polite,
+				)
+				.unwrap();
+				Ok(())
+			},
+			WHITELISTED_BUT_UNSUPPORTED_LOCATION => {
+				// Burn the balance to test that the rollback works
+				Balances::burn_from(
+					who,
+					amount,
+					Preservation::Preserve,
+					Precision::Exact,
+					Fortitude::Polite,
+				)?;
+				Err(DispatchError::Other("Whitelisted but unsupported location"))
+			},
+			_ => Err(DispatchError::Other("Forbidden")),
 		}
 	}
 }
