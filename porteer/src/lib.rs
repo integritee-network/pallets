@@ -337,9 +337,11 @@ impl<T: Config> Pallet<T> {
 		let total_weight: Weight = Weight::zero();
 
 		let now = pallet_timestamp::Pallet::<T>::get();
+		total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
+
 		if LastHeartBeat::<T>::get() < now.saturating_sub(<T as Config>::HeartBeatTimeout::get()) {
-			// read `LastHeartBeat`, Timestamp
-			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(2));
+			// read `LastHeartBeat`
+			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
 
 			let mut config = PorteerConfigValue::<T>::get();
 			total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
