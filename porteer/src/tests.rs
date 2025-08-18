@@ -463,7 +463,7 @@ fn minting_ported_tokens_with_forwarding_non_whitelisted_location_preserves_bala
 }
 
 #[test]
-fn minting_ported_tokens_with_forwarding_unsupported_location_preserves_balance() {
+fn minting_ported_tokens_with_forwarding_to_unsupported_location_preserves_balance() {
 	// We want to test that the `#[transactional]` does indeed roll back the state
 	// in case of a failed forward.
 	new_test_ext().execute_with(|| {
