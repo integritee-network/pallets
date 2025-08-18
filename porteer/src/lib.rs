@@ -124,7 +124,7 @@ pub mod pallet {
 		/// Can enable/disable the bridge, e.g. council/technical committee.
 		type PorteerAdmin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// The bridge will be disabled if: LastHeartBeat < CurrentBlockNumber - HeartBeatTimeout
+		/// The bridge will be disabled if: LastHeartBeat < Now - HeartBeatTimeout
 		type HeartBeatTimeout: Get<Self::Moment>;
 
 		/// Will be (Integritee Kusama, PalletIndex(PorteerIndex)) on Integritee Polkadot
