@@ -34,6 +34,26 @@ benchmarks! {
 	verify {
 		assert_eq!(PorteerConfigValue::<T>::get(), config);
 	}
+	set_watchdog {
+		let bob: T::AccountId = account("bob", 1, 1);
+	}: _(RawOrigin::Root, bob.clone())
+	verify {
+		assert_eq!(WatchdogAccount::<T>::get(), Some(bob));
+	}
+	watchdog_heartbeat {
+		let bob: T::AccountId = account("bob", 1, 1);
+		WatchdogAccount::<T>::set(Some(bob.clone()));
+	}: _(RawOrigin::Signed(bob.clone()))
+	verify {
+		let now = pallet_timestamp::Pallet::<T>::get();
+		assert_eq!(LastHeartBeat::<T>::get(), now);
+	}
+	set_xcm_fee_params {
+		let fee_params = XcmFeeParams { hop1: 1u32.into(), hop2: 2u32.into(), hop3: 3u32.into() };
+	}: _(RawOrigin::Root, fee_params)
+	verify {
+		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);
+	}
 	port_tokens {
 		let alice: T::AccountId = account("alice", 1, 1);
 		let port_amount: BalanceOf<T> = 4_000_000_000u32.into();

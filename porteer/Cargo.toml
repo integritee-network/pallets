@@ -23,6 +23,7 @@ substrate-fixed = { workspace = true }
 # substrate
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+pallet-timestamp = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-runtime = { workspace = true }
@@ -32,7 +33,6 @@ sp-std = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 pallet-aura = { workspace = true, optional = true }
-pallet-timestamp = { workspace = true, optional = true }
 sp-consensus-aura = { workspace = true, optional = true }
 test-utils = { default-features = false, path = "../test-utils", optional = true }
 
@@ -66,7 +66,7 @@ std = [
     "substrate-fixed/std",
     "pallet-aura?/std",
     "pallet-balances/std",
-    "pallet-timestamp?/std",
+    "pallet-timestamp/std",
     "sp-externalities/std",
     "sp-keyring/std",
 ]
@@ -88,6 +88,6 @@ try-runtime = [
     "frame-system/try-runtime",
     "pallet-aura?/try-runtime",
     "pallet-balances/try-runtime",
-    "pallet-timestamp?/try-runtime",
+    "pallet-timestamp/try-runtime",
     "sp-runtime/try-runtime",
 ]

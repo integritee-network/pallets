@@ -54,6 +54,7 @@ pub mod pallet {
 		Deserialize, Serialize,
 	};
 	use frame_system::pallet_prelude::*;
+	use sp_runtime::Saturating;
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
@@ -85,14 +86,43 @@ pub mod pallet {
 		pub receive_enabled: bool,
 	}
 
+	#[derive(
+		Debug,
+		Default,
+		Serialize,
+		Deserialize,
+		Encode,
+		Decode,
+		DecodeWithMemTracking,
+		Copy,
+		Clone,
+		PartialEq,
+		Eq,
+		PartialOrd,
+		Ord,
+		TypeInfo,
+	)]
+	/// XCM fees to be paid at the respective hops. Which is either:
+	/// 1. AHK -> AHP -> IP
+	/// or
+	/// 2. AHP -> AHK -> IK
+	pub struct XcmFeeParams<Balance> {
+		pub hop1: Balance,
+		pub hop2: Balance,
+		pub hop3: Balance,
+	}
+
 	/// Configuration trait.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 
 		/// Can enable/disable the bridge, e.g. council/technical committee.
 		type PorteerAdmin: EnsureOrigin<Self::RuntimeOrigin>;
+
+		/// Porteering tokens will fail (balances unchanged) if: LastHeartBeat < Now - HeartBeatTimeout
+		type HeartBeatTimeout: Get<Self::Moment>;
 
 		/// Will be (Integritee Kusama, PalletIndex(PorteerIndex)) on Integritee Polkadot
 		/// and possibly `NeverEnsureOrigin` on Integritee Kusama.
@@ -112,8 +142,16 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// An account's bond has been increased by an amount
+		/// An account's bond has been increased by an amount.
 		PorteerConfigSet { value: PorteerConfig },
+		/// A new watchdog account has been set.
+		WatchdogSet { account: AccountIdOf<T> },
+		/// The watchdog has signalled that dry-running the bridge worked.
+		WatchdogHeartBeatReceived,
+		/// The bridge has been disabled due to a heartbeat timeout
+		BridgeDisabled,
+		/// The XcmFeeConfig has been set.
+		XcmFeeConfigSet { fees: XcmFeeParams<BalanceOf<T>> },
 		/// Ported some tokens to the destination chain.
 		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 		/// Minted some tokens ported from another chain!
@@ -124,12 +162,29 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// The attempted operation was disabled.
 		PorteerOperationDisabled,
+		/// Invalid Watchdog Account
+		InvalidWatchdogAccount,
 		/// And error during initiation of porting the tokens occurred (balances unchanged).
 		PortTokensInitError,
+		/// Watchdog heartbeat is too old. We cannot be sure that the bridge is operable.
+		WatchdogHeartbeatIsTooOld,
 	}
 
 	#[pallet::storage]
 	pub(super) type PorteerConfigValue<T: Config> = StorageValue<_, PorteerConfig, ValueQuery>;
+
+	/// The Watchdog will send frequent heartbeats signaling that the bridge is still operable.
+	#[pallet::storage]
+	pub(super) type WatchdogAccount<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
+
+	/// The block number at which the last heartbeat was received.
+	#[pallet::storage]
+	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
+
+	/// Entails the amount of fees needed at the respective hops.
+	#[pallet::storage]
+	pub(super) type XcmFeeConfig<T: Config> =
+		StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
@@ -149,6 +204,8 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Sets the new PorteerConfig.
+		///
+		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(0)]
 		#[pallet::weight(< T as Config >::WeightInfo::set_porteer_config())]
 		pub fn set_porteer_config(origin: OriginFor<T>, config: PorteerConfig) -> DispatchResult {
@@ -160,13 +217,68 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`
+		/// Sets the new watchdog account.
+		///
+		/// Can only be called by the `PorteerAdmin`.
 		#[pallet::call_index(1)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_watchdog())]
+		pub fn set_watchdog(origin: OriginFor<T>, account: AccountIdOf<T>) -> DispatchResult {
+			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
+
+			WatchdogAccount::<T>::put(&account);
+
+			Self::deposit_event(Event::<T>::WatchdogSet { account });
+			Ok(())
+		}
+
+		/// Signals that the bridge is still operable aka that a dryrun works.
+		///
+		/// Can only be called by the `WatchdogAccount`.
+		#[pallet::call_index(2)]
+		#[pallet::weight(<T as Config>::WeightInfo::watchdog_heartbeat())]
+		pub fn watchdog_heartbeat(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			let signer = ensure_signed(origin)?;
+
+			let watchdog = WatchdogAccount::<T>::get().ok_or(Error::<T>::InvalidWatchdogAccount)?;
+			ensure!(signer == watchdog, Error::<T>::InvalidWatchdogAccount);
+
+			LastHeartBeat::<T>::put(pallet_timestamp::Pallet::<T>::get());
+
+			Self::deposit_event(Event::<T>::WatchdogHeartBeatReceived);
+			Ok(Pays::No.into())
+		}
+
+		/// Sets the `XcmFeeConfig` to keep the bridge working.
+		///
+		/// Can only be called by the `PorteerAdmin`.
+		#[pallet::call_index(3)]
+		#[pallet::weight(< T as Config >::WeightInfo::set_xcm_fee_params())]
+		pub fn set_xcm_fee_params(
+			origin: OriginFor<T>,
+			fees: XcmFeeParams<BalanceOf<T>>,
+		) -> DispatchResult {
+			let _signer = T::PorteerAdmin::ensure_origin(origin)?;
+
+			XcmFeeConfig::<T>::put(fees);
+
+			Self::deposit_event(Event::<T>::XcmFeeConfigSet { fees });
+			Ok(())
+		}
+
+		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`
+		#[pallet::call_index(4)]
 		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
 		pub fn port_tokens(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 
 			Self::ensure_sending_tokens_enabled()?;
+
+			let now = pallet_timestamp::Pallet::<T>::get();
+			if LastHeartBeat::<T>::get() <
+				now.saturating_sub(<T as Config>::HeartBeatTimeout::get())
+			{
+				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
+			};
 
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,
@@ -189,7 +301,7 @@ pub mod pallet {
 		/// burned on the other chain.
 		///
 		/// Can only be called from the `TokenSenderOriginLocation`.
-		#[pallet::call_index(2)]
+		#[pallet::call_index(5)]
 		#[pallet::weight(< T as Config >::WeightInfo::mint_ported_tokens())]
 		pub fn mint_ported_tokens(
 			origin: OriginFor<T>,
