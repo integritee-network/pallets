@@ -76,7 +76,7 @@ ord_parameter_types! {
 }
 
 parameter_types! {
-	pub const HeartBeatTimeout: u64 = 2;
+	pub const HeartBeatTimeout: u64 = 10;
 }
 
 impl crate::Config for Test {
