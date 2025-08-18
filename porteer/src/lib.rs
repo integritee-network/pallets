@@ -184,7 +184,7 @@ pub mod pallet {
 		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 		/// Minted some tokens ported from another chain!
 		MintedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
-		/// Minted some tokens ported from another chain!
+		/// Forwarded some minted tokens to another location.
 		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
 		/// Failed to forward the tokens to the final destination.
 		FailedToForwardTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
@@ -359,8 +359,8 @@ pub mod pallet {
 
 		/// Burns and then sends tokens to the destination as implemented by the `SendTokensToDestination`.
 		///
-		/// Optionally, the tokens can be forwarded to another location withing the target consensus system.
-		/// This could be the Asset Hub or Hydration.
+		/// Optionally, the tokens can be forwarded to another location like Asset Hub or Hydration, and
+		/// in the future even Ethereum.
 		#[pallet::call_index(6)]
 		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
 		pub fn port_tokens(
@@ -491,8 +491,10 @@ impl<T: Config> Pallet<T> {
 		amount: BalanceOf<T>,
 		location: T::Location,
 	) -> Result<(), DispatchError> {
-		// Keep 2 * ED
-		// Todo: How to properly cater for xcm send fees?
+		// Hack: Keep 2 * ED as our unit test mock just burns the balance and we want the account
+		// to survive (do we actually?).
+		// Todo: How to properly cater for xcm delivery fees? I guess they should be paid by the 
+		// beneficiary.
 		let forward_amount = amount
 			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
 			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
