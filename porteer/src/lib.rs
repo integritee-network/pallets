@@ -36,8 +36,8 @@ mod tests;
 
 pub mod weights;
 
-use frame_support::{pallet_prelude::Get, traits::fungible, transactional};
-use sp_runtime::{DispatchError, Saturating, Weight};
+use frame_support::{traits::fungible, transactional};
+use sp_runtime::{DispatchError, Saturating};
 
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
@@ -222,14 +222,14 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type WatchdogAccount<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
 
-    /// The block number at which the last heartbeat was received.
-    #[pallet::storage]
-    pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
+	/// The block number at which the last heartbeat was received.
+	#[pallet::storage]
+	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
 
-    /// Entails the amount of fees needed at the respective hops.
-    #[pallet::storage]
-    pub(super) type XcmFeeConfig<T: Config> =
-    StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;
+	/// Entails the amount of fees needed at the respective hops.
+	#[pallet::storage]
+	pub(super) type XcmFeeConfig<T: Config> =
+		StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
@@ -334,7 +334,7 @@ pub mod pallet {
 			let watchdog = WatchdogAccount::<T>::get().ok_or(Error::<T>::InvalidWatchdogAccount)?;
 			ensure!(signer == watchdog, Error::<T>::InvalidWatchdogAccount);
 
-            LastHeartBeat::<T>::put(pallet_timestamp::Pallet::<T>::get());
+			LastHeartBeat::<T>::put(pallet_timestamp::Pallet::<T>::get());
 
 			Self::deposit_event(Event::<T>::WatchdogHeartBeatReceived);
 			Ok(Pays::No.into())
@@ -506,12 +506,6 @@ impl<T: Config> Pallet<T> {
 			log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
 			Error::<T>::ForwardTokensError.into()
 		})
-	}
-
-	fn disable_bridge() -> Weight {
-		PorteerConfigValue::<T>::put(PorteerConfig { send_enabled: false, receive_enabled: false });
-		Self::deposit_event(Event::<T>::BridgeDisabled);
-		<T as frame_system::Config>::DbWeight::get().writes(2)
 	}
 
 	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {

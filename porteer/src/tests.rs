@@ -135,100 +135,99 @@ fn set_xcm_fee_params_works() {
 	})
 }
 
-
 #[test]
 fn add_location_to_whitelist_works() {
-    new_test_ext().execute_with(|| {
-        let alice = Keyring::Alice.to_account_id();
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
-        assert_ok!(Porteer::add_location_to_whitelist(
+		let location = WHITELISTED_LOCATION;
+		assert_ok!(Porteer::add_location_to_whitelist(
 			RuntimeOrigin::signed(alice.clone()),
 			location
 		));
 
-        let expected_event =
-            RuntimeEvent::Porteer(PorteerEvent::AddedLocationToWhitelist { location });
-        assert!(System::events().iter().any(|a| a.event == expected_event));
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::AddedLocationToWhitelist { location });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 
-        assert!(ForwardLocationWhitelist::<Test>::contains_key(location));
-    })
+		assert!(ForwardLocationWhitelist::<Test>::contains_key(location));
+	})
 }
 
 #[test]
 fn add_location_to_whitelist_errs_with_missing_privileges() {
-    new_test_ext().execute_with(|| {
-        let bob = Keyring::Bob.to_account_id();
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
-        assert_noop!(
+		let location = WHITELISTED_LOCATION;
+		assert_noop!(
 			Porteer::add_location_to_whitelist(RuntimeOrigin::signed(bob.clone()), location),
 			BadOrigin
 		);
-    })
+	})
 }
 
 #[test]
 fn add_location_to_whitelist_errs_with_already_existing_location() {
-    new_test_ext().execute_with(|| {
-        let alice = Keyring::Alice.to_account_id();
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
-        ForwardLocationWhitelist::<Test>::insert(location, ());
+		let location = WHITELISTED_LOCATION;
+		ForwardLocationWhitelist::<Test>::insert(location, ());
 
-        assert_noop!(
+		assert_noop!(
 			Porteer::add_location_to_whitelist(RuntimeOrigin::signed(alice.clone()), location),
 			Error::<Test>::LocationAlreadyInWhitelist
 		);
-    })
+	})
 }
 
 #[test]
 fn remove_location_from_whitelist_works() {
-    new_test_ext().execute_with(|| {
-        let alice = Keyring::Alice.to_account_id();
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
-        ForwardLocationWhitelist::<Test>::insert(location, ());
+		let location = WHITELISTED_LOCATION;
+		ForwardLocationWhitelist::<Test>::insert(location, ());
 
-        assert_ok!(Porteer::remove_location_from_whitelist(
+		assert_ok!(Porteer::remove_location_from_whitelist(
 			RuntimeOrigin::signed(alice.clone()),
 			location
 		));
 
-        let expected_event =
-            RuntimeEvent::Porteer(PorteerEvent::RemovedLocationFromWhitelist { location });
-        assert!(System::events().iter().any(|a| a.event == expected_event));
+		let expected_event =
+			RuntimeEvent::Porteer(PorteerEvent::RemovedLocationFromWhitelist { location });
+		assert!(System::events().iter().any(|a| a.event == expected_event));
 
-        assert!(!ForwardLocationWhitelist::<Test>::contains_key(location));
-    })
+		assert!(!ForwardLocationWhitelist::<Test>::contains_key(location));
+	})
 }
 
 #[test]
 fn remove_location_from_whitelist_errs_with_missing_privileges() {
-    new_test_ext().execute_with(|| {
-        let bob = Keyring::Bob.to_account_id();
+	new_test_ext().execute_with(|| {
+		let bob = Keyring::Bob.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
-        assert_noop!(
+		let location = WHITELISTED_LOCATION;
+		assert_noop!(
 			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(bob.clone()), location),
 			BadOrigin
 		);
-    })
+	})
 }
 
 #[test]
 fn remove_location_from_whitelist_errs_with_nonexistent_location() {
-    new_test_ext().execute_with(|| {
-        let alice = Keyring::Alice.to_account_id();
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
 
-        let location = WHITELISTED_LOCATION;
+		let location = WHITELISTED_LOCATION;
 
-        assert_noop!(
+		assert_noop!(
 			Porteer::remove_location_from_whitelist(RuntimeOrigin::signed(alice.clone()), location),
 			Error::<Test>::LocationNotInWhitelist
 		);
-    })
+	})
 }
 
 #[test]
@@ -238,7 +237,7 @@ fn simple_port_tokens_works() {
 		let alice_free: BalanceOf<Test> = 15_000_000_000_000u128;
 		<Test as pallet::Config>::Fungible::make_free_balance_be(&alice, alice_free);
 
-		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free));
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free, None));
 
 		assert_eq!(Balances::free_balance(alice), 0);
 	})
@@ -254,7 +253,7 @@ fn port_tokens_works_at_timeout_threshold() {
 		LastHeartBeat::<Test>::set(0);
 		Timestamp::set_timestamp(HeartBeatTimeout::get());
 
-		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free));
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), alice_free, None));
 
 		assert_eq!(Balances::free_balance(alice), 0);
 	})
@@ -288,16 +287,24 @@ fn port_tokens_system_test_works() {
 
 		// Test that bridge stays enabled for the next block
 		Timestamp::set_timestamp(now + 1);
-		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount));
+		assert_ok!(Porteer::port_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			porteering_amount,
+			None
+		));
 
 		// Test that bridge stays enabled until the HeartbeatTimout
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
-		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount));
+		assert_ok!(Porteer::port_tokens(
+			RuntimeOrigin::signed(alice.clone()),
+			porteering_amount,
+			None
+		));
 
 		// Bridge Send is disabled after HeartbeatTimeout has passed
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
 		assert_noop!(
-			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount),
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount, None),
 			Error::<Test>::WatchdogHeartbeatIsTooOld
 		);
 	})
@@ -327,7 +334,7 @@ fn port_tokens_errs_when_timeout_reached() {
 		Timestamp::set_timestamp(HeartBeatTimeout::get() + 1);
 
 		assert_noop!(
-			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1),
+			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), 1, None),
 			Error::<Test>::WatchdogHeartbeatIsTooOld
 		);
 	})
