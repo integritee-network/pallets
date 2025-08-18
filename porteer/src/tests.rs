@@ -70,6 +70,10 @@ fn set_watchdog_errs_when_missing_privileges() {
 
 #[test]
 fn watchdog_heartbeat_works() {
+	// This test tests the whole logic:
+	// 1. Updating the heartbeat timeout works
+	// 2. The bridge stays active within the timeout
+	// 3. The sending side of the bridge is disabled after the timeout is reached.
 	new_test_ext().execute_with(|| {
 		let alice = Keyring::Alice.to_account_id();
 		let bob = Keyring::Bob.to_account_id();
@@ -84,6 +88,39 @@ fn watchdog_heartbeat_works() {
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::WatchdogHeartBeatReceived);
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 		assert_eq!(LastHeartBeat::<Test>::get(), current_block);
+
+		// Test that bridge stays enabled for the next block
+		Porteer::on_initialize(current_block + 1);
+
+		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
+
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: true, receive_enabled: true }
+		);
+
+		// Test that bridge stays enabled until the HeartbeatTimout
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get());
+
+		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(!System::events().iter().any(|a| a.event == unexpected_event));
+
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: true, receive_enabled: true }
+		);
+
+		// Bridge Send is disabled after HeartbeatTimeout has passed
+		Porteer::on_initialize(current_block + HeartBeatTimeout::get() + 1);
+
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
+		assert!(System::events().iter().any(|a| a.event == expected_event));
+
+		assert_eq!(
+			PorteerConfigValue::<Test>::get(),
+			PorteerConfig { send_enabled: false, receive_enabled: true }
+		);
 	})
 }
 
