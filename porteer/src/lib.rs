@@ -182,7 +182,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
 
-	/// Entails the amount of fees need at the respective hops.
+	/// Entails the amount of fees needed at the respective hops.
 	#[pallet::storage]
 	pub(super) type XcmFeeConfig<T: Config> =
 		StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;

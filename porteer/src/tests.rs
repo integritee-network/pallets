@@ -91,7 +91,7 @@ fn watchdog_heartbeat_works() {
 
 		// Test that bridge stays enabled for the next block
 		Timestamp::set_timestamp(now + 1);
-		// The block number is ignored in our on_initialize
+		// The block number is ignored in our on_initialize.
 		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
@@ -104,7 +104,6 @@ fn watchdog_heartbeat_works() {
 
 		// Test that bridge stays enabled until the HeartbeatTimout
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
-		// The block number is ignored in our on_initialize
 		Porteer::on_initialize(0);
 
 		let unexpected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
@@ -117,7 +116,6 @@ fn watchdog_heartbeat_works() {
 
 		// Bridge Send is disabled after HeartbeatTimeout has passed
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
-		// The block number is ignored in our on_initialize
 		Porteer::on_initialize(0);
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::BridgeDisabled);
