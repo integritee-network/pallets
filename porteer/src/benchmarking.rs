@@ -54,7 +54,7 @@ benchmarks! {
 	verify {
 		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);
 	}
-    add_location_to_whitelist {
+	add_location_to_whitelist {
 		let location = T::BenchmarkHelper::get_whitelisted_location();
 	}: _(RawOrigin::Root, location.clone())
 	verify {

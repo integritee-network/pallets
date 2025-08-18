@@ -493,7 +493,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), DispatchError> {
 		// Hack: Keep 2 * ED as our unit test mock just burns the balance and we want the account
 		// to survive (do we actually?).
-		// Todo: How to properly cater for xcm delivery fees? I guess they should be paid by the 
+		// Todo: How to properly cater for xcm delivery fees? I guess they should be paid by the
 		// beneficiary.
 		let forward_amount = amount
 			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
