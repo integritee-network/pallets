@@ -45,8 +45,8 @@ benchmarks! {
 		WatchdogAccount::<T>::set(Some(bob.clone()));
 	}: _(RawOrigin::Signed(bob.clone()))
 	verify {
-		let current_block_number = frame_system::Pallet::<T>::block_number();
-		assert_eq!(LastHeartBeat::<T>::get(), current_block_number);
+		let now = pallet_timestamp::Pallet::<T>::get();
+		assert_eq!(LastHeartBeat::<T>::get(), now);
 	}
 	set_xcm_fee_params {
 		let fee_params = XcmFeeParams { hop1: 1u32.into(), hop2: 2u32.into(), hop3: 3u32.into() };
@@ -54,8 +54,7 @@ benchmarks! {
 	verify {
 		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);
 	}
-
-	add_location_to_whitelist {
+    add_location_to_whitelist {
 		let location = T::BenchmarkHelper::get_whitelisted_location();
 	}: _(RawOrigin::Root, location.clone())
 	verify {
@@ -69,7 +68,6 @@ benchmarks! {
 	verify {
 		assert!(!ForwardLocationWhitelist::<T>::contains_key(location));
 	}
-
 	port_tokens {
 		let alice: T::AccountId = account("alice", 1, 1);
 		let port_amount: BalanceOf<T> = 4_000_000_000u32.into();

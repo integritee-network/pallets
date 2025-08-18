@@ -119,15 +119,15 @@ pub mod pallet {
 
 	/// Configuration trait.
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config: frame_system::Config + pallet_timestamp::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 
 		/// Can enable/disable the bridge, e.g. council/technical committee.
 		type PorteerAdmin: EnsureOrigin<Self::RuntimeOrigin>;
 
-		/// The bridge will be disabled if: LastHeartBeat < CurrentBlockNumber - HeartBeatTimeout
-		type HeartBeatTimeout: Get<BlockNumberFor<Self>>;
+		/// Porteering tokens will fail (balances unchanged) if: LastHeartBeat < Now - HeartBeatTimeout
+		type HeartBeatTimeout: Get<Self::Moment>;
 
 		/// Will be (Integritee Kusama, PalletIndex(PorteerIndex)) on Integritee Polkadot
 		/// and possibly `NeverEnsureOrigin` on Integritee Kusama.
@@ -207,6 +207,8 @@ pub mod pallet {
 		PortTokensInitError,
 		/// And error during initiation of porting the tokens occurred (balances unchanged).
 		ForwardTokensError,
+		/// Watchdog heartbeat is too old. We cannot be sure that the bridge is operable.
+		WatchdogHeartbeatIsTooOld,
 	}
 
 	#[pallet::storage]
@@ -220,14 +222,14 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type WatchdogAccount<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
 
-	/// The block number at which the last heartbeat was received.
-	#[pallet::storage]
-	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+    /// The block number at which the last heartbeat was received.
+    #[pallet::storage]
+    pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
 
-	/// Entails the amount of fees need at the respective hops.
-	#[pallet::storage]
-	pub(super) type XcmFeeConfig<T: Config> =
-		StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;
+    /// Entails the amount of fees needed at the respective hops.
+    #[pallet::storage]
+    pub(super) type XcmFeeConfig<T: Config> =
+    StorageValue<_, XcmFeeParams<BalanceOf<T>>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
@@ -332,7 +334,7 @@ pub mod pallet {
 			let watchdog = WatchdogAccount::<T>::get().ok_or(Error::<T>::InvalidWatchdogAccount)?;
 			ensure!(signer == watchdog, Error::<T>::InvalidWatchdogAccount);
 
-			LastHeartBeat::<T>::put(frame_system::Pallet::<T>::block_number());
+            LastHeartBeat::<T>::put(pallet_timestamp::Pallet::<T>::get());
 
 			Self::deposit_event(Event::<T>::WatchdogHeartBeatReceived);
 			Ok(Pays::No.into())
@@ -369,6 +371,13 @@ pub mod pallet {
 			let signer = ensure_signed(origin)?;
 
 			Self::ensure_sending_tokens_enabled()?;
+
+			let now = pallet_timestamp::Pallet::<T>::get();
+			if LastHeartBeat::<T>::get() <
+				now.saturating_sub(<T as Config>::HeartBeatTimeout::get())
+			{
+				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
+			};
 
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,
@@ -434,21 +443,6 @@ pub mod pallet {
 				}
 			}
 			Ok(())
-		}
-	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			let total_weight: Weight = Weight::zero();
-			if LastHeartBeat::<T>::get() < n.saturating_sub(<T as Config>::HeartBeatTimeout::get())
-			{
-				// read `LastHeartBeat`
-				total_weight.saturating_add(<T as frame_system::Config>::DbWeight::get().reads(1));
-				total_weight.saturating_add(Self::disable_bridge());
-			}
-
-			total_weight
 		}
 	}
 }
