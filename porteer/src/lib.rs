@@ -237,7 +237,7 @@ pub mod pallet {
 		pub porteer_config: PorteerConfig,
 		pub watchdog: Option<AccountIdOf<T>>,
 		pub initial_location_whitelist: Option<Vec<T::Location>>,
-		// Todo: Should we add the XCMFeeConfig too?
+		pub initial_xcm_fees: Option<XcmFeeParams<BalanceOf<T>>>,
 		#[serde(skip)]
 		pub _config: sp_std::marker::PhantomData<T>,
 	}
@@ -253,6 +253,9 @@ pub mod pallet {
 				for location in whitelist {
 					ForwardLocationWhitelist::<T>::insert(location, ());
 				}
+			}
+			if let Some(ref xcm_fees) = self.initial_xcm_fees {
+				XcmFeeConfig::<T>::put(xcm_fees)
 			}
 		}
 	}
@@ -508,6 +511,10 @@ impl<T: Config> Pallet<T> {
 			log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
 			Error::<T>::ForwardTokensError.into()
 		})
+	}
+
+	pub fn xcm_fee_config() -> XcmFeeParams<BalanceOf<T>> {
+		XcmFeeConfig::<T>::get()
 	}
 
 	fn ensure_sending_tokens_enabled() -> Result<(), Error<T>> {
