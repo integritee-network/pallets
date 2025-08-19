@@ -36,8 +36,8 @@ mod tests;
 
 pub mod weights;
 
-use frame_support::{traits::fungible, transactional};
-use sp_runtime::{DispatchError, Saturating};
+use frame_support::transactional;
+use sp_runtime::DispatchError;
 
 pub use crate::weights::WeightInfo;
 pub use pallet::*;
@@ -494,23 +494,13 @@ impl<T: Config> Pallet<T> {
 		amount: BalanceOf<T>,
 		location: T::Location,
 	) -> Result<(), DispatchError> {
-		// Hack: Keep 2 * ED as our unit test mock just burns the balance and we want the account
-		// to survive (do we actually?).
-		// Todo: How to properly cater for xcm delivery fees? I guess they should be paid by the
-		// beneficiary.
-		let forward_amount = amount
-			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance())
-			.saturating_sub(<T::Fungible as fungible::Inspect<_>>::minimum_balance());
-
-		T::ForwardPortedTokensToDestinations::forward_ported_tokens(
-			&beneficiary,
-			forward_amount,
-			location,
-		)
-		.map_err(|e| {
-			log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
-			Error::<T>::ForwardTokensError.into()
-		})
+		// The trait implementation will evaluate if the forwarding
+		// should respect the ED.
+		T::ForwardPortedTokensToDestinations::forward_ported_tokens(&beneficiary, amount, location)
+			.map_err(|e| {
+				log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
+				Error::<T>::ForwardTokensError.into()
+			})
 	}
 
 	pub fn xcm_fee_config() -> XcmFeeParams<BalanceOf<T>> {

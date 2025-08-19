@@ -427,8 +427,8 @@ fn minting_ported_tokens_with_forwarding_works() {
 			Some(WHITELISTED_LOCATION)
 		));
 
-		// We keep 2 the ED during forwarding
-		assert_eq!(Balances::free_balance(&bob), 2 * ed);
+		// We keep the ED during forwarding
+		assert_eq!(Balances::free_balance(&bob), ed);
 	})
 }
 

@@ -140,9 +140,12 @@ impl ForwardPortedTokens for MockPortTokens {
 		use frame_support::traits::fungible::Mutate;
 		match forward_tokens_to {
 			WHITELISTED_LOCATION => {
+				let burn_amount =
+					std::cmp::min(amount, Balances::free_balance(who) - ExistentialDeposit::get());
+
 				Balances::burn_from(
 					who,
-					amount,
+					burn_amount,
 					Preservation::Preserve,
 					Precision::Exact,
 					Fortitude::Polite,
@@ -186,6 +189,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		porteer_config: PorteerConfig { send_enabled: true, receive_enabled: true },
 		watchdog: None,
 		initial_location_whitelist: None,
+		initial_xcm_fees: None,
 		_config: Default::default(),
 	}
 	.assimilate_storage(&mut t)
