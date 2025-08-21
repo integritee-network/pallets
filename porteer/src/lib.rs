@@ -190,7 +190,7 @@ pub mod pallet {
 		FailedToForwardTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
 		/// Tried to forward the tokens to an illegal destination, hence the operation was
 		/// aborted (tokens were successfully minted on this chain though).
-		TriedToForwardTokensToIllegalLocation { location: T::Location },
+		IllegalForwardingLocation { location: T::Location },
 	}
 
 	#[pallet::error]
@@ -444,9 +444,7 @@ pub mod pallet {
 						}),
 					}
 				} else {
-					Self::deposit_event(Event::<T>::TriedToForwardTokensToIllegalLocation {
-						location: l,
-					})
+					Self::deposit_event(Event::<T>::IllegalForwardingLocation { location: l })
 				}
 			}
 			Ok(())

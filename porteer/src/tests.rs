@@ -451,10 +451,9 @@ fn minting_ported_tokens_with_forwarding_non_whitelisted_location_preserves_bala
 			Some(WHITELISTED_LOCATION)
 		));
 
-		let expected_event =
-			RuntimeEvent::Porteer(PorteerEvent::TriedToForwardTokensToIllegalLocation {
-				location: WHITELISTED_LOCATION,
-			});
+		let expected_event = RuntimeEvent::Porteer(PorteerEvent::IllegalForwardingLocation {
+			location: WHITELISTED_LOCATION,
+		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
 		// Bob's balance should be unchanged as nothing has been forwarded.
