@@ -390,11 +390,15 @@ pub mod pallet {
 				Fortitude::Polite,
 			)?;
 
-			T::PortTokensToDestination::port_tokens(&signer, amount, forward_tokens_to_location)
-				.map_err(|e| {
-					log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
-					Error::<T>::PortTokensInitError
-				})?;
+			T::PortTokensToDestination::port_tokens(
+				signer.clone(),
+				amount,
+				forward_tokens_to_location,
+			)
+			.map_err(|e| {
+				log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
+				Error::<T>::PortTokensInitError
+			})?;
 
 			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount });
 			Ok(())
@@ -460,7 +464,7 @@ pub trait PortTokens {
 	type Error: core::fmt::Debug;
 
 	fn port_tokens(
-		who: &Self::AccountId,
+		who: Self::AccountId,
 		amount: Self::Balance,
 		forward_tokens_to: Option<Self::Location>,
 	) -> Result<(), Self::Error>;
@@ -476,7 +480,7 @@ pub trait ForwardPortedTokens {
 	type Error: core::fmt::Debug;
 
 	fn forward_ported_tokens(
-		who: &Self::AccountId,
+		who: Self::AccountId,
 		amount: Self::Balance,
 		forward_tokens_to: Self::Location,
 	) -> Result<(), Self::Error>;
@@ -496,7 +500,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<(), DispatchError> {
 		// The trait implementation will evaluate if the forwarding
 		// should respect the ED.
-		T::ForwardPortedTokensToDestinations::forward_ported_tokens(&beneficiary, amount, location)
+		T::ForwardPortedTokensToDestinations::forward_ported_tokens(beneficiary, amount, location)
 			.map_err(|e| {
 				log::error!(target: LOG_TARGET, "Forward tokens error: {:?}", e);
 				Error::<T>::ForwardTokensError.into()

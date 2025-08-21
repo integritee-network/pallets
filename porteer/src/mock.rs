@@ -16,7 +16,7 @@
 */
 
 // Creating mock runtime here
-use crate::{pallet::BenchmarkHelper, ForwardPortedTokens, PortTokens, PorteerConfig};
+use crate::{ForwardPortedTokens, PortTokens, PorteerConfig};
 use frame_support::{
 	derive_impl, ord_parameter_types, parameter_types,
 	traits::{
@@ -32,6 +32,9 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	BuildStorage, DispatchError,
 };
+
+#[cfg(feature = "runtime-benchmarks")]
+use crate::pallet::BenchmarkHelper;
 
 pub type Signature = sp_runtime::MultiSignature;
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
@@ -118,7 +121,7 @@ impl PortTokens for MockPortTokens {
 	type Error = DispatchError;
 
 	fn port_tokens(
-		_who: &Self::AccountId,
+		_who: Self::AccountId,
 		_amount: Self::Balance,
 		_forward_tokens_to: Option<Self::Location>,
 	) -> Result<(), Self::Error> {
@@ -133,7 +136,7 @@ impl ForwardPortedTokens for MockPortTokens {
 	type Error = DispatchError;
 
 	fn forward_ported_tokens(
-		who: &Self::AccountId,
+		who: Self::AccountId,
 		amount: Self::Balance,
 		forward_tokens_to: Self::Location,
 	) -> Result<(), Self::Error> {
@@ -141,10 +144,10 @@ impl ForwardPortedTokens for MockPortTokens {
 		match forward_tokens_to {
 			WHITELISTED_LOCATION => {
 				let burn_amount =
-					std::cmp::min(amount, Balances::free_balance(who) - ExistentialDeposit::get());
+					std::cmp::min(amount, Balances::free_balance(&who) - ExistentialDeposit::get());
 
 				Balances::burn_from(
-					who,
+					&who,
 					burn_amount,
 					Preservation::Preserve,
 					Precision::Exact,
@@ -156,7 +159,7 @@ impl ForwardPortedTokens for MockPortTokens {
 			WHITELISTED_BUT_UNSUPPORTED_LOCATION => {
 				// Burn the balance to test that the rollback works
 				Balances::burn_from(
-					who,
+					&who,
 					amount,
 					Preservation::Preserve,
 					Precision::Exact,
