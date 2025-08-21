@@ -214,7 +214,6 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type PorteerConfigValue<T: Config> = StorageValue<_, PorteerConfig, ValueQuery>;
 
-	/// Todo: Do we want to have a value or is `()` ok?
 	#[pallet::storage]
 	pub type ForwardLocationWhitelist<T: Config> = StorageMap<_, Blake2_128Concat, T::Location, ()>;
 
