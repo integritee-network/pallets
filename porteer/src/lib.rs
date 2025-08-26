@@ -36,11 +36,14 @@ mod tests;
 
 pub mod weights;
 
-use frame_support::transactional;
-use sp_runtime::DispatchError;
-
 pub use crate::weights::WeightInfo;
+use frame_support::{transactional, Parameter};
 pub use pallet::*;
+use parity_scale_codec::MaxEncodedLen;
+use sp_runtime::{
+	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
+	DispatchError,
+};
 
 pub const LOG_TARGET: &str = "integritee::porteer";
 
@@ -183,7 +186,11 @@ pub mod pallet {
 		/// Ported some tokens to the destination chain.
 		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
 		/// Minted some tokens ported from another chain!
-		MintedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
+		MintedPortedTokens {
+			who: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+			sender_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
+		},
 		/// Forwarded some minted tokens to another location.
 		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
 		/// Failed to forward the tokens to the final destination.
@@ -221,9 +228,14 @@ pub mod pallet {
 	#[pallet::storage]
 	pub(super) type WatchdogAccount<T: Config> = StorageValue<_, AccountIdOf<T>, OptionQuery>;
 
-	/// The block number at which the last heartbeat was received.
+	/// The timestamp at which the last heartbeat was received.
 	#[pallet::storage]
 	pub(super) type LastHeartBeat<T: Config> = StorageValue<_, T::Moment, ValueQuery>;
+
+	/// The timestamp at which the last heartbeat was received.
+	#[pallet::storage]
+	pub(super) type PortTokensNonce<T: Config> =
+		StorageValue<_, <<T as Config>::PortTokensToDestination as PortTokens>::Nonce, ValueQuery>;
 
 	/// Entails the amount of fees needed at the respective hops.
 	#[pallet::storage]
@@ -389,10 +401,16 @@ pub mod pallet {
 				Fortitude::Polite,
 			)?;
 
+			let nonce = PortTokensNonce::<T>::mutate(|n| {
+				*n = n.saturating_add(1u32.into());
+				*n
+			});
+
 			T::PortTokensToDestination::port_tokens(
 				signer.clone(),
 				amount,
 				forward_tokens_to_location,
+				nonce,
 			)
 			.map_err(|e| {
 				log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
@@ -414,6 +432,7 @@ pub mod pallet {
 			beneficiary: AccountIdOf<T>,
 			amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
+			sender_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
 		) -> DispatchResult {
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
 
@@ -424,6 +443,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::MintedPortedTokens {
 				who: beneficiary.clone(),
 				amount,
+				sender_nonce,
 			});
 
 			// Forward the tokens if desired
@@ -455,6 +475,13 @@ pub trait PortTokens {
 	type AccountId;
 
 	type Balance;
+	type Nonce: Parameter
+		+ Member
+		+ AtLeast32BitUnsigned
+		+ Default
+		+ Copy
+		+ MaybeSerializeDeserialize
+		+ MaxEncodedLen;
 
 	type Location;
 
@@ -464,6 +491,7 @@ pub trait PortTokens {
 		who: Self::AccountId,
 		amount: Self::Balance,
 		forward_tokens_to: Option<Self::Location>,
+		nonce: Self::Nonce,
 	) -> Result<(), Self::Error>;
 }
 
