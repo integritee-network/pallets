@@ -112,8 +112,17 @@ pub mod pallet {
 	/// or
 	/// 2. AHP -> AHK -> IK
 	pub struct XcmFeeParams<Balance> {
+		/// to be paid by the `port_tokens` caller to cover all subsequent fees
+		#[codec(compact)]
+		pub local_equivalent_sum: Balance,
+		/// fees to be paid by sovereign account for source side Asset Hub execution involving swapping to KSM/DOT [TEER]
+		#[codec(compact)]
 		pub hop1: Balance,
+		/// fees to be paid by sovereign account for destination side Asset Hub execution involving swapping to DOT/KSM [KSM/DOT]
+		#[codec(compact)]
 		pub hop2: Balance,
+		/// fees to be paid by sovereign account for destination side Integritee execution involving swapping to TEER [DOT/KSM]
+		#[codec(compact)]
 		pub hop3: Balance,
 	}
 
@@ -148,6 +157,7 @@ pub mod pallet {
 			Location = Self::Location,
 		>;
 
+		type FeeCollectorAccount: Get<AccountIdOf<Self>>;
 		/// The location representation used by this pallet.
 		type Location: Parameter + Member + MaybeSerializeDeserialize + Debug + Ord + MaxEncodedLen;
 
@@ -380,6 +390,14 @@ pub mod pallet {
 			{
 				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
 			};
+
+			let user_fee = Self::xcm_fee_config().local_equivalent_sum;
+			<T::Fungible as fungible::Mutate<_>>::transfer(
+				&signer,
+				&T::FeeCollectorAccount::get(),
+				user_fee,
+				Preservation::Preserve,
+			)?;
 
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,
