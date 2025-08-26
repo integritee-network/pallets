@@ -112,8 +112,13 @@ pub mod pallet {
 	/// or
 	/// 2. AHP -> AHK -> IK
 	pub struct XcmFeeParams<Balance> {
+		/// to be paid by the `port_tokens` caller to cover all subsequent fees
+		pub local: Balance,
+		/// fees to be paid by sovereign account for source side Asset Hub execution involving swapping to KSM/DOT [TEER]
 		pub hop1: Balance,
+		/// fees to be paid by sovereign account for destination side Asset Hub execution involving swapping to DOT/KSM [KSM/DOT]
 		pub hop2: Balance,
+		/// fees to be paid by sovereign account for destination side Integritee execution involving swapping to TEER [DOT/KSM]
 		pub hop3: Balance,
 	}
 

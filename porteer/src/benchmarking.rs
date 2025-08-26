@@ -49,7 +49,7 @@ benchmarks! {
 		assert_eq!(LastHeartBeat::<T>::get(), now);
 	}
 	set_xcm_fee_params {
-		let fee_params = XcmFeeParams { hop1: 1u32.into(), hop2: 2u32.into(), hop3: 3u32.into() };
+		let fee_params = XcmFeeParams { local: 6u32.into(), hop1: 1u32.into(), hop2: 2u32.into(), hop3: 3u32.into() };
 	}: _(RawOrigin::Root, fee_params)
 	verify {
 		assert_eq!(XcmFeeConfig::<T>::get(), fee_params);

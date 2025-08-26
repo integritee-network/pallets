@@ -121,7 +121,7 @@ fn set_xcm_fee_params_works() {
 
 		assert_eq!(XcmFeeConfig::<Test>::get(), XcmFeeParams::default());
 
-		let new_fee_params = XcmFeeParams { hop1: 1, hop2: 2, hop3: 3 };
+		let new_fee_params = XcmFeeParams { local: 6, hop1: 1, hop2: 2, hop3: 3 };
 		assert_ok!(Porteer::set_xcm_fee_params(
 			RuntimeOrigin::signed(alice.clone()),
 			new_fee_params
