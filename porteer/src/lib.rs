@@ -39,7 +39,7 @@ pub mod weights;
 pub use crate::weights::WeightInfo;
 use frame_support::{transactional, Parameter};
 pub use pallet::*;
-use parity_scale_codec::MaxEncodedLen;
+use parity_scale_codec::{DecodeWithMemTracking, HasCompact, MaxEncodedLen};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, MaybeSerializeDeserialize, Member},
 	DispatchError,
@@ -389,7 +389,7 @@ pub mod pallet {
 		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
 		pub fn port_tokens(
 			origin: OriginFor<T>,
-			amount: BalanceOf<T>,
+			#[pallet::compact] amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
@@ -448,9 +448,9 @@ pub mod pallet {
 		pub fn mint_ported_tokens(
 			origin: OriginFor<T>,
 			beneficiary: AccountIdOf<T>,
-			amount: BalanceOf<T>,
+			#[pallet::compact] amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
-			source_nonce: PortTokensNonceOf<T>,
+			#[pallet::compact] source_nonce: PortTokensNonceOf<T>,
 		) -> DispatchResult {
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
 
@@ -499,6 +499,7 @@ pub trait PortTokens {
 		+ Default
 		+ Copy
 		+ MaybeSerializeDeserialize
+		+ HasCompact<Type: DecodeWithMemTracking>
 		+ MaxEncodedLen;
 
 	type Location;
