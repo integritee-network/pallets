@@ -189,7 +189,7 @@ pub mod pallet {
 		MintedPortedTokens {
 			who: AccountIdOf<T>,
 			amount: BalanceOf<T>,
-			sender_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
+			source_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
 		},
 		/// Forwarded some minted tokens to another location.
 		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
@@ -432,7 +432,7 @@ pub mod pallet {
 			beneficiary: AccountIdOf<T>,
 			amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
-			sender_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
+			source_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
 		) -> DispatchResult {
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
 
@@ -443,7 +443,7 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::MintedPortedTokens {
 				who: beneficiary.clone(),
 				amount,
-				sender_nonce,
+				source_nonce,
 			});
 
 			// Forward the tokens if desired

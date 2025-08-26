@@ -378,7 +378,7 @@ fn minting_ported_tokens_works() {
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::MintedPortedTokens {
 			who: bob.clone(),
 			amount: mint_amount,
-			sender_nonce: 42,
+			source_nonce: 42,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
