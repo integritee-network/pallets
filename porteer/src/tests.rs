@@ -301,6 +301,7 @@ fn port_tokens_system_test_works() {
 
 		assert_ok!(Porteer::set_watchdog(RuntimeOrigin::signed(alice.clone()), bob.clone()));
 
+		assert_eq!(PortTokensNonce::<Test>::get(), 0);
 		assert_eq!(LastHeartBeat::<Test>::get(), 0);
 		let now = Timestamp::get();
 
@@ -322,6 +323,7 @@ fn port_tokens_system_test_works() {
 			porteering_amount,
 			None
 		));
+		assert_eq!(PortTokensNonce::<Test>::get(), 1);
 
 		// Test that bridge stays enabled until the HeartbeatTimout
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get());
@@ -330,6 +332,7 @@ fn port_tokens_system_test_works() {
 			porteering_amount,
 			None
 		));
+		assert_eq!(PortTokensNonce::<Test>::get(), 2);
 
 		// Bridge Send is disabled after HeartbeatTimeout has passed
 		Timestamp::set_timestamp(now + HeartBeatTimeout::get() + 1);
@@ -337,6 +340,8 @@ fn port_tokens_system_test_works() {
 			Porteer::port_tokens(RuntimeOrigin::signed(alice.clone()), porteering_amount, None),
 			Error::<Test>::WatchdogHeartbeatIsTooOld
 		);
+		// Nonce has not increased
+		assert_eq!(PortTokensNonce::<Test>::get(), 2);
 	})
 }
 
@@ -396,12 +401,14 @@ fn minting_ported_tokens_works() {
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			None
+			None,
+			42
 		));
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::MintedPortedTokens {
 			who: bob.clone(),
 			amount: mint_amount,
+			source_nonce: 42,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
@@ -415,7 +422,7 @@ fn minting_ported_tokens_errs_with_wrong_origin() {
 		let bob = Keyring::Bob.to_account_id();
 
 		assert_noop!(
-			Porteer::mint_ported_tokens(RuntimeOrigin::signed(bob.clone()), bob, 1, None),
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(bob.clone()), bob, 1, None, 0),
 			BadOrigin
 		);
 	})
@@ -430,7 +437,7 @@ fn minting_ported_tokens_errs_when_receiving_disabled() {
 		assert_ok!(Porteer::set_porteer_config(RuntimeOrigin::signed(alice.clone()), config));
 
 		assert_noop!(
-			Porteer::mint_ported_tokens(RuntimeOrigin::signed(alice.clone()), alice, 1, None),
+			Porteer::mint_ported_tokens(RuntimeOrigin::signed(alice.clone()), alice, 1, None, 0),
 			Error::<Test>::PorteerOperationDisabled
 		);
 	})
@@ -454,7 +461,8 @@ fn minting_ported_tokens_with_forwarding_works() {
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			Some(WHITELISTED_LOCATION)
+			Some(WHITELISTED_LOCATION),
+			0
 		));
 
 		// We keep the ED during forwarding
@@ -478,7 +486,8 @@ fn minting_ported_tokens_with_forwarding_non_whitelisted_location_preserves_bala
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			Some(WHITELISTED_LOCATION)
+			Some(WHITELISTED_LOCATION),
+			0
 		));
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::IllegalForwardingLocation {
@@ -510,7 +519,8 @@ fn minting_ported_tokens_with_forwarding_to_unsupported_location_preserves_balan
 			RuntimeOrigin::signed(alice.clone()),
 			bob.clone(),
 			mint_amount,
-			Some(WHITELISTED_BUT_UNSUPPORTED_LOCATION)
+			Some(WHITELISTED_BUT_UNSUPPORTED_LOCATION),
+			0
 		));
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::FailedToForwardTokens {

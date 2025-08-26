@@ -119,6 +119,7 @@ pub struct MockPortTokens;
 impl PortTokens for MockPortTokens {
 	type AccountId = AccountId;
 	type Balance = Balance;
+	type Nonce = u32;
 	type Location = TestLocation;
 	type Error = DispatchError;
 
@@ -126,6 +127,7 @@ impl PortTokens for MockPortTokens {
 		_who: Self::AccountId,
 		_amount: Self::Balance,
 		_forward_tokens_to: Option<Self::Location>,
+		_nonce: Self::Nonce,
 	) -> Result<(), Self::Error> {
 		Ok(())
 	}

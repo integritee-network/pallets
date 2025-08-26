@@ -85,7 +85,7 @@ benchmarks! {
 		<T::Fungible as fungible::Mutate<_>>::set_balance(&bob, 0u32.into());
 		let location = <T as Config>::BenchmarkHelper::get_whitelisted_location();
 
-	}: _(RawOrigin::Root, bob.clone(), mint_amount, Some(location))
+	}: _(RawOrigin::Root, bob.clone(), mint_amount, Some(location), 0u32.into())
 	verify {
 		assert_eq!(<T::Fungible as fungible::Inspect<_>>::balance(&bob), mint_amount);
 	}
