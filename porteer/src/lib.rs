@@ -389,7 +389,7 @@ pub mod pallet {
 		#[pallet::weight(< T as Config >::WeightInfo::port_tokens())]
 		pub fn port_tokens(
 			origin: OriginFor<T>,
-			amount: BalanceOf<T>,
+			#[pallet::compact] amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
 		) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
@@ -448,7 +448,7 @@ pub mod pallet {
 		pub fn mint_ported_tokens(
 			origin: OriginFor<T>,
 			beneficiary: AccountIdOf<T>,
-			amount: BalanceOf<T>,
+			#[pallet::compact] amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
 			#[pallet::compact] source_nonce: PortTokensNonceOf<T>,
 		) -> DispatchResult {
