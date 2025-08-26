@@ -113,7 +113,7 @@ pub mod pallet {
 	/// 2. AHP -> AHK -> IK
 	pub struct XcmFeeParams<Balance> {
 		/// to be paid by the `port_tokens` caller to cover all subsequent fees
-		pub local: Balance,
+		pub local_equivalent_sum: Balance,
 		/// fees to be paid by sovereign account for source side Asset Hub execution involving swapping to KSM/DOT [TEER]
 		pub hop1: Balance,
 		/// fees to be paid by sovereign account for destination side Asset Hub execution involving swapping to DOT/KSM [KSM/DOT]
@@ -387,7 +387,7 @@ pub mod pallet {
 				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
 			};
 
-			let user_fee = Self::xcm_fee_config().local;
+			let user_fee = Self::xcm_fee_config().local_equivalent_sum;
 			<T::Fungible as fungible::Mutate<_>>::transfer(
 				&signer,
 				&T::FeeCollectorAccount::get(),

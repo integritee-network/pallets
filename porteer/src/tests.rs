@@ -121,7 +121,7 @@ fn set_xcm_fee_params_works() {
 
 		assert_eq!(XcmFeeConfig::<Test>::get(), XcmFeeParams::default());
 
-		let new_fee_params = XcmFeeParams { local: 6, hop1: 1, hop2: 2, hop3: 3 };
+		let new_fee_params = XcmFeeParams { local_equivalent_sum: 6, hop1: 1, hop2: 2, hop3: 3 };
 		assert_ok!(Porteer::set_xcm_fee_params(
 			RuntimeOrigin::signed(alice.clone()),
 			new_fee_params
@@ -271,7 +271,8 @@ fn port_tokens_charges_fees_if_port_possible() {
 
 		assert_eq!(XcmFeeConfig::<Test>::get(), XcmFeeParams::default());
 
-		let new_fee_params = XcmFeeParams { local: 600_000_000_000, hop1: 1, hop2: 2, hop3: 3 };
+		let new_fee_params =
+			XcmFeeParams { local_equivalent_sum: 600_000_000_000, hop1: 1, hop2: 2, hop3: 3 };
 		assert_ok!(Porteer::set_xcm_fee_params(
 			RuntimeOrigin::signed(alice.clone()),
 			new_fee_params
@@ -280,8 +281,11 @@ fn port_tokens_charges_fees_if_port_possible() {
 		let port_amount: BalanceOf<Test> = 10_000_000_000_000u128;
 
 		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(bob.clone()), port_amount, None));
-		assert_eq!(Balances::free_balance(bob), bob_free - port_amount - new_fee_params.local);
-		assert_eq!(Balances::free_balance(ferdie), new_fee_params.local);
+		assert_eq!(
+			Balances::free_balance(bob),
+			bob_free - port_amount - new_fee_params.local_equivalent_sum
+		);
+		assert_eq!(Balances::free_balance(ferdie), new_fee_params.local_equivalent_sum);
 	})
 }
 
