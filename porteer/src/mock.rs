@@ -82,6 +82,7 @@ impl pallet_balances::Config for Test {
 
 ord_parameter_types! {
 	pub const Alice: AccountId = AccountId::new(hex2array!("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"));
+	pub const Ferdie: AccountId = AccountId::new(hex2array!("1cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c"));
 }
 
 parameter_types! {
@@ -106,6 +107,7 @@ impl crate::Config for Test {
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;
 	type PortTokensToDestination = MockPortTokens;
 	type ForwardPortedTokensToDestinations = MockPortTokens;
+	type FeeCollectorAccount = Ferdie;
 	type Location = TestLocation;
 	type Fungible = Balances;
 	#[cfg(feature = "runtime-benchmarks")]

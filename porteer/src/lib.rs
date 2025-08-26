@@ -153,6 +153,7 @@ pub mod pallet {
 			Location = Self::Location,
 		>;
 
+		type FeeCollectorAccount: Get<AccountIdOf<Self>>;
 		/// The location representation used by this pallet.
 		type Location: Parameter + Member + MaybeSerializeDeserialize + Debug + Ord + MaxEncodedLen;
 
@@ -385,6 +386,14 @@ pub mod pallet {
 			{
 				return Err(Error::<T>::WatchdogHeartbeatIsTooOld.into());
 			};
+
+			let user_fee = Self::xcm_fee_config().local;
+			<T::Fungible as fungible::Mutate<_>>::transfer(
+				&signer,
+				&T::FeeCollectorAccount::get(),
+				user_fee,
+				Preservation::Preserve,
+			)?;
 
 			<T::Fungible as fungible::Mutate<_>>::burn_from(
 				&signer,

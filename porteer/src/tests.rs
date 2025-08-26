@@ -260,6 +260,32 @@ fn port_tokens_works_at_timeout_threshold() {
 }
 
 #[test]
+fn port_tokens_charges_fees_if_port_possible() {
+	new_test_ext().execute_with(|| {
+		let alice = Keyring::Alice.to_account_id();
+		let bob = Keyring::Bob.to_account_id();
+		let ferdie = Keyring::Ferdie.to_account_id();
+		let bob_free: BalanceOf<Test> = 15_000_000_000_000u128;
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&bob, bob_free);
+		<Test as pallet::Config>::Fungible::make_free_balance_be(&ferdie, 0);
+
+		assert_eq!(XcmFeeConfig::<Test>::get(), XcmFeeParams::default());
+
+		let new_fee_params = XcmFeeParams { local: 600_000_000_000, hop1: 1, hop2: 2, hop3: 3 };
+		assert_ok!(Porteer::set_xcm_fee_params(
+			RuntimeOrigin::signed(alice.clone()),
+			new_fee_params
+		));
+
+		let port_amount: BalanceOf<Test> = 10_000_000_000_000u128;
+
+		assert_ok!(Porteer::port_tokens(RuntimeOrigin::signed(bob.clone()), port_amount, None));
+		assert_eq!(Balances::free_balance(bob), bob_free - port_amount - new_fee_params.local);
+		assert_eq!(Balances::free_balance(ferdie), new_fee_params.local);
+	})
+}
+
+#[test]
 fn port_tokens_system_test_works() {
 	// This test tests the whole logic:
 	// 1. Updating the heartbeat timeout works.
