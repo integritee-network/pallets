@@ -66,6 +66,7 @@ pub mod pallet {
 
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type BalanceOf<T> = <<T as Config>::Fungible as fungible::Inspect<AccountIdOf<T>>>::Balance;
+	pub type PortTokensNonceOf<T> = <<T as Config>::PortTokensToDestination as PortTokens>::Nonce;
 
 	const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 	#[pallet::pallet]
@@ -189,7 +190,7 @@ pub mod pallet {
 		MintedPortedTokens {
 			who: AccountIdOf<T>,
 			amount: BalanceOf<T>,
-			source_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
+			source_nonce: PortTokensNonceOf<T>,
 		},
 		/// Forwarded some minted tokens to another location.
 		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
@@ -234,8 +235,7 @@ pub mod pallet {
 
 	/// The timestamp at which the last heartbeat was received.
 	#[pallet::storage]
-	pub(super) type PortTokensNonce<T: Config> =
-		StorageValue<_, <<T as Config>::PortTokensToDestination as PortTokens>::Nonce, ValueQuery>;
+	pub(super) type PortTokensNonce<T: Config> = StorageValue<_, PortTokensNonceOf<T>, ValueQuery>;
 
 	/// Entails the amount of fees needed at the respective hops.
 	#[pallet::storage]
@@ -432,7 +432,7 @@ pub mod pallet {
 			beneficiary: AccountIdOf<T>,
 			amount: BalanceOf<T>,
 			forward_tokens_to_location: Option<T::Location>,
-			source_nonce: <<T as Config>::PortTokensToDestination as PortTokens>::Nonce,
+			source_nonce: PortTokensNonceOf<T>,
 		) -> DispatchResult {
 			let _signer = T::TokenSenderLocationOrigin::ensure_origin(origin)?;
 
