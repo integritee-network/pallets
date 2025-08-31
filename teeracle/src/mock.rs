@@ -143,14 +143,12 @@ parameter_types! {
 }
 
 impl pallet_teerex::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
 	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type MaxWhitelistedReleases = MaxWhitelistedReleases;
 	type MaxOracleBlobLen = MaxOracleBlobLen;

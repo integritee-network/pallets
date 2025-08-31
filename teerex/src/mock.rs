@@ -141,7 +141,6 @@ parameter_types! {
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 	type WeightInfo = ();

@@ -50,7 +50,6 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config + pallet_teerex::Config + pallet_enclave_bridge::Config
 	{
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 	}
 

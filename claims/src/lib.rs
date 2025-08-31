@@ -90,8 +90,6 @@ pub mod pallet {
 	/// Configuration trait.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// The overarching event type.
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type VestingSchedule: VestingSchedule<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		#[pallet::constant]
 		type Prefix: Get<&'static [u8]>;
@@ -746,7 +744,6 @@ mod tests {
 	}
 
 	impl Config for Test {
-		type RuntimeEvent = RuntimeEvent;
 		type VestingSchedule = Vesting;
 		type Prefix = Prefix;
 		type MoveClaimOrigin = frame_system::EnsureSignedBy<Six, u64>;
