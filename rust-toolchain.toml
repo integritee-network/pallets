@@ -1,4 +1,10 @@
 [toolchain]
-channel = "1.88.0"
-targets = ["wasm32-unknown-unknown"]
+channel = "1.88.0"  # align with https://github.com/polkadot-fellows/runtimes/blob/main/.github/env#L1
 profile = "default" # include rustfmt, clippy
+components = [
+    "cargo",
+    "clippy",
+    "rust-src",
+    "rustfmt",
+]
+targets = ["wasm32-unknown-unknown"]
