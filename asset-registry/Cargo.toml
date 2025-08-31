@@ -89,14 +89,15 @@ runtime-benchmarks = [
     "staging-xcm/runtime-benchmarks",
 ]
 try-runtime = [
-    "frame-support/try-runtime",
-    "cumulus-pallet-dmp-queue/try-runtime",
-    "cumulus-pallet-xcmp-queue/try-runtime",
-    "frame-system/try-runtime",
-    "pallet-assets/try-runtime",
-    "pallet-balances/try-runtime",
-    "pallet-xcm/try-runtime",
-    "polkadot-runtime-parachains/try-runtime",
-    "sp-runtime/try-runtime",
-    "staging-parachain-info/try-runtime",
+	"frame-support/try-runtime",
+	"cumulus-pallet-dmp-queue/try-runtime",
+	"cumulus-pallet-xcmp-queue/try-runtime",
+	"frame-system/try-runtime",
+	"pallet-assets/try-runtime",
+	"pallet-balances/try-runtime",
+	"pallet-xcm/try-runtime",
+	"polkadot-runtime-parachains/try-runtime",
+	"sp-runtime/try-runtime",
+	"staging-parachain-info/try-runtime",
+	"parachains-common/try-runtime"
 ]
