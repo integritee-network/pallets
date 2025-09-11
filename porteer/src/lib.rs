@@ -194,7 +194,11 @@ pub mod pallet {
 		/// The XcmFeeConfig has been set.
 		XcmFeeConfigSet { fees: XcmFeeParams<BalanceOf<T>> },
 		/// Ported some tokens to the destination chain.
-		PortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T> },
+		PortedTokens {
+			who: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+			source_nonce: PortTokensNonceOf<T>,
+		},
 		/// Minted some tokens ported from another chain!
 		MintedPortedTokens {
 			who: AccountIdOf<T>,
@@ -202,12 +206,22 @@ pub mod pallet {
 			source_nonce: PortTokensNonceOf<T>,
 		},
 		/// Forwarded some minted tokens to another location.
-		ForwardedPortedTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
+		ForwardedPortedTokens {
+			who: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+			location: T::Location,
+			source_nonce: PortTokensNonceOf<T>,
+		},
 		/// Failed to forward the tokens to the final destination.
-		FailedToForwardTokens { who: AccountIdOf<T>, amount: BalanceOf<T>, location: T::Location },
+		FailedToForwardTokens {
+			who: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+			location: T::Location,
+			source_nonce: PortTokensNonceOf<T>,
+		},
 		/// Tried to forward the tokens to an illegal destination, hence the operation was
 		/// aborted (tokens were successfully minted on this chain though).
-		IllegalForwardingLocation { location: T::Location },
+		IllegalForwardingLocation { location: T::Location, source_nonce: PortTokensNonceOf<T> },
 	}
 
 	#[pallet::error]
@@ -418,7 +432,7 @@ pub mod pallet {
 				Fortitude::Polite,
 			)?;
 
-			let nonce = PortTokensNonce::<T>::mutate(|n| {
+			let source_nonce = PortTokensNonce::<T>::mutate(|n| {
 				*n = n.saturating_add(1u32.into());
 				*n
 			});
@@ -427,14 +441,14 @@ pub mod pallet {
 				signer.clone(),
 				amount,
 				forward_tokens_to_location,
-				nonce,
+				source_nonce,
 			)
 			.map_err(|e| {
 				log::error!(target: LOG_TARGET, "Port tokens error: {:?}", e);
 				Error::<T>::PortTokensInitError
 			})?;
 
-			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount });
+			Self::deposit_event(Event::<T>::PortedTokens { who: signer, amount, source_nonce });
 			Ok(())
 		}
 
@@ -472,15 +486,20 @@ pub mod pallet {
 							who: beneficiary.clone(),
 							amount,
 							location: l,
+							source_nonce,
 						}),
 						Err(_) => Self::deposit_event(Event::<T>::FailedToForwardTokens {
 							who: beneficiary.clone(),
 							amount,
 							location: l,
+							source_nonce,
 						}),
 					}
 				} else {
-					Self::deposit_event(Event::<T>::IllegalForwardingLocation { location: l })
+					Self::deposit_event(Event::<T>::IllegalForwardingLocation {
+						location: l,
+						source_nonce,
+					})
 				}
 			}
 			Ok(())

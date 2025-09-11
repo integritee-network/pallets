@@ -492,6 +492,7 @@ fn minting_ported_tokens_with_forwarding_non_whitelisted_location_preserves_bala
 
 		let expected_event = RuntimeEvent::Porteer(PorteerEvent::IllegalForwardingLocation {
 			location: WHITELISTED_LOCATION,
+			source_nonce: 0,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
@@ -527,6 +528,7 @@ fn minting_ported_tokens_with_forwarding_to_unsupported_location_preserves_balan
 			who: bob.clone(),
 			amount: mint_amount,
 			location: WHITELISTED_BUT_UNSUPPORTED_LOCATION,
+			source_nonce: 0,
 		});
 		assert!(System::events().iter().any(|a| a.event == expected_event));
 
