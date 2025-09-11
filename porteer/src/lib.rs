@@ -133,7 +133,6 @@ pub mod pallet {
 	/// Configuration trait.
 	#[pallet::config]
 	pub trait Config: frame_system::Config + pallet_timestamp::Config {
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type WeightInfo: WeightInfo;
 
 		/// Can enable/disable the bridge, e.g. council/technical committee.

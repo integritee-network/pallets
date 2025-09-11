@@ -67,7 +67,6 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config + pallet_timestamp::Config + pallet_teerex::Config
 	{
-		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type Currency: Currency<<Self as frame_system::Config>::AccountId>;
 		type WeightInfo: WeightInfo;
 	}
@@ -504,7 +503,7 @@ impl<T: Config> Pallet<T> {
 	fn deposit_event_indexed(topics: &[T::Hash], event: Event<T>) {
 		<frame_system::Pallet<T>>::deposit_event_indexed(
 			topics,
-			<T as Config>::RuntimeEvent::from(event).into(),
+			<T as frame_system::Config>::RuntimeEvent::from(event).into(),
 		)
 	}
 }

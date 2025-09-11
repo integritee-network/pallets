@@ -128,7 +128,6 @@ parameter_types! {
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type UnlockPeriod = UnlockPeriod;
 	type WeightInfo = ();
 	type Currency = Balances;

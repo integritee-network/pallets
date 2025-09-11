@@ -83,7 +83,6 @@ impl pallet_asset_registry::BenchmarkHelper<u32> for MockAssetRegistryBenchmarkH
 }
 
 impl pallet_asset_registry::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type ReserveAssetModifierOrigin = frame_system::EnsureRoot<Self::AccountId>;
 	type Assets = Assets;
 	type WeightInfo = pallet_asset_registry::weights::SubstrateWeight<Test>;

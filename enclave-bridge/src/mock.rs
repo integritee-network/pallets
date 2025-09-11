@@ -130,14 +130,12 @@ parameter_types! {
 }
 
 impl pallet_teerex::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 	type WeightInfo = ();
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type WeightInfo = ();
 }

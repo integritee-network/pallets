@@ -97,7 +97,6 @@ pub const WHITELISTED_LOCATION: TestLocation = 1;
 pub const WHITELISTED_BUT_UNSUPPORTED_LOCATION: TestLocation = 2;
 
 impl crate::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 	type PorteerAdmin =
 		EitherOfDiverse<EnsureSignedBy<Alice, AccountId32>, EnsureRoot<AccountId32>>;

@@ -99,4 +99,5 @@ try-runtime = [
     "polkadot-runtime-parachains/try-runtime",
     "sp-runtime/try-runtime",
     "staging-parachain-info/try-runtime",
+    "parachains-common/try-runtime",
 ]

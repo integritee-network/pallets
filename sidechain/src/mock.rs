@@ -130,14 +130,12 @@ parameter_types! {
 }
 
 impl pallet_teerex::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type MomentsPerDay = MomentsPerDay;
 	type WeightInfo = ();
 	type MaxAttestationRenewalPeriod = MaxAttestationRenewalPeriod;
 }
 
 impl pallet_enclave_bridge::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type WeightInfo = ();
 }
@@ -148,7 +146,6 @@ parameter_types! {
 }
 
 impl Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type WeightInfo = ();
 }
 
